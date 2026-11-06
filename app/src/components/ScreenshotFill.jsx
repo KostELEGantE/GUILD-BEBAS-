@@ -147,17 +147,75 @@ export function matchAll(cells, members) {
   return out
 }
 
-export default function ScreenshotFill({ ev, size, partyName, members, memberById, signups, reservedOf, onClose, onDone, toast }) {
+/**
+ * Rencana penempatan. Screenshot = data asli; susunan di website hanya rencana.
+ * - Setiap party di screenshot tetap bersama, ditaruh di party mana saja pada bagian yang dipilih
+ *   (nomor party di game tidak harus sama dengan di website).
+ * - Hanya mengisi slot kosong; orang lain yang sudah ada tidak digeser.
+ * - Karakter dari screenshot yang sekarang ada di tempat lain (mis. di Sub) ditarik ke sini.
+ */
+export function makePlan({ teams, sec, signups, size, reservedOf }) {
+  const moving = new Set(teams.flatMap((t) => t.ids))
+  const cur = new Map(signups.map((s) => [s.member_id, s]))
+  const occ = new Map() // party -> Map(slot -> member) tanpa karakter yang akan dipindah
+  for (let p = sec.from; p <= sec.to; p++) occ.set(p, new Map())
+  for (const s of signups) if (occ.has(s.party_no) && s.slot_no <= size && !moving.has(s.member_id)) occ.get(s.party_no).set(s.slot_no, s.member_id)
+  const freeSlots = (p) => {
+    const rs = reservedOf(p)
+    return Array.from({ length: size }, (_, j) => j + 1).filter((x) => !occ.get(p).has(x) && !rs[x])
+  }
+  const out = []
+  const left = []
+  for (const t of teams) {
+    if (!t.ids.length) continue
+    const parties = [...occ.keys()]
+    const here = (p) => t.ids.filter((id) => cur.get(id)?.party_no === p).length
+    // party yang muat seluruh tim; utamakan party yang sudah berisi anggota tim ini
+    const fit = parties.filter((p) => freeSlots(p).length >= t.ids.length).sort((a, b) => here(b) - here(a) || a - b)
+    let queue = [...t.ids]
+    const place = (p) => {
+      const free = freeSlots(p)
+      const rest = []
+      // yang sudah di party ini tetap di slotnya
+      for (const id of queue) {
+        const c = cur.get(id)
+        if (c?.party_no === p && free.includes(c.slot_no)) {
+          occ.get(p).set(c.slot_no, id)
+          free.splice(free.indexOf(c.slot_no), 1)
+          out.push({ id, team: t.n, party: p, slot: c.slot_no })
+        } else rest.push(id)
+      }
+      queue = []
+      for (const id of rest) {
+        const slot = free.shift()
+        if (!slot) {
+          queue.push(id)
+          continue
+        }
+        occ.get(p).set(slot, id)
+        out.push({ id, team: t.n, party: p, slot })
+      }
+    }
+    if (fit.length) place(fit[0])
+    else
+      // tidak ada yang muat: pecah ke party dengan slot kosong terbanyak
+      for (const p of [...parties].sort((a, b) => freeSlots(b).length - freeSlots(a).length)) {
+        if (!queue.length) break
+        if (freeSlots(p).length) place(p)
+      }
+    for (const id of queue) left.push({ id, team: t.n })
+  }
+  return { out, left }
+}
+
+export default function ScreenshotFill({ ev, secs, size, partyName, members, memberById, signups, reservedOf, onClose, onDone, toast }) {
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
-  const [status, setStatus] = useState(null) // teks progres
+  const [status, setStatus] = useState(null)
   const [rows, setRows] = useState(null)
-  const [offset, setOffset] = useState(0) // Party 1 di screenshot = party (1 + offset) di papan
-  const [clearOthers, setClearOthers] = useState(false)
+  const [secIdx, setSecIdx] = useState(0) // bagian tujuan: Main / Sub / STAR / ND…
   const [busy, setBusy] = useState(false)
-  const fileRef = useRef(null)
 
-  // tempel (Ctrl+V) screenshot langsung
   useEffect(() => {
     const onPaste = (e) => {
       const f = [...(e.clipboardData?.files || [])].find((x) => x.type.startsWith('image/'))
@@ -192,55 +250,66 @@ export default function ScreenshotFill({ ev, size, partyName, members, memberByI
     }
   }
 
-  const sorted = useMemo(
-    () => [...members].filter((m) => m.active).sort((a, b) => a.name.localeCompare(b.name)),
-    [members],
+  const sorted = useMemo(() => [...members].filter((m) => m.active).sort((a, b) => a.name.localeCompare(b.name)), [members])
+  const sec = secs[secIdx] ?? secs[0]
+  const teamNos = [...new Set((rows || []).map((r) => r.party))]
+  const teams = teamNos.map((n) => ({
+    n,
+    ids: (rows || []).filter((r) => r.party === n && r.memberId).sort((a, b) => a.slot - b.slot).map((r) => r.memberId),
+  }))
+  const plan = useMemo(
+    () => (rows ? makePlan({ teams, sec, signups, size, reservedOf }) : { out: [], left: [] }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, secIdx, signups, size],
   )
-  const target = (r) => r.party + offset
-  const valid = (rows || []).filter((r) => target(r) >= 1 && target(r) <= ev.party_count && r.slot <= size)
-  const ready = valid.filter((r) => r.memberId)
-  const parties = [...new Set(valid.map(target))]
+  const planOf = new Map(plan.out.map((x) => [x.id, x]))
+  const leftIds = new Set(plan.left.map((x) => x.id))
+  const curOf = new Map(signups.map((s) => [s.member_id, s]))
+  const ready = plan.out.length
+  const unread = (rows || []).filter((r) => !r.memberId).length
 
-  const setRow = (i, memberId) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, memberId, score: memberId ? 1 : 0 } : r)))
+  const setRow = (i, memberId) =>
+    setRows((rs) => rs.map((r, j) => (j === i ? { ...r, memberId, score: memberId ? 1 : 0 } : j !== i && memberId && r.memberId === memberId ? { ...r, memberId: null, score: 0 } : r)))
+
+  /** keterangan perpindahan: baru / tetap / ditarik dari party lain */
+  const moveNote = (id) => {
+    const c = curOf.get(id)
+    const t = planOf.get(id)
+    if (!t) return leftIds.has(id) ? { k: 'left', t: 'tidak muat' } : null
+    if (!c || !c.party_no || c.party_no > ev.party_count) return { k: 'new', t: 'baru' }
+    if (c.party_no === t.party) return { k: 'stay', t: 'tetap' }
+    return { k: 'move', t: `dari ${partyName(c.party_no)}` }
+  }
 
   async function apply() {
     setBusy(true)
     let ok = 0
     const fails = []
     try {
-      const wanted = new Set(ready.map((r) => r.memberId))
-      if (clearOthers) {
-        for (const s of signups) {
-          if (parties.includes(s.party_no) && !wanted.has(s.member_id)) {
-            try {
-              await rpc('leave_event', { p_event_id: ev.id, p_member_id: s.member_id })
-            } catch (e) {
-              fails.push(`${memberById.get(s.member_id)?.name}: ${e.message}`)
-            }
+      const targets = new Set(plan.out.map((x) => `${x.party}-${x.slot}`))
+      // 1) karakter yang menempati slot tujuan orang lain -> keluar dulu ke daftar tunggu
+      for (const x of plan.out) {
+        const c = curOf.get(x.id)
+        if (c?.party_no && !(c.party_no === x.party && c.slot_no === x.slot) && targets.has(`${c.party_no}-${c.slot_no}`)) {
+          try {
+            await rpc('join_slot', { p_event_id: ev.id, p_member_id: x.id, p_party_no: null, p_slot_no: null })
+          } catch (e) {
+            fails.push(`${memberById.get(x.id)?.name}: ${e.message}`)
           }
         }
       }
-      // slot yang sudah terisi orang lain -> pakai slot kosong lain di party yang sama
-      const taken = new Map() // "p-s" -> member_id
-      for (const s of signups) if (s.party_no && !(clearOthers && parties.includes(s.party_no) && !wanted.has(s.member_id))) taken.set(`${s.party_no}-${s.slot_no}`, s.member_id)
-      for (const r of ready) for (const [k, v] of taken) if (v === r.memberId) taken.delete(k)
-      for (const r of ready) {
-        const p = target(r)
-        let slot = r.slot
-        const rs = reservedOf(p)
-        const free = (s) => !taken.has(`${p}-${s}`) && !rs[s]
-        if (!free(slot)) slot = Array.from({ length: size }, (_, j) => j + 1).find(free)
-        const name = memberById.get(r.memberId)?.name
-        if (!slot) {
-          fails.push(`${name}: ${partyName(p)} penuh`)
+      // 2) masukkan ke slot tujuan
+      for (const x of plan.out) {
+        const c = curOf.get(x.id)
+        if (c?.party_no === x.party && c.slot_no === x.slot) {
+          ok++
           continue
         }
         try {
-          await rpc('join_slot', { p_event_id: ev.id, p_member_id: r.memberId, p_party_no: p, p_slot_no: slot })
-          taken.set(`${p}-${slot}`, r.memberId)
+          await rpc('join_slot', { p_event_id: ev.id, p_member_id: x.id, p_party_no: x.party, p_slot_no: x.slot })
           ok++
         } catch (e) {
-          fails.push(`${name}: ${e.message}`)
+          fails.push(`${memberById.get(x.id)?.name}: ${e.message}`)
         }
       }
     } finally {
@@ -248,8 +317,9 @@ export default function ScreenshotFill({ ev, size, partyName, members, memberByI
     }
     await onDone()
     toast(`${ok} karakter dimasukkan dari screenshot`)
+    if (plan.left.length) toast(`${plan.left.length} karakter tidak muat di ${sec.name}`, 'err')
     if (fails.length) toast(fails.slice(0, 4).join(' · '), 'err')
-    if (!fails.length) onClose()
+    if (!fails.length && !plan.left.length) onClose()
   }
 
   return (
@@ -265,12 +335,23 @@ export default function ScreenshotFill({ ev, size, partyName, members, memberByI
         {!file && (
           <p className="small muted">
             Ambil screenshot layar party di game (judul “Party 1, Party 2…” harus terlihat), lalu pilih file atau tempel dengan
-            Ctrl+V. Nama dibaca otomatis dan dicocokkan dengan roster; Anda bisa memeriksa dulu sebelum disimpan.
+            Ctrl+V. Setiap party di screenshot tetap bersama dan diisikan ke slot kosong; screenshot dianggap data yang benar.
           </p>
         )}
 
+        <label className="row gap-sm">
+          <span className="muted small">Screenshot ini untuk</span>
+          <select className="select-sm" value={secIdx} onChange={(e) => setSecIdx(Number(e.target.value))}>
+            {secs.map((x, i) => (
+              <option key={x.from} value={i}>
+                {x.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <label className="dropzone" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files?.[0]) }}>
-          <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
+          <input type="file" accept="image/*" hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
           {preview ? <img src={preview} alt="" className="shot-preview" /> : <span>🖼 Pilih / seret / tempel screenshot</span>}
           {file && <span className="small muted">Klik untuk ganti gambar</span>}
         </label>
@@ -283,69 +364,63 @@ export default function ScreenshotFill({ ev, size, partyName, members, memberByI
 
         {rows && (
           <>
-            <div className="row gap-sm wrap">
-              <label className="row gap-sm small">
-                <span className="muted">“Party 1” di screenshot =</span>
-                <select className="select-sm" value={offset} onChange={(e) => setOffset(Number(e.target.value))}>
-                  {Array.from({ length: Math.max(1, ev.party_count) }, (_, i) => (
-                    <option key={i} value={i}>
-                      {partyName(i + 1)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <span className="grow" />
-              <span className="small muted">{`${ready.length} cocok · ${valid.length - ready.length} perlu dipilih`}</span>
+            <div className="row gap-sm">
+              <span className="small muted grow">{`${ready} masuk ${sec.name} · ${unread} tidak terbaca${plan.left.length ? ` · ${plan.left.length} tidak muat` : ''}`}</span>
             </div>
 
-            {valid.length === 0 ? (
+            {rows.length === 0 ? (
               <p className="notice notice-err small">
                 Tidak ada nama yang terbaca. Pastikan screenshot memperlihatkan judul “Party …” dan nama karakter dengan jelas.
               </p>
             ) : (
               <div className="shot-list">
-                {parties.map((p) => (
-                  <div key={p} className="shot-party">
-                    <div className="shot-party-name">{partyName(p)}</div>
-                    {(rows || []).map((r, i) =>
-                      target(r) !== p || r.slot > size ? null : (
-                        <div key={i} className={`shot-row ${r.memberId ? (r.score >= 0.8 ? 'ok' : 'maybe') : 'miss'}`}>
-                          <span className="shot-slot">{r.slot}</span>
-                          <span className="shot-read notranslate" title="Teks yang terbaca dari gambar">
-                            {r.text}
-                          </span>
-                          <span className="shot-arrow">→</span>
-                          {r.memberId && <JobIcon m={memberById.get(r.memberId)} size={22} />}
-                          <select className="select-sm notranslate" value={r.memberId ?? ''} onChange={(e) => setRow(i, e.target.value ? Number(e.target.value) : null)}>
-                            <option value="">{tr('— lewati —')}</option>
-                            {sorted.map((m) => (
-                              <option key={m.id} value={m.id}>
-                                {m.name} · {m.class}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                ))}
+                {teamNos.map((n) => {
+                  const dest = [...new Set(plan.out.filter((x) => x.team === n).map((x) => x.party))]
+                  return (
+                    <div key={n} className="shot-party">
+                      <div className="shot-party-name">
+                        {`Party ${n} (game)`}
+                        <span className="shot-dest">{dest.length ? `→ ${dest.map(partyName).join(' + ')}` : ''}</span>
+                      </div>
+                      {rows.map((r, i) => {
+                        if (r.party !== n) return null
+                        const note = r.memberId ? moveNote(r.memberId) : null
+                        return (
+                          <div key={i} className={`shot-row ${r.memberId ? (r.score >= 0.8 ? 'ok' : 'maybe') : 'miss'}`}>
+                            <span className="shot-read notranslate" title="Teks yang terbaca dari gambar">
+                              {r.text}
+                            </span>
+                            <span className="shot-arrow">→</span>
+                            {r.memberId && <JobIcon m={memberById.get(r.memberId)} size={22} />}
+                            <select className="select-sm notranslate" value={r.memberId ?? ''} onChange={(e) => setRow(i, e.target.value ? Number(e.target.value) : null)}>
+                              <option value="">{tr('— lewati —')}</option>
+                              {sorted.map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.name} · {m.class}
+                                </option>
+                              ))}
+                            </select>
+                            {note && <span className={`shot-note note-${note.k}`}>{note.t}</span>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
               </div>
             )}
 
-            <label className="check-label small">
-              <input type="checkbox" checked={clearOthers} onChange={(e) => setClearOthers(e.target.checked)} />
-              <span>Keluarkan anggota lain dari party ini yang tidak ada di screenshot</span>
-            </label>
             <p className="small muted">
-              Nama yang tertutup (mis. oleh notifikasi item) tidak terbaca. Pilih manual di daftar di atas.
+              Hanya slot kosong yang diisi; anggota lain tidak digeser. Karakter dari screenshot yang sekarang ada di bagian lain
+              (mis. di Sub) ditarik ke sini. Nama yang tertutup (mis. notifikasi item) pilih manual.
             </p>
             <div className="row gap-sm">
               <button className="btn btn-ghost" onClick={onClose}>
                 Batal
               </button>
               <span className="grow" />
-              <button className="btn btn-gold" disabled={busy || !ready.length} onClick={apply}>
-                {busy ? 'Menyimpan…' : `Masukkan ${ready.length} karakter`}
+              <button className="btn btn-gold" disabled={busy || !ready} onClick={apply}>
+                {busy ? 'Menyimpan…' : `Masukkan ${ready} karakter`}
               </button>
             </div>
           </>

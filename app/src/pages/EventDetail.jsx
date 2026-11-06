@@ -888,6 +888,7 @@ export default function EventDetail({ id }) {
       {shotOpen && (
         <ScreenshotFill
           ev={ev}
+          secs={secs}
           size={size}
           partyName={partyName}
           members={members}
