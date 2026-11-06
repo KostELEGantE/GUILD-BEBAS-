@@ -18,6 +18,7 @@ export default function EventDetail({ id }) {
   const [editing, setEditing] = useState(false)
   const [myChar, setMyChar] = useState(null)
   const [picked, setPicked] = useState(null) // member_id yang sedang dipindah
+  const [pickedGroup, setPickedGroup] = useState(null) // party fix yang sedang dipindah (klik)
   const [pickerSlot, setPickerSlot] = useState(null) // {party_no, slot_no}
   const [dragId, setDragId] = useState(null) // member_id yang sedang diseret
   const [over, setOver] = useState(null) // 'p' | 'p-s' | 'side' yang sedang disorot
@@ -231,7 +232,15 @@ export default function EventDetail({ id }) {
     if (signedIds.has(memberId)) leave(memberId)
   }
 
+  // anggota/admin yang boleh memindah seluruh party fix
+  const canMoveGroup = (g) => isAdmin || (isOpen && (g.group_members || []).some((gm) => myIds.has(gm.member_id)))
+
   function onEmptySlot(party_no, slot_no) {
+    if (pickedGroup) {
+      const g = pickedGroup
+      setPickedGroup(null)
+      return placeGroup(g, party_no)
+    }
     if (picked) return join(picked, party_no, slot_no)
     if (isAdmin || (isOpen && myPartyNos.has(party_no))) return setPickerSlot({ party_no, slot_no })
     if (!isOpen) return toast('Party sudah dikunci oleh admin', 'err')
@@ -299,6 +308,16 @@ export default function EventDetail({ id }) {
     )
   }
 
+  /** party fix yang anggotanya ada di slot-slot ini: [[group, jumlah], ...] */
+  const groupsIn = (slots) => {
+    const cnt = new Map()
+    for (const s of slots) {
+      const g = s && groupByMember.get(s.member_id)
+      if (g) cnt.set(g.id, [g, (cnt.get(g.id)?.[1] ?? 0) + 1])
+    }
+    return [...cnt.values()]
+  }
+
   const partyCard = (p) => {
     const slots = Array.from({ length: size }, (_, j) => slotMap.get(`${p}-${j + 1}`))
     const ms = slots.filter(Boolean).map((s) => memberById.get(s.member_id)).filter(Boolean)
@@ -309,6 +328,12 @@ export default function EventDetail({ id }) {
         className={`party-card ${mine ? 'party-mine' : ''} ${over === `${p}` ? 'drop-over' : ''}`}
         key={p}
         {...dropProps(`${p}`, (mid, g) => dropInto(mid, p, null, g))}
+        onClick={pickedGroup ? (e) => {
+          if (e.target.closest('.group-handle')) return
+          const g = pickedGroup
+          setPickedGroup(null)
+          placeGroup(g, p)
+        } : undefined}
       >
         <div className="party-head">
           {canManageParty(p) ? (
@@ -330,6 +355,32 @@ export default function EventDetail({ id }) {
           </span>
         </div>
         <div className="party-meta">{roleCount.length ? roleCount.map(([r, n]) => `${n}${r}`).join(' ') : ' '}</div>
+        {groupsIn(slots).map(([g, n]) => {
+          const movable = canMoveGroup(g)
+          const active = pickedGroup?.id === g.id
+          return (
+            <button
+              key={g.id}
+              type="button"
+              className={`group-handle ${movable ? 'draggable' : ''} ${active ? 'is-picked' : ''} ${dragId === `g:${g.id}` ? 'is-dragging' : ''}`}
+              style={{ '--g': groupColor(g.id) }}
+              disabled={!movable}
+              title={movable ? 'Seret, atau klik lalu klik party tujuan, untuk memindah seluruh party fix' : `Party fix: ${g.name}`}
+              onClick={() => {
+                setPicked(null)
+                setPickedGroup(active ? null : g)
+              }}
+              {...(movable ? dragProps(`g:${g.id}`) : {})}
+            >
+              <span className="grip">⠿</span>
+              {g.name}
+              <span className="group-chip-n">
+                {n}
+                {(g.group_members?.length ?? n) > n ? `/${g.group_members.length}` : ''}
+              </span>
+            </button>
+          )
+        })}
         <ul className="slots">
           {slots.map((s, j) => {
             const slotNo = j + 1
@@ -337,12 +388,12 @@ export default function EventDetail({ id }) {
               return (
                 <li key={slotNo}>
                   <button
-                    className={`slot slot-empty ${picked || dragId ? 'slot-target' : ''} ${over === `${p}-${slotNo}` ? 'drop-over' : ''}`}
+                    className={`slot slot-empty ${picked || pickedGroup || dragId ? 'slot-target' : ''} ${over === `${p}-${slotNo}` ? 'drop-over' : ''}`}
                     disabled={busy || (!isAdmin && !isOpen)}
                     onClick={() => onEmptySlot(p, slotNo)}
                     {...dropProps(`${p}-${slotNo}`, (mid, g) => dropInto(mid, p, slotNo, g))}
                   >
-                    {dragId ? 'Lepas di sini' : picked ? 'Pindah ke sini' : canManageParty(p) ? '+ Isi' : isOpen ? '+ Gabung' : '—'}
+                    {dragId ? 'Lepas di sini' : picked || pickedGroup ? 'Pindah ke sini' : canManageParty(p) ? '+ Isi' : isOpen ? '+ Gabung' : '—'}
                   </button>
                 </li>
               )
@@ -529,6 +580,16 @@ export default function EventDetail({ id }) {
               </span>
             )}
           </div>
+
+          {pickedGroup && (
+            <div className="banner banner-gold">
+              Memindahkan seluruh party fix <b>{pickedGroup.name}</b> ({pickedGroup.group_members?.length} orang): klik party tujuan.
+              Lebih dari 5 orang akan dipecah ke party berikutnya.
+              <button className="btn btn-ghost btn-sm" onClick={() => setPickedGroup(null)}>
+                Batal
+              </button>
+            </div>
+          )}
 
           {picked && (
             <div className="banner banner-gold">
