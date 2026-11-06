@@ -49,9 +49,8 @@ export default function Events() {
   const boards = events.filter((e) => e.is_permanent)
   // riwayat war (sesi papan tetap) tampil di halaman papannya, bukan di sini
   const list = events.filter((e) => !e.is_permanent && !e.parent_id && (filter === 'all' || e.mode === filter))
-  const now = Date.now() - 3 * 3600 * 1000 // event yang baru mulai <3 jam lalu masih dianggap "mendatang"
-  const upcoming = list.filter((e) => new Date(e.starts_at).getTime() >= now && e.status !== 'done').reverse()
-  const past = list.filter((e) => !upcoming.includes(e))
+  // event lain tetap tampil sampai dihapus pembuatnya / moderator; waktu hanya sebagai pengingat
+  const upcoming = [...list].sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at))
 
   return (
     <div>
@@ -132,18 +131,19 @@ export default function Events() {
         </div>
       )}
 
-      {past.length > 0 && (
-        <>
-          <h2 className="section-title">Sebelumnya</h2>
-          <div className="event-grid">
-            {past.map((e) => (
-              <EventCard key={e.id} e={e} s={stats[e.id]} />
-            ))}
-          </div>
-        </>
-      )}
     </div>
   )
+}
+
+/** pengingat waktu: "3 hari lagi", "5 jam lagi", "sudah lewat" */
+function relWhen(iso) {
+  const ms = new Date(iso).getTime() - Date.now()
+  if (ms < -3 * 3600e3) return { k: 'past', t: 'sudah lewat' }
+  if (ms <= 0) return { k: 'now', t: 'sedang berlangsung' }
+  const h = Math.floor(ms / 3600e3)
+  if (h < 1) return { k: 'soon', t: `${Math.max(1, Math.round(ms / 60e3))} menit lagi` }
+  if (h < 24) return { k: 'soon', t: `${h} jam lagi` }
+  return { k: 'later', t: `${Math.floor(h / 24)} hari lagi` }
 }
 
 function EventCard({ e, s }) {
@@ -167,7 +167,17 @@ function EventCard({ e, s }) {
         )}
       </div>
       <div className="event-title">{e.title}</div>
-      <div className="muted small">{e.is_permanent ? 'Dipakai setiap war' : fmtDate(e.starts_at)}</div>
+      <div className="muted small">
+        {e.is_permanent ? (
+          'Dipakai setiap war'
+        ) : (
+          <>
+            <span className="notranslate">{fmtDate(e.starts_at)}</span>
+            {' · '}
+            <span className={`when when-${relWhen(e.starts_at).k}`}>{relWhen(e.starts_at).t}</span>
+          </>
+        )}
+      </div>
       <div className="meter">
         <div className="meter-fill" style={{ width: `${pct}%` }} />
       </div>

@@ -10,6 +10,7 @@ import Admin from './pages/Admin.jsx'
 import Groups from './pages/Groups.jsx'
 import logo from './assets/logo.webp'
 import LangSwitch from './components/LangSwitch.jsx'
+import ServerClock from './components/ServerClock.jsx'
 
 function useHash() {
   const [hash, setHash] = useState(window.location.hash || '#/events')
@@ -102,6 +103,7 @@ function Shell() {
           </button>
         </div>
       </header>
+      <ServerClock />
 
       <FirstAdminBanner />
       {!loading && myMembers.length === 0 && page !== 'roster' && (

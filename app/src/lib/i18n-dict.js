@@ -445,6 +445,12 @@ export const DICT = {
   '(dipakai setiap war tanpa tanggal, seperti papan Guild League)': ['', '(digunakan setiap perang tanpa tarikh, seperti papan Guild League)', '(used for every war with no date, like the Guild League board)', '(ใช้ทุกวอร์โดยไม่มีวันที่ เหมือนกระดาน Guild League)', '(ginagamit sa bawat war nang walang petsa, gaya ng board ng Guild League)'],
   'Hapus papan tetap ini beserta susunan party-nya?': ['', 'Padam papan tetap ini berserta susunan partinya?', 'Delete this permanent board and its party lineup?', 'ลบกระดานถาวรนี้และการจัดปาร์ตี้ทั้งหมด?', 'Burahin ang permanenteng board na ito at ang ayos ng party?'],
   'Riwayat war yang sudah dikonfirmasi tetap tersimpan di daftar event.': ['', 'Sejarah perang yang telah disahkan kekal disimpan dalam senarai acara.', 'Confirmed war history stays in the event list.', 'ประวัติวอร์ที่ยืนยันแล้วยังอยู่ในรายการอีเวนต์', 'Mananatili sa listahan ng event ang nakumpirmang kasaysayan ng war.'],
+  // ---- jam server ----
+  'Waktu server': ['', 'Waktu pelayan', 'Server time', 'เวลาเซิร์ฟเวอร์', 'Oras ng server'],
+  'Waktu server game (GMT+7)': ['', 'Waktu pelayan permainan (GMT+7)', 'Game server time (GMT+7)', 'เวลาเซิร์ฟเวอร์เกม (GMT+7)', 'Oras ng game server (GMT+7)'],
+  'Sedang berlangsung': ['', 'Sedang berlangsung', 'In progress', 'กำลังดำเนินอยู่', 'Kasalukuyang nagaganap'],
+  'sedang berlangsung': ['', 'sedang berlangsung', 'in progress', 'กำลังดำเนินอยู่', 'nagaganap na'],
+  'sudah lewat': ['', 'sudah berlalu', 'already passed', 'ผ่านไปแล้ว', 'lumipas na'],
   // ---- party custom ----
   '(biarkan kosong jika ada yang mengklaim karakter temannya; satu karakter tetap hanya bisa masuk 1 slot)': ['', '(biarkan kosong jika ada yang menuntut watak kawannya; satu watak tetap hanya boleh masuk 1 slot)', "(leave unticked if someone claims a friend's character; a character can still only take 1 slot)", '(ไม่ต้องติ๊กถ้ามีคนเคลมตัวละครของเพื่อน ตัวละครหนึ่งยังเข้าได้แค่ 1 ช่อง)', '(huwag lagyan ng check kung may nag-claim ng karakter ng kaibigan; 1 slot lang pa rin bawat karakter)'],
   '+ Tambah party': ['', '+ Tambah parti', '+ Add party', '+ เพิ่มปาร์ตี้', '+ Magdagdag ng party'],
@@ -478,6 +484,10 @@ export const DICT = {
 // Teks dinamis (berisi nama/angka). $1, $2 … = bagian yang diisi.
 // Format: [regex, [Indonesia, Melayu, English, ไทย, Filipino]]
 export const PATTERNS = [
+  [/^(\d+) hari$/, ['', '$1 hari', '$1d', '$1 วัน', '$1 araw']],
+  [/^(\d+) hari lagi$/, ['', '$1 hari lagi', 'in $1 days', 'อีก $1 วัน', 'sa loob ng $1 araw']],
+  [/^(\d+) jam lagi$/, ['', '$1 jam lagi', 'in $1 hours', 'อีก $1 ชั่วโมง', 'sa loob ng $1 oras']],
+  [/^(\d+) menit lagi$/, ['', '$1 minit lagi', 'in $1 minutes', 'อีก $1 นาที', 'sa loob ng $1 minuto']],
   [/^Masukkan ke (.+)$/, ['', 'Masukkan ke $1', 'Add to $1', 'ใส่เข้า $1', 'Idagdag sa $1']],
   [/^Seluruh party fix \((\d+) orang\)$/, ['', 'Seluruh parti tetap ($1 orang)', 'Whole fixed party ($1 people)', 'ทั้งปาร์ตี้ประจำ ($1 คน)', 'Buong fixed party ($1 tao)']],
   [/^Event 1 akun = 1 karakter: hanya (\d+) karakter yang bisa ikut\.$/, ['', 'Acara 1 akaun = 1 watak: hanya $1 watak boleh menyertai.', '1 account = 1 character event: only $1 characters can join.', 'อีเวนต์ 1 บัญชี = 1 ตัวละคร: เข้าร่วมได้แค่ $1 ตัวละคร', '1 account = 1 karakter: $1 karakter lang ang makakasali.']],
