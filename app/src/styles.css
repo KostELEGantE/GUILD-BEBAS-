@@ -615,3 +615,12 @@ tr:hover .inline-edit { opacity: 1; }
 .choice-primary { border-color: color-mix(in srgb, var(--g) 55%, transparent); }
 .choice-icon { font-size: 22px; flex: none; }
 .text-gold { color: var(--gold-2); }
+
+/* kotak "+" untuk membuat event/party baru */
+.event-card-add {
+  align-items: center; justify-content: center; min-height: 150px; cursor: pointer; font: inherit;
+  background: transparent; border: 2px dashed var(--line); border-top: 2px dashed var(--line); color: var(--muted);
+}
+.event-card-add .add-plus { font-size: 44px; font-weight: 300; line-height: 1; transition: transform .15s; }
+.event-card-add:hover { border-color: var(--gold); color: var(--gold-2); background: rgba(227,180,90,.05); }
+.event-card-add:hover .add-plus { transform: scale(1.15); }

@@ -108,15 +108,27 @@ export default function Events() {
         </button>
       </div>
 
-      {upcoming.length === 0 ? (
-        <div className="empty">
-          Belum ada event mendatang.{isAdmin ? ' Klik “+ Buat event” untuk membuat.' : canCreate ? ' Klik “+ Buat party” untuk membuat party sendiri.' : ''}
-        </div>
+      {upcoming.length === 0 && !canCreate ? (
+        <div className="empty">Belum ada event mendatang.</div>
       ) : (
         <div className="event-grid">
           {upcoming.map((e) => (
             <EventCard key={e.id} e={e} s={stats[e.id]} />
           ))}
+          {canCreate && (
+            <button
+              type="button"
+              className="event-card event-card-add"
+              title={isAdmin ? 'Buat event' : 'Buat party'}
+              aria-label={isAdmin ? 'Buat event' : 'Buat party'}
+              onClick={() => {
+                setShowForm(true)
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+            >
+              <span className="add-plus">+</span>
+            </button>
+          )}
         </div>
       )}
 
