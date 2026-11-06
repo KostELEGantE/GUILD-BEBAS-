@@ -430,3 +430,8 @@ tr:hover .inline-edit { opacity: 1; }
 .group-handle .group-chip-n { margin-left: auto; opacity: .8; }
 .group-handle.is-picked { outline: 2px solid var(--gold); outline-offset: 1px; }
 .group-handle:disabled { opacity: 1; }
+.live-dot { display: inline-flex; align-items: center; gap: 5px; margin-left: 12px; vertical-align: middle; font: 700 10px Inter, sans-serif; letter-spacing: 1px; color: var(--muted); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); }
+.live-dot::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.live-dot.on { color: var(--green); border-color: rgba(79,194,138,.4); }
+.live-dot.on::before { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }

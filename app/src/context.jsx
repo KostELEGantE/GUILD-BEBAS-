@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase, q } from './lib/supabase.js'
+import { debounce } from './lib/util.js'
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
@@ -51,16 +52,32 @@ export function AppProvider({ session, children }) {
     }
   }, [loadProfile, loadMembers, loadGroups, toast])
 
-  // Realtime: perubahan party fix langsung terlihat
+  // Realtime: party fix, klaim karakter, role, ganti nama, import -> langsung terlihat semua orang
   useEffect(() => {
+    const reGroups = debounce(() => loadGroups().catch(() => {}), 200)
+    const reMembers = debounce(() => loadMembers().catch(() => {}), 300)
     const ch = supabase
-      .channel('groups')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'group_members' }, () => loadGroups().catch(() => {}))
+      .channel('guild-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'group_members' }, reGroups)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'groups' }, reGroups)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, reMembers)
       .subscribe()
+    const resync = () => {
+      if (document.visibilityState === 'visible') {
+        reGroups()
+        reMembers()
+      }
+    }
+    document.addEventListener('visibilitychange', resync)
+    window.addEventListener('online', resync)
     return () => {
+      reGroups.cancel()
+      reMembers.cancel()
+      document.removeEventListener('visibilitychange', resync)
+      window.removeEventListener('online', resync)
       supabase.removeChannel(ch)
     }
-  }, [loadGroups])
+  }, [loadGroups, loadMembers])
 
   const groupByMember = useMemo(() => {
     const map = new Map()

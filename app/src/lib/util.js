@@ -99,3 +99,14 @@ export function defaultPartyName(sections, p) {
   const i = p - s.from + 1
   return /[-#]$/.test(s.prefix) ? `${s.prefix}${i}` : `${s.prefix} ${i}`
 }
+
+/** Gabungkan banyak panggilan beruntun menjadi satu (untuk update realtime) */
+export function debounce(fn, ms = 150) {
+  let t
+  const d = (...a) => {
+    clearTimeout(t)
+    t = setTimeout(() => fn(...a), ms)
+  }
+  d.cancel = () => clearTimeout(t)
+  return d
+}

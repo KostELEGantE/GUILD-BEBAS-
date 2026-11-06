@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, q, rpc } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
 import {
-  MODES, ROLES, STATUS_LABEL, fmtDate, fmtNum, isOnline, navigate, groupColor, toLocalInput, sectionsOf, defaultPartyName,
+  MODES, ROLES, STATUS_LABEL, fmtDate, fmtNum, isOnline, navigate, groupColor, toLocalInput, sectionsOf, defaultPartyName, debounce,
 } from '../lib/util.js'
 import { EventForm } from './Events.jsx'
 import Attendance from './Attendance.jsx'
@@ -53,21 +53,44 @@ export default function EventDetail({ id }) {
     load()
   }, [load])
 
-  // Realtime: perubahan slot langsung terlihat oleh semua yang membuka halaman ini
+  // Realtime: semua perubahan (masuk, pindah, keluar slot, nama party, pengaturan papan)
+  // langsung terlihat oleh semua yang membuka halaman ini, tanpa refresh.
+  const [live, setLive] = useState(false)
   useEffect(() => {
+    const reSignups = debounce(() => loadSignups().catch(() => {}), 120)
+    const reParties = debounce(() => loadParties().catch(() => {}), 120)
+    const isMine = (p) => (p.new?.event_id ?? p.old?.event_id) === id
     const ch = supabase
       .channel(`event-${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_signups', filter: `event_id=eq.${id}` }, () =>
-        loadSignups().catch(() => {}),
-      )
+      // event DELETE tidak bisa difilter oleh Supabase, jadi dicek di sini
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_signups' }, (p) => {
+        if (isMine(p) || (p.eventType === 'DELETE' && p.old?.event_id == null)) reSignups()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_parties' }, (p) => {
+        if (isMine(p) || (p.eventType === 'DELETE' && p.old?.event_id == null)) reParties()
+      })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events', filter: `id=eq.${id}` }, (payload) =>
         setEv((old) => ({ ...old, ...payload.new })),
       )
-      .subscribe()
+      .subscribe((status) => setLive(status === 'SUBSCRIBED'))
+
+    // kembali ke tab / koneksi pulih: ambil data terbaru sekali
+    const resync = () => {
+      if (document.visibilityState === 'visible') {
+        reSignups()
+        reParties()
+      }
+    }
+    document.addEventListener('visibilitychange', resync)
+    window.addEventListener('online', resync)
     return () => {
+      reSignups.cancel()
+      reParties.cancel()
+      document.removeEventListener('visibilitychange', resync)
+      window.removeEventListener('online', resync)
       supabase.removeChannel(ch)
     }
-  }, [id, loadSignups])
+  }, [id, loadSignups, loadParties])
 
   useEffect(() => {
     if (!myChar && myMembers.length) setMyChar(myMembers[0].id)
@@ -440,7 +463,12 @@ export default function EventDetail({ id }) {
             )}
             {isBoard && !isOpen && <span className={`status status-${ev.status}`}>{STATUS_LABEL[ev.status]}</span>}
           </div>
-          <h1>{ev.title}</h1>
+          <h1>
+            {ev.title}
+            <span className={`live-dot ${live ? 'on' : ''}`} title={live ? 'Live: perubahan orang lain langsung muncul' : 'Menyambungkan…'}>
+              {live ? 'LIVE' : '…'}
+            </span>
+          </h1>
           {!isBoard && <p className="muted">{fmtDate(ev.starts_at)}</p>}
           {isBoard && (
             <p className="muted">Susunan tetap yang dipakai setiap war. Setelah war selesai, admin cukup klik Konfirmasi war.</p>
