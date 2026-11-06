@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useApp } from '../context.jsx'
 import GroupChip from './GroupChip.jsx'
 import { ROLES, fmtNum, isOnline } from '../lib/util.js'
+import JobIcon from './JobIcon.jsx'
 
 /** Modal untuk admin memilih member yang dimasukkan ke slot */
 export default function MemberPicker({ title, excludeIds, onPick, onClose }) {
@@ -40,7 +41,7 @@ export default function MemberPicker({ title, excludeIds, onPick, onClose }) {
           {list.length === 0 && <p className="muted small pad">Tidak ada member yang cocok (atau semua sudah masuk party).</p>}
           {list.map((m) => (
             <button key={m.id} className="picker-item" onClick={() => onPick(m.id)}>
-              <span className={`role-dot role-${(m.role || 'DPS').toLowerCase()}`} />
+              <JobIcon m={m} />
               <span className="grow">
                 <b>{m.name}</b>
                 <span className="small muted">

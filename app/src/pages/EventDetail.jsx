@@ -8,6 +8,7 @@ import { EventForm } from './Events.jsx'
 import Attendance from './Attendance.jsx'
 import MemberPicker from '../components/MemberPicker.jsx'
 import GroupChip from '../components/GroupChip.jsx'
+import JobIcon from '../components/JobIcon.jsx'
 
 export default function EventDetail({ id }) {
   const { members, myMembers, isAdmin, toast, groupByMember, groups } = useApp()
@@ -871,7 +872,7 @@ function NotJoined({ list, isAdmin, busy, full, onAdd, onAddGroup, canDrag, drag
       className={`side-item ${canDrag(m) ? 'draggable' : ''} ${dragging === m.id ? 'is-dragging' : ''}`}
       {...(canDrag(m) ? dragProps(m.id) : {})}
     >
-      <span className={`role-dot role-${(m.role || 'DPS').toLowerCase()}`} title={m.role} />
+      <JobIcon m={m} />
       <div className="slot-info">
         <div className="slot-name">
           <span className={isOnline(m.online_status) ? 'online-dot' : 'offline-dot'} title={m.online_status || ''} />
@@ -976,7 +977,7 @@ function SlotFilled({ m, group, mine, picked, dragging, drag, editable, onPick, 
       style={group ? { '--g': groupColor(group.id) } : undefined}
       title={`${m.name} · ${m.class ?? '–'} · ${m.role ?? '–'} · GS ${fmtNum(m.gear_score)}${group ? ` · Party fix: ${group.name}` : ''}`}
     >
-      <span className={`role-dot role-${(m.role || 'DPS').toLowerCase()}`} />
+      <JobIcon m={m} />
       <div className="slot-info">
         <div className="slot-name">{m.name}</div>
         <div className="slot-sub">

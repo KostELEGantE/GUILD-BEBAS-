@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { rpc } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
 import { ROLES, fmtNum, isOnline } from '../lib/util.js'
+import JobIcon from '../components/JobIcon.jsx'
 
 const SORTS = {
   gear_score: (a, b) => (b.gear_score || 0) - (a.gear_score || 0),
@@ -151,6 +152,7 @@ export default function Roster() {
                 <tr key={m.id} className={mine ? 'row-mine' : ''}>
                   <td>
                     <span className={isOnline(m.online_status) ? 'online-dot' : 'offline-dot'} title={m.online_status || ''} />
+                    <JobIcon m={m} size={20} />
                     <b>{m.name}</b>
                     {(mine || isAdmin) && (
                       <button className="icon-btn inline-edit" title="Ganti nama (jika nama di game berubah)" onClick={() => renameOf(m)}>

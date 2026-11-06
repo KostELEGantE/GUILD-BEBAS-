@@ -438,3 +438,13 @@ tr:hover .inline-edit { opacity: 1; }
 .party-warn { border-color: rgba(239,107,107,.55) !important; }
 .party-alert { margin: 0 0 4px; padding: 2px 6px; border-radius: 6px; font-size: 10.5px; font-weight: 700; color: var(--red); background: rgba(239,107,107,.12); border: 1px solid rgba(239,107,107,.35); }
 .section-tag.warn { color: var(--red); background: rgba(239,107,107,.12); }
+
+/* ikon job */
+.job-icon {
+  flex: none; display: inline-grid; place-items: center; vertical-align: middle;
+  border-radius: 5px; color: var(--c);
+  background: color-mix(in srgb, var(--c) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+}
+.table .job-icon { margin-right: 6px; }
+.party-grid.compact .job-icon { width: 18px !important; height: 18px !important; }

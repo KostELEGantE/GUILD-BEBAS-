@@ -3,6 +3,7 @@ import { rpc } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
 import { fmtNum, groupColor } from '../lib/util.js'
 import MemberPicker from '../components/MemberPicker.jsx'
+import JobIcon from '../components/JobIcon.jsx'
 
 export default function Groups() {
   const { members, myMembers, groups, groupByMember, isAdmin, user, reloadGroups } = useApp()
@@ -96,7 +97,7 @@ export default function Groups() {
                 <ul className="side-list group-members">
                   {ms.map((m) => (
                     <li key={m.id} className="side-item">
-                      <span className={`role-dot role-${(m.role || 'DPS').toLowerCase()}`} title={m.role} />
+                      <JobIcon m={m} />
                       <div className="slot-info">
                         <div className="slot-name">
                           {m.name}
@@ -240,7 +241,7 @@ function CreateGroup({ inGroup }) {
       <div className="picker-list short">
         {candidates.map((m) => (
           <button key={m.id} className="picker-item" onClick={() => setPicked((p) => [...p, m.id])}>
-            <span className={`role-dot role-${(m.role || 'DPS').toLowerCase()}`} />
+            <JobIcon m={m} />
             <span className="grow">
               <b>{m.name}</b>
               <span className="small muted">
