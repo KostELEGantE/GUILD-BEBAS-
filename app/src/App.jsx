@@ -9,6 +9,7 @@ import Stats from './pages/Stats.jsx'
 import Admin from './pages/Admin.jsx'
 import Groups from './pages/Groups.jsx'
 import logo from './assets/logo.webp'
+import LangSwitch from './components/LangSwitch.jsx'
 
 function useHash() {
   const [hash, setHash] = useState(window.location.hash || '#/events')
@@ -48,11 +49,11 @@ function Shell() {
   const page = parts[0] || 'events'
 
   const nav = [
-    ['events', 'Event & Party'],
-    ['groups', 'Party Fix'],
-    ['roster', 'Roster'],
-    ['stats', 'Kehadiran'],
-    ...(isAdmin ? [['admin', 'Admin']] : []),
+    ['events', 'Event & Party', '⚔'],
+    ['groups', 'Party Fix', '🤝'],
+    ['roster', 'Roster', '👥'],
+    ['stats', 'Kehadiran', '📊'],
+    ...(isAdmin ? [['admin', 'Admin', '⚙']] : []),
   ]
 
   let content
@@ -69,28 +70,33 @@ function Shell() {
   return (
     <div className="app">
       <header className="topbar">
-        <a className="brand" href="#/events">
+        <a className="brand notranslate" href="#/events">
           <img src={logo} alt="" className="brand-logo" />
           <span>
             BEBAS <span className="brand-sub">Guild</span>
           </span>
         </a>
         <nav className="nav">
-          {nav.map(([k, label]) => (
+          {nav.map(([k, label, icon]) => (
             <a key={k} href={`#/${k}`} className={activeNav === k ? 'active' : ''}>
-              {label}
+              <span className="nav-icon" aria-hidden="true">
+                {icon}
+              </span>
+              <span className="nav-label">{label}</span>
             </a>
           ))}
         </nav>
         <div className="userbox">
           {profile?.avatar_url && <img src={profile.avatar_url} alt="" className="avatar" />}
-          <span className="username" title={`Akun: ${profile?.display_name ?? ''}`}>
+          <LangSwitch />
+          <span className="username notranslate-name" title={`Akun: ${profile?.display_name ?? ''}`}>
             {ign ?? profile?.display_name ?? '…'}
             {myMembers.length > 1 && <span className="small muted">+{myMembers.length - 1}</span>}
             {isAdmin && <span className="pill pill-gold">{profile?.is_super ? 'Super Mod' : 'Sub Mod'}</span>}
           </span>
-          <button className="btn btn-ghost btn-sm" onClick={() => supabase.auth.signOut()}>
-            Keluar
+          <button className="btn btn-ghost btn-sm logout" onClick={() => supabase.auth.signOut()} title="Keluar">
+            <span className="logout-icon" aria-hidden="true">⎋</span>
+            <span className="logout-label">Keluar</span>
           </button>
         </div>
       </header>

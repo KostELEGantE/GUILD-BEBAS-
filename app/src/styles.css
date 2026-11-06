@@ -470,3 +470,100 @@ tr:hover .inline-edit { opacity: 1; }
 .mini-btn.claim { color: var(--gold-2); border-color: rgba(227,180,90,.45); }
 .party-led { box-shadow: inset 0 2px 0 var(--gold); }
 @media (hover: none) { .leader-empty { opacity: 1; } }
+
+/* =====================================================================
+   Bahasa & tampilan HP
+   ===================================================================== */
+.lang-select { padding: 4px 6px; font-size: 12.5px; border-radius: 8px; max-width: 120px; }
+.login-lang { align-self: flex-end; margin: -14px -10px 0 0; }
+.nav a { display: inline-flex; align-items: center; gap: 6px; }
+.nav-icon { display: none; }
+.logout-icon { display: none; }
+
+@media (max-width: 860px) {
+  /* --- header ringkas + navigasi bawah seperti aplikasi --- */
+  /* backdrop-filter membuat menu 'fixed' ikut header, jadi dimatikan di HP */
+  .topbar { flex-wrap: nowrap; gap: 8px; padding: 8px 12px; backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--bg); }
+  .brand { font-size: 15px; gap: 8px; }
+  .brand-logo { width: 32px; height: 32px; }
+  .userbox { margin-left: auto; gap: 6px; min-width: 0; }
+  .username { min-width: 0; font-size: 13px; }
+  .username > :first-child { overflow: hidden; text-overflow: ellipsis; }
+  .username .pill { display: none; }
+  .avatar { display: none; }
+  .lang-select { max-width: 92px; padding: 4px; }
+  .logout { padding: 6px 9px; }
+  .logout-label { display: none; }
+  .logout-icon { display: inline; font-size: 15px; }
+
+  .nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; order: 0; width: auto;
+    display: flex; justify-content: space-around; gap: 0; padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+    background: rgba(15, 17, 23, 0.96); backdrop-filter: blur(10px); border-top: 1px solid var(--line); overflow: visible;
+  }
+  .nav a { flex: 1; flex-direction: column; gap: 2px; padding: 6px 2px; font-size: 10.5px; border-radius: 10px; text-align: center; min-width: 0; }
+  .nav a.active { box-shadow: none; background: var(--panel-2); color: var(--gold-2); }
+  .nav-icon { display: block; font-size: 19px; line-height: 1; }
+  .nav-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .app { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+  .toasts { left: 12px; right: 12px; bottom: calc(78px + env(safe-area-inset-bottom)); }
+  .toast { max-width: none; }
+
+  /* --- isi halaman --- */
+  .main { padding: 14px 12px; }
+  .app > .banner { margin-left: 12px; margin-right: 12px; }
+  h1 { font-size: 21px; }
+  .page-head { gap: 10px; margin-bottom: 12px; }
+  .page-head > .row { width: 100%; }
+  .page-head .btn { flex: 1 1 auto; }
+  .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .stat { padding: 10px; }
+  .stat-value { font-size: 20px; }
+  .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-bottom: 12px; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button { flex: none; }
+  .toolbar { gap: 8px; }
+  .toolbar .grow { display: none; }
+  .toolbar > label, .toolbar select { width: 100%; }
+  .toolbar .btn { flex: 1 1 auto; }
+  .filters > * { flex: 1 1 140px; }
+  .card { padding: 12px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .sections-editor .table th:nth-child(2), .sections-editor .table td:nth-child(2) { display: none; }
+
+  /* input 16px supaya iPhone tidak zoom otomatis */
+  input, select, textarea { font-size: 16px; }
+  .select-sm, .lang-select { font-size: 13px; }
+
+  /* tabel: sembunyikan kolom kurang penting */
+  .hide-sm { display: none; }
+  .table th, .table td { padding: 8px; }
+
+  /* papan party */
+  .event-layout { grid-template-columns: minmax(0, 1fr); }
+  .event-main { min-width: 0; width: 100%; }
+  .side-panel { position: static; max-height: 65vh; }
+  .party-grid.compact .slot-actions { opacity: 1; position: static; transform: none; background: none; }
+  .party-grid.compact .slot { min-height: 44px; }
+  .slot-empty { min-height: 40px; }
+  .leader-empty { opacity: 1; }
+  .modal { max-height: 88vh; padding: 14px; }
+  .modal-backdrop { align-items: end; padding: 0; }
+  .modal { width: 100%; border-radius: 16px 16px 0 0; }
+  .group-grid { grid-template-columns: 1fr; }
+  .event-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .hide-xs { display: none; }
+  .brand > span { display: none; }
+  .stat-label { font-size: 11px; }
+  .party-grid.compact { gap: 6px; }
+  .party-grid.compact .party-card { padding: 6px; }
+}
+
+/* layar sentuh: tombol aksi selalu terlihat */
+@media (hover: none) {
+  .slot-actions { opacity: 1; }
+  .inline-edit { opacity: 1; }
+}

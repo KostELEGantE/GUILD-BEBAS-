@@ -125,14 +125,14 @@ export default function Stats() {
             <thead>
               <tr>
                 <th>Karakter</th>
-                <th>Class</th>
-                <th className="num">Daftar</th>
+                <th className="hide-sm">Class</th>
+                <th className="num hide-xs">Mendaftar</th>
                 <th className="num">Hadir</th>
                 <th className="num">Tidak hadir</th>
-                <th className="num">Izin</th>
+                <th className="num hide-sm">Izin</th>
                 <th className="num">No-show</th>
                 <th>Kehadiran</th>
-                <th className="num">Kontribusi minggu ini</th>
+                <th className="num hide-sm">Kontribusi minggu ini</th>
               </tr>
             </thead>
             <tbody>
@@ -145,11 +145,11 @@ export default function Stats() {
                       <b>{x.name}</b>
                       {isAdmin && x.owner && <div className="small muted">akun: {x.owner}</div>}
                     </td>
-                    <td className="muted">{x.class}</td>
-                    <td className="num">{x.signed_up}</td>
+                    <td className="muted hide-sm">{x.class}</td>
+                    <td className="num hide-xs">{x.signed_up}</td>
                     <td className="num">{x.present}</td>
                     <td className="num">{x.absent}</td>
-                    <td className="num">{x.excused}</td>
+                    <td className="num hide-sm">{x.excused}</td>
                     <td className={`num ${x.no_show ? 'text-red' : ''}`}>{x.no_show}</td>
                     <td>
                       <div className="rate">
@@ -159,7 +159,7 @@ export default function Stats() {
                         <span className="small">{x.attendance_rate == null ? '–' : `${rate}%`}</span>
                       </div>
                     </td>
-                    <td className="num">{fmtNum(x.weekly_contribution)}</td>
+                    <td className="num hide-sm">{fmtNum(x.weekly_contribution)}</td>
                   </tr>
                 )
               })}

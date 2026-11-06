@@ -134,12 +134,12 @@ export default function Roster() {
           <thead>
             <tr>
               <th>Karakter</th>
-              <th className="num">Lv</th>
-              <th>Class</th>
+              <th className="num hide-sm">Lv</th>
+              <th className="hide-xs">Class</th>
               <th>Role</th>
               <th className="num">Gear Score</th>
-              <th className="num">Kontribusi minggu ini</th>
-              <th>Jabatan</th>
+              <th className="num hide-sm">Kontribusi minggu ini</th>
+              <th className="hide-sm">Jabatan</th>
               <th>{isAdmin ? 'Akun login' : 'Status'}</th>
               <th />
             </tr>
@@ -160,8 +160,8 @@ export default function Roster() {
                       </button>
                     )}
                   </td>
-                  <td className="num">{m.level ?? '–'}</td>
-                  <td>{m.class ?? '–'}</td>
+                  <td className="num hide-sm">{m.level ?? '–'}</td>
+                  <td className="hide-xs">{m.class ?? '–'}</td>
                   <td>
                     {canRole ? (
                       <select className="select-sm" value={m.role ?? ''} disabled={busy} onChange={(e) => setRoleOf(m.id, e.target.value)}>
@@ -174,8 +174,8 @@ export default function Roster() {
                     )}
                   </td>
                   <td className="num">{fmtNum(m.gear_score)}</td>
-                  <td className="num">{fmtNum(m.weekly_contribution)}</td>
-                  <td className="muted">{m.position ?? '–'}</td>
+                  <td className="num hide-sm">{fmtNum(m.weekly_contribution)}</td>
+                  <td className="muted hide-sm notranslate">{m.position ?? '–'}</td>
                   <td>
                     {!m.user_id ? (
                       <span className="muted">belum diklaim</span>

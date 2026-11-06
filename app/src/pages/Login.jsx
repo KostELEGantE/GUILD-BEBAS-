@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import logo from '../assets/logo.webp'
+import LangSwitch from '../components/LangSwitch.jsx'
 
 // Saat dibuka sebagai file HTML lokal (file://), login yang butuh redirect (Discord / link email)
 // tidak bisa kembali ke halaman ini, jadi yang dipakai adalah email + password.
@@ -62,6 +63,7 @@ export default function Login() {
   return (
     <div className="login">
       <div className="login-card">
+        <LangSwitch className="login-lang" />
         <img src={logo} alt="BEBAS Guild" className="login-logo" />
         <h1>BEBAS Guild</h1>
         <p className="muted">Party Manager · Guild League · Polarity Zone · Siege</p>

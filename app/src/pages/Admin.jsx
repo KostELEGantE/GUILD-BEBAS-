@@ -344,7 +344,7 @@ function ImportHistory() {
   )
 }
 
-const ROLE_LABEL = { member: 'Member', sub: 'Sub Moderator', super: 'Super Moderator' }
+const ROLE_LABEL = { member: 'Member biasa', sub: 'Sub Moderator', super: 'Super Moderator' }
 const ROLE_HELP = {
   sub: 'Sub Moderator bisa import data, mengatur semua party dan event, konfirmasi war, serta mengangkat/mencabut sesama Sub Moderator.',
   super: 'Super Moderator punya akses penuh, termasuk mengangkat dan mencabut Super Moderator lain.',
@@ -474,7 +474,7 @@ function AdminUsers() {
                       <span className={`pill ${p.is_super ? 'pill-gold' : p.is_admin ? 'pill-green' : ''}`}>{ROLE_LABEL[roleOf(p)]}</span>
                     ) : (
                       <select className="select-sm" value={roleOf(p)} disabled={busy} onChange={(e) => setRole(p, e.target.value)}>
-                        <option value="member">Member</option>
+                        <option value="member">Member biasa</option>
                         <option value="sub">Sub Moderator</option>
                         {isSuper && <option value="super">Super Moderator</option>}
                       </select>

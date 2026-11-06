@@ -1,3 +1,4 @@
+import { getLocale } from './i18n.js'
 export const MODES = {
   guild_league: { label: 'Guild League', short: 'GL', color: 'var(--gl)' },
   polarity_zone: { label: 'Polarity Zone', short: 'PZ', color: 'var(--pz)' },
@@ -20,13 +21,13 @@ export const ATTEND_LABEL = {
 
 export function fmtNum(n) {
   if (n === null || n === undefined || n === '') return '–'
-  return Number(n).toLocaleString('id-ID')
+  return Number(n).toLocaleString(getLocale())
 }
 
 export function fmtDate(iso, withTime = true) {
   if (!iso) return '–'
   const d = new Date(iso)
-  return d.toLocaleString('id-ID', {
+  return d.toLocaleString(getLocale(), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',

@@ -589,7 +589,7 @@ export default function EventDetail({ id }) {
               <span className="stat-of">/{sec.parties * size}</span>
             </div>
             <div className="stat-label">
-              {sec.name} ({sec.parties} party)
+              {`${sec.name} (${sec.parties} party)`}
             </div>
             <div className="meter">
               <div className="meter-fill" style={{ width: `${Math.min(100, (sec.count / (sec.parties * size || 1)) * 100)}%` }} />
@@ -701,7 +701,7 @@ export default function EventDetail({ id }) {
               {secs.map((sec, i) => (
                 <section key={sec.from}>
                   <h2 className="section-title">
-                    {sec.name} · {sec.count}/{sec.parties * size}
+                    {`${sec.name} · ${sec.count}/${sec.parties * size}`}
                     {isBoard && sec.attend && <span className="section-tag">dihitung hadir</span>}
                     {noHealerIn(sec) > 0 && <span className="section-tag warn">⚠ {noHealerIn(sec)} party tanpa healer</span>}
                   </h2>
@@ -1023,7 +1023,7 @@ function NotJoined({ list, isAdmin, busy, full, onAdd, onAddGroup, canDrag, drag
                   {...(canDragGroup(blk.g) ? dragProps(`g:${blk.g.id}`) : {})}
                   title="Seret untuk memasukkan seluruh party fix"
                 >
-                  <span className="side-group-name">{blk.g.name}</span>
+                  <span className="side-group-name notranslate">{blk.g.name}</span>
                   <span className="small muted">
                     {blk.items.length}
                     {blk.total > blk.items.length ? `/${blk.total}` : ''} orang
@@ -1062,7 +1062,7 @@ function SlotFilled({ m, group, mine, picked, dragging, drag, editable, onPick, 
     >
       <JobIcon m={m} />
       <div className="slot-info">
-        <div className="slot-name">{m.name}</div>
+        <div className="slot-name notranslate">{m.name}</div>
         <div className="slot-sub">
           {m.class ?? '–'} · {fmtNum(m.gear_score)}
         </div>
@@ -1087,7 +1087,7 @@ function LeaderLine({ leader, mine, canClaim, isAdmin, busy, onClaim, onAssign, 
     return (
       <div className={`leader-line ${mine ? 'leader-mine' : ''}`} onClick={(e) => e.stopPropagation()}>
         <span className="crown">👑</span>
-        <span className="leader-name" title={`Leader: ${leader.name}`}>
+        <span className="leader-name notranslate" title={`Leader: ${leader.name}`}>
           {leader.name}
         </span>
         {(mine || isAdmin) && (
