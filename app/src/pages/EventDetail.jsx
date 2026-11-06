@@ -370,7 +370,14 @@ export default function EventDetail({ id }) {
   }
 
   async function del() {
-    if (!confirm('Hapus event ini beserta semua data party dan kehadirannya?')) return
+    if (
+      !confirm(
+        isBoard
+          ? 'Hapus papan tetap ini beserta susunan party-nya?\n\nRiwayat war yang sudah dikonfirmasi tetap tersimpan di daftar event.'
+          : 'Hapus event ini beserta semua data party dan kehadirannya?',
+      )
+    )
+      return
     const ok = await run(async () => {
       await q(supabase.from('events').delete().eq('id', id))
       return true
@@ -633,7 +640,7 @@ export default function EventDetail({ id }) {
               <button className="btn btn-ghost" onClick={() => setEditing((v) => !v)}>
                 Ubah
               </button>
-              {!isBoard && (
+              {(!isBoard || isMod) && (
                 <button className="btn btn-danger" onClick={del}>
                   Hapus
                 </button>

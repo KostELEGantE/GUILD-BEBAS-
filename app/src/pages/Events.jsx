@@ -63,9 +63,9 @@ export default function Events() {
             party sendiri untuk mode apa pun (mis. Valkyrie).
           </p>
         </div>
-        {canCreate && (
-          <button className="btn btn-gold" onClick={() => setShowForm((v) => !v)}>
-            {showForm ? 'Tutup' : isAdmin ? '+ Buat event' : '+ Buat party'}
+        {showForm && (
+          <button className="btn btn-ghost" onClick={() => setShowForm(false)}>
+            Tutup
           </button>
         )}
       </div>
@@ -241,8 +241,10 @@ export function EventForm({ initial, onDone, customModes = [] }) {
     ev.preventDefault()
     const customMode = (f.custom_mode || '').trim()
     if (isCustom && !customMode) return alert('Isi nama mode, mis. Valkyrie')
+    const permanent = !initial && isAdmin && !isCustom && !!f.is_permanent
     const title =
       f.title.trim() ||
+      (permanent && MODES[f.mode].label) ||
       `${isCustom ? customMode : MODES[f.mode].label} – ${new Date(f.starts_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}`
     const sections = f.sections
       .map((x) => ({ ...x, name: x.name.trim() || 'Bagian', prefix: (x.prefix ?? '').trim() || x.name.trim() || 'Party', parties: Number(x.parties) || 0 }))
@@ -253,7 +255,7 @@ export function EventForm({ initial, onDone, customModes = [] }) {
     const row = {
       mode: f.mode,
       title,
-      starts_at: new Date(f.starts_at).toISOString(),
+      starts_at: permanent ? new Date().toISOString() : new Date(f.starts_at).toISOString(),
       party_count: total,
       main_count: sections[0].parties,
       sections,
@@ -261,6 +263,7 @@ export function EventForm({ initial, onDone, customModes = [] }) {
       notes: f.notes || null,
       custom_mode: isCustom ? customMode : null,
       one_per_account: isCustom ? !!f.one_per_account : false,
+      ...(permanent ? { is_permanent: true } : {}),
     }
     const r = await run(async () => {
       if (initial) {
@@ -319,7 +322,15 @@ export function EventForm({ initial, onDone, customModes = [] }) {
         Judul (opsional)
         <input value={f.title} onChange={(e) => set('title', e.target.value)} placeholder="otomatis dari mode & tanggal" />
       </label>
-      {!initial?.is_permanent && (
+      {isAdmin && !isCustom && !initial && (
+        <label className="check-label span-2">
+          <input type="checkbox" checked={!!f.is_permanent} onChange={(e) => set('is_permanent', e.target.checked)} />
+          <span>
+            Papan tetap <span className="muted small">(dipakai setiap war tanpa tanggal, seperti papan Guild League)</span>
+          </span>
+        </label>
+      )}
+      {!initial?.is_permanent && !f.is_permanent && (
         <label>
           Waktu mulai
           <input type="datetime-local" required value={f.starts_at} onChange={(e) => set('starts_at', e.target.value)} />
