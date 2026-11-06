@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, q, rpc } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
 import {
-  MODES, ROLES, STATUS_LABEL, fmtDate, fmtNum, isOnline, navigate, groupColor, toLocalInput, sectionsOf, defaultPartyName, debounce,
+  modeOf, ROLES, STATUS_LABEL, fmtDate, fmtNum, isOnline, navigate, groupColor, toLocalInput, sectionsOf, defaultPartyName, debounce,
 } from '../lib/util.js'
 import { EventForm } from './Events.jsx'
 import Attendance from './Attendance.jsx'
@@ -11,7 +11,7 @@ import GroupChip from '../components/GroupChip.jsx'
 import JobIcon from '../components/JobIcon.jsx'
 
 export default function EventDetail({ id }) {
-  const { members, myMembers, isAdmin, toast, groupByMember, groups, user } = useApp()
+  const { members, myMembers, isAdmin: isMod, toast, groupByMember, groups, user } = useApp()
   const [ev, setEv] = useState(null)
   const [parties, setParties] = useState([])
   const [signups, setSignups] = useState([])
@@ -107,7 +107,11 @@ export default function EventDetail({ id }) {
       </div>
     )
 
-  const mode = MODES[ev.mode]
+  const mode = modeOf(ev)
+  const isCustom = ev.mode === 'custom'
+  // pembuat party custom mengatur event-nya sendiri seperti moderator
+  const isOwner = isCustom && ev.created_by === user.id
+  const isAdmin = isMod || isOwner
   const isBoard = ev.is_permanent
   const isOpen = ev.status === 'open'
   const size = ev.party_size
@@ -144,12 +148,17 @@ export default function EventDetail({ id }) {
   const canManageParty = (p) => isAdmin || (isOpen && (iLead(p) || (!leaderOf(p) && myPartyNos.has(p))))
   const canEdit = (memberId, partyNo) => isAdmin || (isOpen && (myIds.has(memberId) || (partyNo && canManageParty(partyNo))))
 
+  // slot yang ditutup/dibooking (mis. untuk pemain guild lain): { "<slot>": "<nama>" }
+  const reservedOf = (p) => parties.find((x) => x.party_no === p)?.reserved || {}
   const partyName = (p) => parties.find((x) => x.party_no === p)?.name || defaultPartyName(secs, p)
   const mySignup = myChar ? signups.find((s) => s.member_id === myChar) : null
   const myGroup = myChar ? groupByMember.get(myChar) : null
 
   function firstEmpty(from, to) {
-    for (let p = from; p <= to; p++) for (let s = 1; s <= size; s++) if (!slotMap.has(`${p}-${s}`)) return { p, s }
+    for (let p = from; p <= to; p++) {
+      const rs = reservedOf(p)
+      for (let s = 1; s <= size; s++) if (!slotMap.has(`${p}-${s}`) && !rs[s]) return { p, s }
+    }
     return null
   }
 
@@ -302,6 +311,22 @@ export default function EventDetail({ id }) {
     }, 'Leader dilepas')
   }
 
+  async function reserve(p, s) {
+    const label = prompt(`Tutup slot ${s} di ${partyName(p)} untuk siapa?\n(mis. nama pemain dari guild lain)`, '')
+    if (!label?.trim()) return
+    await run(async () => {
+      await rpc('reserve_slot', { p_event_id: id, p_party_no: p, p_slot_no: s, p_label: label.trim() })
+      await loadParties()
+    }, 'Slot ditutup')
+  }
+
+  async function unreserve(p, s) {
+    await run(async () => {
+      await rpc('reserve_slot', { p_event_id: id, p_party_no: p, p_slot_no: s, p_label: null })
+      await loadParties()
+    }, 'Slot dibuka lagi')
+  }
+
   async function setStatus(status) {
     await run(async () => {
       await q(supabase.from('events').update({ status }).eq('id', id))
@@ -346,6 +371,7 @@ export default function EventDetail({ id }) {
         const su = slotMap.get(`${p}-${s}`)
         const m = su && memberById.get(su.member_id)
         if (m) names.push(m.name)
+        else if (reservedOf(p)[s]) names.push(`🔒 ${reservedOf(p)[s]}`)
       }
       const ld = leaderOf(p)
       return names.length || ld ? `**${partyName(p)}**${ld ? ` (👑 ${ld.name})` : ''}: ${names.join(', ') || '—'}` : null
@@ -392,6 +418,8 @@ export default function EventDetail({ id }) {
     const ms = slots.filter(Boolean).map((s) => memberById.get(s.member_id)).filter(Boolean)
     const roleCount = ROLES.map((r) => [r[0], ms.filter((m) => m.role === r).length]).filter(([, n]) => n)
     const mine = myPartyNos.has(p)
+    const rsv = reservedOf(p)
+    const nRsv = Object.keys(rsv).filter((k) => Number(k) <= size && !slots[Number(k) - 1]).length
     const noHealer = ms.length > 0 && !ms.some((m) => m.role === 'Healer')
     return (
       <div
@@ -421,7 +449,7 @@ export default function EventDetail({ id }) {
             <span className="party-name">{partyName(p)}</span>
           )}
           <span className="small muted">
-            {ms.length}/{size}
+            {ms.length + nRsv}/{size}
           </span>
         </div>
         <LeaderLine
@@ -470,9 +498,26 @@ export default function EventDetail({ id }) {
         <ul className="slots">
           {slots.map((s, j) => {
             const slotNo = j + 1
-            if (!s)
+            if (!s && rsv[slotNo])
               return (
                 <li key={slotNo}>
+                  <div className="slot slot-reserved" title={`🔒 ${rsv[slotNo]}`}>
+                    <span className="lock">🔒</span>
+                    <span className="slot-info">
+                      <span className="slot-name notranslate">{rsv[slotNo]}</span>
+                      <span className="small muted reserved-tag">booking</span>
+                    </span>
+                    {isAdmin && (
+                      <button className="icon-btn" title="Buka slot" disabled={busy} onClick={() => unreserve(p, slotNo)}>
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </li>
+              )
+            if (!s)
+              return (
+                <li key={slotNo} className={isAdmin ? 'slot-row' : undefined}>
                   <button
                     className={`slot slot-empty ${picked || pickedGroup || dragId ? 'slot-target' : ''} ${over === `${p}-${slotNo}` ? 'drop-over' : ''}`}
                     disabled={busy || (!isAdmin && !isOpen)}
@@ -481,6 +526,11 @@ export default function EventDetail({ id }) {
                   >
                     {dragId ? 'Lepas di sini' : picked || pickedGroup ? 'Pindah ke sini' : canManageParty(p) ? '+ Isi' : isOpen ? '+ Gabung' : '—'}
                   </button>
+                  {isAdmin && !dragId && !picked && !pickedGroup && (
+                    <button className="slot-lock" title="Tutup slot (booking untuk pemain lain)" disabled={busy} onClick={() => reserve(p, slotNo)}>
+                      🔒
+                    </button>
+                  )}
                 </li>
               )
             return (
@@ -518,13 +568,15 @@ export default function EventDetail({ id }) {
       <div className="page-head event-head">
         <div>
           <div className="row gap-sm">
-            <span className="mode-tag">{mode.label}</span>
+            <span className={`mode-tag ${mode.custom ? 'notranslate' : ''}`}>{mode.label}</span>
             {isBoard ? (
               <span className="pill pill-gold">Papan tetap</span>
             ) : (
               <span className={`status status-${ev.status}`}>{ev.parent_id ? 'Riwayat war' : STATUS_LABEL[ev.status]}</span>
             )}
             {isBoard && !isOpen && <span className={`status status-${ev.status}`}>{STATUS_LABEL[ev.status]}</span>}
+            {ev.one_per_account && <span className="pill">1 akun = 1 karakter</span>}
+            {isOwner && <span className="pill pill-gold">Party buatan Anda</span>}
           </div>
           <h1>
             {ev.title}
@@ -533,6 +585,12 @@ export default function EventDetail({ id }) {
             </span>
           </h1>
           {!isBoard && <p className="muted">{fmtDate(ev.starts_at)}</p>}
+          {isOwner && (
+            <p className="muted small">
+              Anda pembuat party ini: Anda bisa mengatur semua slot, menutup slot (🔒) untuk pemain dari guild lain, mengunci,
+              mengubah, atau menghapusnya.
+            </p>
+          )}
           {isBoard && (
             <p className="muted">Susunan tetap yang dipakai setiap war. Setelah war selesai, admin cukup klik Konfirmasi war.</p>
           )}
@@ -616,7 +674,7 @@ export default function EventDetail({ id }) {
           <button className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>
             Riwayat war & kehadiran
           </button>
-        ) : (
+        ) : isCustom ? null : (
           <button className={tab === 'attendance' ? 'active' : ''} onClick={() => setTab('attendance')}>
             Kehadiran
           </button>
@@ -713,7 +771,7 @@ export default function EventDetail({ id }) {
 
               {(isAdmin || (isOpen && myMembers.length > 0)) && ev.party_count < 60 && (
                 <button className="btn btn-ghost add-party" disabled={busy} onClick={addParty}>
-                  + Tambah party di {secs[secs.length - 1]?.name} (mau memimpin party sendiri?)
+                  {isCustom ? '+ Tambah party' : `+ Tambah party di ${secs[secs.length - 1]?.name} (mau memimpin party sendiri?)`}
                 </button>
               )}
 

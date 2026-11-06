@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, q } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
-import { MODES, STATUS_LABEL, fmtDate, toLocalInput, navigate, sectionsOf } from '../lib/util.js'
+import { MODES, STATUS_LABEL, CUSTOM_COLOR, modeOf, fmtDate, toLocalInput, navigate, sectionsOf } from '../lib/util.js'
 
 export default function Events() {
   const { isAdmin, myMembers, toast } = useApp()
@@ -28,6 +28,11 @@ export default function Events() {
   }, [load])
 
   const myIds = useMemo(() => new Set(myMembers.map((m) => m.id)), [myMembers])
+  const customModes = useMemo(
+    () => [...new Set((events || []).filter((e) => e.mode === 'custom' && e.custom_mode).map((e) => e.custom_mode.trim()))].sort(),
+    [events],
+  )
+  const canCreate = isAdmin || myMembers.length > 0
 
   const stats = useMemo(() => {
     const s = {}
@@ -54,18 +59,20 @@ export default function Events() {
         <div>
           <h1>Event &amp; Party</h1>
           <p className="muted">
-            Guild League dan Polarity Zone memakai papan tetap. Siege dan event lain dibuat per tanggal.
+            Guild League dan Polarity Zone memakai papan tetap. Siege dan event lain dibuat per tanggal. Semua member bisa membuat
+            party sendiri untuk mode apa pun (mis. Valkyrie).
           </p>
         </div>
-        {isAdmin && (
+        {canCreate && (
           <button className="btn btn-gold" onClick={() => setShowForm((v) => !v)}>
-            {showForm ? 'Tutup' : '+ Buat event'}
+            {showForm ? 'Tutup' : isAdmin ? '+ Buat event' : '+ Buat party'}
           </button>
         )}
       </div>
 
       {showForm && (
         <EventForm
+          customModes={customModes}
           onDone={() => {
             setShowForm(false)
             load()
@@ -95,11 +102,15 @@ export default function Events() {
             {m.label}
           </button>
         ))}
+        <button className={filter === 'custom' ? 'active' : ''} onClick={() => setFilter('custom')}>
+          <span className="dot" style={{ background: CUSTOM_COLOR }} />
+          Lainnya
+        </button>
       </div>
 
       {upcoming.length === 0 ? (
         <div className="empty">
-          Belum ada event mendatang.{isAdmin ? ' Klik “+ Buat event” untuk membuat.' : ' Tunggu admin membuat event.'}
+          Belum ada event mendatang.{isAdmin ? ' Klik “+ Buat event” untuk membuat.' : canCreate ? ' Klik “+ Buat party” untuk membuat party sendiri.' : ''}
         </div>
       ) : (
         <div className="event-grid">
@@ -124,7 +135,8 @@ export default function Events() {
 }
 
 function EventCard({ e, s }) {
-  const m = MODES[e.mode]
+  const { user } = useApp()
+  const m = modeOf(e)
   const secs = sectionsOf(e)
   const ps = s?.parties ?? []
   const first = secs[0]
@@ -135,7 +147,7 @@ function EventCard({ e, s }) {
   return (
     <a className="event-card" href={`#/event/${e.id}`} style={{ '--mode': m.color }}>
       <div className="event-card-top">
-        <span className="mode-tag">{m.label}</span>
+        <span className={`mode-tag ${m.custom ? 'notranslate' : ''}`}>{m.label}</span>
         {e.is_permanent ? (
           <span className="pill pill-gold">Papan tetap</span>
         ) : (
@@ -149,9 +161,10 @@ function EventCard({ e, s }) {
       </div>
       <div className="event-card-foot small">
         <span>
-          {first.name} {filled}/{cap}
+          {m.custom ? `${filled}/${cap}` : `${first.name} ${filled}/${cap}`}
           {rest.length ? ` · ${rest.length > 2 ? `+${rest.length} bagian` : rest.join(' · ')}` : ''}
         </span>
+        {e.mode === 'custom' && e.created_by === user?.id && <span className="pill pill-gold">Buatan Anda</span>}
         {s?.mine && <span className="pill pill-green">Anda ikut</span>}
       </div>
     </a>
@@ -172,8 +185,11 @@ const DEFAULT_SECTIONS = {
   siege: [sec('Main', 'Party', 12)],
 }
 
-export function EventForm({ initial, onDone }) {
-  const { user } = useApp()
+// event custom: satu bagian "Party" yang tidak dihitung hadir
+const CUSTOM_SECTIONS = (n) => [sec('Party', 'Party', Math.max(1, Math.min(20, Number(n) || 1)), false)]
+
+export function EventForm({ initial, onDone, customModes = [] }) {
+  const { user, isAdmin } = useApp()
   const [run, busy] = useAction()
   const start = new Date()
   start.setHours(20, 0, 0, 0)
@@ -187,25 +203,35 @@ export function EventForm({ initial, onDone }) {
           sections: sectionsOf(initial).map(({ name, prefix, parties, attend }) => ({ name, prefix, parties, attend })),
         }
       : {
-          mode: 'siege',
+          mode: isAdmin ? 'siege' : 'custom',
+          custom_mode: '',
+          one_per_account: true,
           title: '',
           starts_at: toLocalInput(start),
           party_size: 5,
-          sections: DEFAULT_SECTIONS.siege,
+          sections: isAdmin ? DEFAULT_SECTIONS.siege : CUSTOM_SECTIONS(1),
           notes: '',
         },
   )
+  const isCustom = f.mode === 'custom'
+  const customParties = isCustom ? Number(f.sections?.[0]?.parties) || 1 : 1
   const set = (k, v) => setF((o) => ({ ...o, [k]: v }))
 
   function setMode(mode) {
-    setF((o) => ({ ...o, mode, ...(initial ? {} : { sections: DEFAULT_SECTIONS[mode] }) }))
+    setF((o) => ({
+      ...o,
+      mode,
+      ...(mode === 'custom' ? { sections: CUSTOM_SECTIONS(1) } : initial ? {} : { sections: DEFAULT_SECTIONS[mode] }),
+    }))
   }
 
   async function submit(ev) {
     ev.preventDefault()
+    const customMode = (f.custom_mode || '').trim()
+    if (isCustom && !customMode) return alert('Isi nama mode, mis. Valkyrie')
     const title =
       f.title.trim() ||
-      `${MODES[f.mode].label} – ${new Date(f.starts_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}`
+      `${isCustom ? customMode : MODES[f.mode].label} – ${new Date(f.starts_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}`
     const sections = f.sections
       .map((x) => ({ ...x, name: x.name.trim() || 'Bagian', prefix: (x.prefix ?? '').trim() || x.name.trim() || 'Party', parties: Number(x.parties) || 0 }))
       .filter((x) => x.parties > 0)
@@ -221,6 +247,8 @@ export function EventForm({ initial, onDone }) {
       sections,
       party_size: Number(f.party_size),
       notes: f.notes || null,
+      custom_mode: isCustom ? customMode : null,
+      one_per_account: isCustom ? !!f.one_per_account : false,
     }
     const r = await run(async () => {
       if (initial) {
@@ -244,16 +272,37 @@ export function EventForm({ initial, onDone }) {
 
   return (
     <form className="card form-grid" onSubmit={submit}>
-      <label>
-        Mode
-        <select value={f.mode} disabled={!!initial?.is_permanent} onChange={(e) => setMode(e.target.value)}>
-          {Object.entries(MODES).map(([k, m]) => (
-            <option key={k} value={k}>
-              {m.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      {isAdmin && (
+        <label>
+          Mode
+          <select value={f.mode} disabled={!!initial?.is_permanent || initial?.mode === 'custom'} onChange={(e) => setMode(e.target.value)}>
+            {Object.entries(MODES).map(([k, m]) => (
+              <option key={k} value={k}>
+                {m.label}
+              </option>
+            ))}
+            <option value="custom">Lainnya (ketik sendiri)</option>
+          </select>
+        </label>
+      )}
+      {isCustom && (
+        <label>
+          Nama mode
+          <input
+            required
+            maxLength={30}
+            list="custom-modes"
+            value={f.custom_mode ?? ''}
+            onChange={(e) => set('custom_mode', e.target.value)}
+            placeholder="mis. Valkyrie"
+          />
+          <datalist id="custom-modes">
+            {customModes.map((x) => (
+              <option key={x} value={x} />
+            ))}
+          </datalist>
+        </label>
+      )}
       <label>
         Judul (opsional)
         <input value={f.title} onChange={(e) => set('title', e.target.value)} placeholder="otomatis dari mode & tanggal" />
@@ -264,18 +313,40 @@ export function EventForm({ initial, onDone }) {
           <input type="datetime-local" required value={f.starts_at} onChange={(e) => set('starts_at', e.target.value)} />
         </label>
       )}
-      <SectionsEditor sections={f.sections} size={Number(f.party_size) || 5} onChange={(v) => set('sections', v)} />
+      {isCustom ? (
+        <label>
+          Jumlah party
+          <input
+            type="number"
+            min="1"
+            max="20"
+            required
+            value={customParties}
+            onChange={(e) => set('sections', CUSTOM_SECTIONS(e.target.value))}
+          />
+        </label>
+      ) : (
+        <SectionsEditor sections={f.sections} size={Number(f.party_size) || 5} onChange={(v) => set('sections', v)} />
+      )}
       <label>
-        Slot per party
+        {isCustom ? 'Anggota per party' : 'Slot per party'}
         <input type="number" min="1" max="20" required value={f.party_size} onChange={(e) => set('party_size', e.target.value)} />
       </label>
+      {isCustom && (
+        <label className="check-label span-2">
+          <input type="checkbox" checked={!!f.one_per_account} onChange={(e) => set('one_per_account', e.target.checked)} />
+          <span>
+            1 akun = 1 karakter <span className="muted small">(pemain tidak bisa memasukkan karakter kedua/alt)</span>
+          </span>
+        </label>
+      )}
       <label className="span-2">
         Catatan
         <input value={f.notes ?? ''} onChange={(e) => set('notes', e.target.value)} placeholder="mis. kumpul 19:45 di markas guild" />
       </label>
       <div className="form-actions">
         <button className="btn btn-gold" disabled={busy}>
-          {initial ? 'Simpan' : 'Buat event'}
+          {initial ? 'Simpan' : isCustom && !isAdmin ? 'Buat party' : 'Buat event'}
         </button>
       </div>
     </form>

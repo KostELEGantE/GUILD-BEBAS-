@@ -5,6 +5,12 @@ export const MODES = {
   siege: { label: 'Siege', short: 'SG', color: 'var(--sg)' },
 }
 
+/** Info tampilan mode sebuah event; event 'custom' memakai nama mode yang diketik pembuatnya */
+export const CUSTOM_COLOR = '#b48cff'
+export function modeOf(ev) {
+  return MODES[ev?.mode] ?? { label: ev?.custom_mode || 'Lainnya', short: '★', color: CUSTOM_COLOR, custom: true }
+}
+
 export const ROLES = ['Tank', 'Healer', 'Support', 'DPS']
 
 export const STATUS_LABEL = {

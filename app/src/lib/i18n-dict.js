@@ -108,6 +108,7 @@ export const DICT = {
 
   // ---------- event list ----------
   'Guild League dan Polarity Zone memakai papan tetap. Siege dan event lain dibuat per tanggal.': ['Guild League dan Polarity Zone memakai papan tetap. Siege dan event lainnya dibuat per tanggal.', 'Guild League dan Polarity Zone menggunakan papan tetap. Siege dan acara lain dicipta mengikut tarikh.', 'Guild League and Polarity Zone use a permanent board. Siege and other events are created per date.', 'Guild League และ Polarity Zone ใช้กระดานถาวร ส่วน Siege และอีเวนต์อื่นสร้างตามวันที่', 'Permanenteng board ang Guild League at Polarity Zone. Ang Siege at ibang event ay ginagawa kada petsa.'],
+  'Guild League dan Polarity Zone memakai papan tetap. Siege dan event lain dibuat per tanggal. Semua member bisa membuat party sendiri untuk mode apa pun (mis. Valkyrie).': ['Guild League dan Polarity Zone memakai papan tetap. Siege dan event lainnya dibuat per tanggal. Semua anggota bisa membuat party sendiri untuk mode apa pun (mis. Valkyrie).', 'Guild League dan Polarity Zone menggunakan papan tetap. Siege dan acara lain dicipta mengikut tarikh. Semua ahli boleh mencipta parti sendiri untuk mod apa saja (cth. Valkyrie).', 'Guild League and Polarity Zone use a permanent board. Siege and other events are created per date. Any member can create their own party for any mode (e.g. Valkyrie).', 'Guild League และ Polarity Zone ใช้กระดานถาวร ส่วน Siege และอีเวนต์อื่นสร้างตามวันที่ สมาชิกทุกคนสร้างปาร์ตี้เองได้ทุกโหมด (เช่น Valkyrie)', 'Permanenteng board ang Guild League at Polarity Zone. Ang Siege at ibang event ay ginagawa kada petsa. Puwedeng gumawa ng sariling party ang sinumang miyembro para sa kahit anong mode (hal. Valkyrie).'],
   '+ Buat event': ['', '+ Cipta acara', '+ New event', '+ สร้างอีเวนต์', '+ Bagong event'],
   'Buat event': ['', 'Cipta acara', 'Create event', 'สร้างอีเวนต์', 'Gumawa ng event'],
   'Papan tetap': ['', 'Papan tetap', 'Permanent board', 'กระดานถาวร', 'Permanenteng board'],
@@ -435,11 +436,40 @@ export const DICT = {
   'Tidak bisa memblokir akun sendiri': ['', 'Tidak boleh menyekat akaun sendiri', 'You cannot ban your own account', 'แบนบัญชีตัวเองไม่ได้', 'Hindi mo puwedeng i-ban ang sarili mong account'],
   'Super Moderator tidak bisa diblokir': ['', 'Super Moderator tidak boleh disekat', 'A Super Moderator cannot be banned', 'Super Moderator แบนไม่ได้', 'Hindi puwedeng i-ban ang Super Moderator'],
   'Akun tidak ditemukan': ['', 'Akaun tidak dijumpai', 'Account not found', 'ไม่พบบัญชี', 'Hindi nahanap ang account'],
+  // ---- party custom ----
+  '+ Tambah party': ['', '+ Tambah parti', '+ Add party', '+ เพิ่มปาร์ตี้', '+ Magdagdag ng party'],
+  Lainnya: ['', 'Lain-lain', 'Other', 'อื่น ๆ', 'Iba pa'],
+  'Lainnya (ketik sendiri)': ['', 'Lain-lain (taip sendiri)', 'Other (type your own)', 'อื่น ๆ (พิมพ์เอง)', 'Iba pa (i-type mo)'],
+  'Nama mode': ['', 'Nama mod', 'Mode name', 'ชื่อโหมด', 'Pangalan ng mode'],
+  'mis. Valkyrie': ['', 'cth. Valkyrie', 'e.g. Valkyrie', 'เช่น Valkyrie', 'hal. Valkyrie'],
+  'Jumlah party': ['', 'Bilangan parti', 'Number of parties', 'จำนวนปาร์ตี้', 'Bilang ng party'],
+  'Anggota per party': ['', 'Ahli setiap parti', 'Members per party', 'สมาชิกต่อปาร์ตี้', 'Miyembro bawat party'],
+  '1 akun = 1 karakter': ['', '1 akaun = 1 watak', '1 account = 1 character', '1 บัญชี = 1 ตัวละคร', '1 account = 1 karakter'],
+  '(pemain tidak bisa memasukkan karakter kedua/alt)': ['', '(pemain tidak boleh memasukkan watak kedua/alt)', '(players cannot add a second/alt character)', '(ผู้เล่นใส่ตัวละครที่สอง/ตัวรองไม่ได้)', '(hindi puwedeng magdagdag ng ikalawang/alt na karakter)'],
+  'Buat party': ['', 'Cipta parti', 'Create party', 'สร้างปาร์ตี้', 'Gumawa ng party'],
+  '+ Buat party': ['', '+ Cipta parti', '+ New party', '+ สร้างปาร์ตี้', '+ Bagong party'],
+  'Buatan Anda': ['', 'Ciptaan anda', 'Yours', 'ของคุณ', 'Gawa mo'],
+  'Party buatan Anda': ['', 'Parti ciptaan anda', 'Your party', 'ปาร์ตี้ของคุณ', 'Party mo'],
+  'Isi nama mode, mis. Valkyrie': ['', 'Isi nama mod, cth. Valkyrie', 'Enter a mode name, e.g. Valkyrie', 'ใส่ชื่อโหมด เช่น Valkyrie', 'Ilagay ang pangalan ng mode, hal. Valkyrie'],
+  'Klik “+ Buat party” untuk membuat party sendiri.': ['', 'Klik “+ Cipta parti” untuk mencipta parti sendiri.', 'Click “+ New party” to create your own party.', 'คลิก “+ สร้างปาร์ตี้” เพื่อสร้างปาร์ตี้ของคุณเอง', 'I-click ang “+ Bagong party” para gumawa ng sariling party.'],
+  'Anda pembuat party ini: Anda bisa mengatur semua slot, menutup slot (🔒) untuk pemain dari guild lain, mengunci, mengubah, atau menghapusnya.': ['', 'Anda pencipta parti ini: anda boleh mengurus semua slot, menutup slot (🔒) untuk pemain dari guild lain, mengunci, mengubah atau memadamnya.', "You created this party: you can manage every slot, close slots (🔒) for players from another guild, and lock, edit or delete it.", 'คุณเป็นผู้สร้างปาร์ตี้นี้: จัดการทุกช่อง ปิดช่อง (🔒) ให้ผู้เล่นจากกิลด์อื่น ล็อก แก้ไข หรือลบได้', 'Ikaw ang gumawa ng party na ito: puwede mong ayusin ang lahat ng slot, isara ang slot (🔒) para sa player ng ibang guild, at i-lock, i-edit o burahin ito.'],
+  booking: ['', 'tempahan', 'booked', 'จองแล้ว', 'naka-book'],
+  'Slot ditutup (dibooking)': ['', 'Slot ditutup (ditempah)', 'Slot closed (booked)', 'ปิดช่อง (จองแล้ว)', 'Sarado ang slot (naka-book)'],
+  'Buka slot': ['', 'Buka slot', 'Open slot', 'เปิดช่อง', 'Buksan ang slot'],
+  'Tutup slot (booking untuk pemain lain)': ['', 'Tutup slot (tempahan untuk pemain lain)', 'Close slot (book it for another player)', 'ปิดช่อง (จองให้ผู้เล่นอื่น)', 'Isara ang slot (i-book para sa ibang player)'],
+  'Slot ditutup': ['', 'Slot ditutup', 'Slot closed', 'ปิดช่องแล้ว', 'Naisara ang slot'],
+  'Slot dibuka lagi': ['', 'Slot dibuka semula', 'Slot reopened', 'เปิดช่องอีกครั้งแล้ว', 'Nabuksan ulit ang slot'],
+  '(mis. nama pemain dari guild lain)': ['', '(cth. nama pemain dari guild lain)', '(e.g. name of a player from another guild)', '(เช่น ชื่อผู้เล่นจากกิลด์อื่น)', '(hal. pangalan ng player mula sa ibang guild)'],
+  'Slot ini sudah dibooking': ['', 'Slot ini sudah ditempah', 'This slot is booked', 'ช่องนี้ถูกจองแล้ว', 'Naka-book na ang slot na ito'],
+  'Event ini hanya boleh 1 karakter per akun': ['', 'Acara ini hanya membenarkan 1 watak setiap akaun', 'This event allows only 1 character per account', 'อีเวนต์นี้อนุญาต 1 ตัวละครต่อบัญชีเท่านั้น', '1 karakter lang bawat account sa event na ito'],
+  'Hanya pembuat event atau moderator yang bisa menutup slot': ['', 'Hanya pencipta acara atau moderator boleh menutup slot', 'Only the event creator or a moderator can close slots', 'เฉพาะผู้สร้างอีเวนต์หรือม็อดเดอเรเตอร์ที่ปิดช่องได้', 'Ang gumawa ng event o moderator lang ang puwedeng magsara ng slot'],
 }
 
 // Teks dinamis (berisi nama/angka). $1, $2 … = bagian yang diisi.
 // Format: [regex, [Indonesia, Melayu, English, ไทย, Filipino]]
 export const PATTERNS = [
+  [/^\+ Tambah party di (.+) \(mau memimpin party sendiri\?\)$/, ['+ Tambah party di $1 (ingin memimpin party sendiri?)', '+ Tambah parti di $1 (mahu mengetuai parti sendiri?)', '+ Add a party to $1 (want to lead your own party?)', '+ เพิ่มปาร์ตี้ใน $1 (อยากนำปาร์ตี้เอง?)', '+ Magdagdag ng party sa $1 (gusto mong pamunuan ang sariling party?)']],
+  [/^Tutup slot (\d+) di (.+) untuk siapa\?$/, ['', 'Tutup slot $1 dalam $2 untuk siapa?', 'Close slot $1 in $2 for whom?', 'ปิดช่อง $1 ใน $2 ให้ใคร?', 'Isara ang slot $1 sa $2 para kanino?']],
   [/^Diblokir \((\d+)\)$/, ['', 'Disekat ($1)', 'Banned ($1)', 'ถูกแบน ($1)', 'Naka-ban ($1)']],
   [/^Blokir akun (.+)\?$/, ['', 'Sekat akaun $1?', 'Ban account $1?', 'แบนบัญชี $1?', 'I-ban ang account na $1?']],
   [/^Buka blokir akun (.+)\? Akun ini bisa login lagi\.$/, ['', 'Buka sekatan akaun $1? Akaun ini boleh log masuk semula.', 'Unban account $1? They will be able to log in again.', 'ยกเลิกแบนบัญชี $1? บัญชีนี้จะเข้าสู่ระบบได้อีกครั้ง', 'I-unban ang account na $1? Makakapag-log in na ulit ito.']],

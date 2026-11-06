@@ -571,3 +571,27 @@ tr:hover .inline-edit { opacity: 1; }
   .slot-actions { opacity: 1; }
   .inline-edit { opacity: 1; }
 }
+
+/* ---------- party custom: slot booking ---------- */
+.slot-row { display: flex; gap: 4px; align-items: stretch; }
+.slot-row > .slot { flex: 1; min-width: 0; }
+.slot-lock {
+  flex: none; width: 28px; border: 1px dashed var(--line); border-radius: 7px; background: transparent;
+  color: var(--muted); cursor: pointer; font-size: 12px; opacity: .55; padding: 0;
+}
+.slot-lock:hover:not(:disabled) { opacity: 1; border-color: var(--gold); }
+.slot-reserved {
+  border-style: dashed; border-color: rgba(180,140,255,.55); background: rgba(180,140,255,.08);
+  color: var(--text); display: flex; align-items: center; gap: 6px;
+}
+.slot-reserved .slot-info { display: flex; flex-direction: column; line-height: 1.2; }
+.slot-reserved .slot-name { display: block; font-weight: 700; font-size: 12px; white-space: normal; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.slot-reserved .reserved-tag { font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em; }
+.slot-reserved .lock { flex: none; font-size: 12px; }
+.slot-reserved .icon-btn { padding: 0 4px; }
+.check-label { display: flex !important; flex-direction: row !important; align-items: center; gap: 8px; }
+.check-label input { width: auto; }
+@media (hover: none) { .slot-lock { opacity: .9; } }
+
+.add-party { white-space: normal; height: auto; }
