@@ -11,7 +11,7 @@ import GroupChip from '../components/GroupChip.jsx'
 import JobIcon from '../components/JobIcon.jsx'
 
 export default function EventDetail({ id }) {
-  const { members, myMembers, isAdmin, toast, groupByMember, groups } = useApp()
+  const { members, myMembers, isAdmin, toast, groupByMember, groups, user } = useApp()
   const [ev, setEv] = useState(null)
   const [parties, setParties] = useState([])
   const [signups, setSignups] = useState([])
@@ -20,6 +20,8 @@ export default function EventDetail({ id }) {
   const [myChar, setMyChar] = useState(null)
   const [picked, setPicked] = useState(null) // member_id yang sedang dipindah
   const [pickedGroup, setPickedGroup] = useState(null) // party fix yang sedang dipindah (klik)
+  const [fillParty, setFillParty] = useState(null) // party yang baru diklaim leader -> jendela isi party
+  const [leaderPick, setLeaderPick] = useState(null) // moderator menunjuk leader untuk party ini
   const [pickerSlot, setPickerSlot] = useState(null) // {party_no, slot_no}
   const [dragId, setDragId] = useState(null) // member_id yang sedang diseret
   const [over, setOver] = useState(null) // 'p' | 'p-s' | 'side' yang sedang disorot
@@ -130,8 +132,17 @@ export default function EventDetail({ id }) {
   const mainIds = new Set([...slotMap.values()].map((s) => s.member_id))
   const notJoined = members.filter((m) => m.active && !signedIds.has(m.id))
   const myPartyNos = new Set([...slotMap.values()].filter((s) => myIds.has(s.member_id)).map((s) => s.party_no))
-  const canManageParty = (p) => isAdmin || (isOpen && myPartyNos.has(p))
-  const canEdit = (memberId, partyNo) => isAdmin || (isOpen && (myIds.has(memberId) || (partyNo && myPartyNos.has(partyNo))))
+  // ---------- leader party ----------
+  const MAX_LEAD = 8
+  const leaderOf = (p) => {
+    const lid = parties.find((x) => x.party_no === p)?.leader_member_id
+    return lid ? memberById.get(lid) ?? null : null
+  }
+  const iLead = (p) => !!p && leaderOf(p)?.user_id === user.id
+  const myLeadCount = parties.filter((x) => x.leader_member_id && memberById.get(x.leader_member_id)?.user_id === user.id).length
+  // boleh mengatur isi party: moderator, leader-nya, atau anggota party tanpa leader
+  const canManageParty = (p) => isAdmin || (isOpen && (iLead(p) || (!leaderOf(p) && myPartyNos.has(p))))
+  const canEdit = (memberId, partyNo) => isAdmin || (isOpen && (myIds.has(memberId) || (partyNo && canManageParty(partyNo))))
 
   const partyName = (p) => parties.find((x) => x.party_no === p)?.name || defaultPartyName(secs, p)
   const mySignup = myChar ? signups.find((s) => s.member_id === myChar) : null
@@ -266,11 +277,29 @@ export default function EventDetail({ id }) {
       return placeGroup(g, party_no)
     }
     if (picked) return join(picked, party_no, slot_no)
-    if (isAdmin || (isOpen && myPartyNos.has(party_no))) return setPickerSlot({ party_no, slot_no })
+    if (canManageParty(party_no)) return setPickerSlot({ party_no, slot_no })
     if (!isOpen) return toast('Party sudah dikunci oleh admin', 'err')
+    if (leaderOf(party_no)) return toast(`${partyName(party_no)} dipimpin ${leaderOf(party_no).name}. Minta leader memasukkan Anda.`, 'err')
     if (!myChar) return toast('Klaim karakter Anda dulu di halaman Roster', 'err')
     if (myGroup) return placeGroup(myGroup, party_no)
     return join(myChar, party_no, slot_no)
+  }
+
+  async function claimLeader(p, memberId) {
+    const ok = await run(async () => {
+      await rpc('claim_party_leader', { p_event_id: id, p_party_no: p, p_member_id: memberId })
+      await loadParties()
+      return true
+    }, `${memberById.get(memberId)?.name} sekarang leader ${partyName(p)}`)
+    if (ok) setFillParty(p)
+  }
+
+  async function releaseLeader(p) {
+    if (!confirm(`Lepas leader ${partyName(p)}? Anggota party tetap di tempatnya.`)) return
+    await run(async () => {
+      await rpc('release_party_leader', { p_event_id: id, p_party_no: p })
+      await loadParties()
+    }, 'Leader dilepas')
   }
 
   async function setStatus(status) {
@@ -318,7 +347,8 @@ export default function EventDetail({ id }) {
         const m = su && memberById.get(su.member_id)
         if (m) names.push(m.name)
       }
-      return names.length ? `**${partyName(p)}**: ${names.join(', ')}` : null
+      const ld = leaderOf(p)
+      return names.length || ld ? `**${partyName(p)}**${ld ? ` (👑 ${ld.name})` : ''}: ${names.join(', ') || '—'}` : null
     }
     const lines = [`**${ev.title}**${isBoard ? '' : ` — ${fmtDate(ev.starts_at)}`}`]
     for (const sec of secs) {
@@ -365,7 +395,7 @@ export default function EventDetail({ id }) {
     const noHealer = ms.length > 0 && !ms.some((m) => m.role === 'Healer')
     return (
       <div
-        className={`party-card ${mine ? 'party-mine' : ''} ${noHealer ? 'party-warn' : ''} ${over === `${p}` ? 'drop-over' : ''}`}
+        className={`party-card ${mine || iLead(p) ? 'party-mine' : ''} ${leaderOf(p) ? 'party-led' : ''} ${noHealer ? 'party-warn' : ''} ${over === `${p}` ? 'drop-over' : ''}`}
         key={p}
         {...dropProps(`${p}`, (mid, g) => dropInto(mid, p, null, g))}
         onClick={pickedGroup ? (e) => {
@@ -394,6 +424,17 @@ export default function EventDetail({ id }) {
             {ms.length}/{size}
           </span>
         </div>
+        <LeaderLine
+          leader={leaderOf(p)}
+          mine={iLead(p)}
+          canClaim={isOpen && myChar && myLeadCount < MAX_LEAD && !leaderOf(p)}
+          isAdmin={isAdmin}
+          busy={busy}
+          onClaim={() => claimLeader(p, myChar)}
+          onAssign={() => setLeaderPick(p)}
+          onFill={() => setFillParty(p)}
+          onRelease={() => releaseLeader(p)}
+        />
         <div className="party-meta">{roleCount.length ? roleCount.map(([r, n]) => `${n}${r}`).join(' ') : ' '}</div>
         {noHealer && (
           <div className="party-alert" title="Party ini belum punya Healer (mis. High Priest)">
@@ -601,6 +642,11 @@ export default function EventDetail({ id }) {
                   </select>
                 </label>
                 {myGroup && <GroupChip g={myGroup} count={myGroup.group_members?.length} />}
+                {myLeadCount > 0 && (
+                  <span className="pill pill-gold" title="Party yang Anda pimpin di papan ini">
+                    👑 Memimpin {myLeadCount}/{MAX_LEAD}
+                  </span>
+                )}
                 <span className="small muted">
                   {mySignup
                     ? mySignup.party_no && mySignup.party_no <= ev.party_count
@@ -710,6 +756,43 @@ export default function EventDetail({ id }) {
             />
           </div>
         </>
+      )}
+
+      {fillParty && (
+        <FillPartyModal
+          title={partyName(fillParty)}
+          free={size - [...slotMap.values()].filter((x) => x.party_no === fillParty).length}
+          groups={groups}
+          myIds={myIds}
+          isAdmin={isAdmin}
+          memberById={memberById}
+          onGroup={(g) => {
+            const p = fillParty
+            setFillParty(null)
+            placeGroup(g, p)
+          }}
+          onManual={() => {
+            const p = fillParty
+            setFillParty(null)
+            const e = firstEmpty(p, p)
+            if (e) setPickerSlot({ party_no: p, slot_no: e.s })
+            else toast(`${partyName(p)} sudah penuh`, 'err')
+          }}
+          onClose={() => setFillParty(null)}
+        />
+      )}
+
+      {leaderPick && (
+        <MemberPicker
+          title={`Tunjuk leader ${partyName(leaderPick)}`}
+          excludeIds={new Set()}
+          onClose={() => setLeaderPick(null)}
+          onPick={(memberId) => {
+            const p = leaderPick
+            setLeaderPick(null)
+            claimLeader(p, memberId)
+          }}
+        />
       )}
 
       {pickerSlot && (
@@ -994,6 +1077,90 @@ function SlotFilled({ m, group, mine, picked, dragging, drag, editable, onPick, 
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+/** Baris leader di kartu party: 👑 nama leader, atau tombol untuk menjadi leader */
+function LeaderLine({ leader, mine, canClaim, isAdmin, busy, onClaim, onAssign, onFill, onRelease }) {
+  if (leader)
+    return (
+      <div className={`leader-line ${mine ? 'leader-mine' : ''}`} onClick={(e) => e.stopPropagation()}>
+        <span className="crown">👑</span>
+        <span className="leader-name" title={`Leader: ${leader.name}`}>
+          {leader.name}
+        </span>
+        {(mine || isAdmin) && (
+          <>
+            <button className="mini-btn" disabled={busy} title="Isi party (pilih party fix / anggota)" onClick={onFill}>
+              + Isi
+            </button>
+            <button className="mini-btn" disabled={busy} title="Lepas leader" onClick={onRelease}>
+              ✕
+            </button>
+          </>
+        )}
+      </div>
+    )
+  if (!canClaim && !isAdmin) return null
+  return (
+    <div className="leader-line leader-empty" onClick={(e) => e.stopPropagation()}>
+      {canClaim && (
+        <button className="mini-btn claim" disabled={busy} onClick={onClaim} title="Jadi leader party ini (maks 8 party)">
+          👑 Jadi leader
+        </button>
+      )}
+      {isAdmin && (
+        <button className="mini-btn" disabled={busy} onClick={onAssign} title="Tunjuk leader untuk party ini">
+          Tunjuk
+        </button>
+      )}
+    </div>
+  )
+}
+
+/** Jendela setelah klaim leader: isi party dengan party fix, atau pilih anggota satu per satu */
+function FillPartyModal({ title, free, groups, myIds, isAdmin, memberById, onGroup, onManual, onClose }) {
+  const [search, setSearch] = useState('')
+  const mine = (g) => (g.group_members || []).some((gm) => myIds.has(gm.member_id))
+  const list = groups
+    .filter((g) => !search.trim() || g.name.toLowerCase().includes(search.trim().toLowerCase()))
+    .sort((a, b) => Number(mine(b)) - Number(mine(a)) || a.name.localeCompare(b.name))
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>👑 Isi {title}</h3>
+          <button className="icon-btn" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+        <p className="muted small">
+          Sisa {free} slot. Pilih party fix untuk dimasukkan sekaligus (lebih dari {free} orang akan lanjut ke party lain yang Anda
+          pimpin), atau pilih anggota satu per satu.
+        </p>
+        <button className="btn btn-gold" onClick={onManual} disabled={free <= 0}>
+          Pilih anggota satu per satu
+        </button>
+        <input placeholder="Cari party fix…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="picker-list">
+          {list.length === 0 && <p className="muted small pad">Belum ada party fix.</p>}
+          {list.map((g) => {
+            const ms = (g.group_members || []).map((gm) => memberById.get(gm.member_id)).filter(Boolean)
+            return (
+              <button key={g.id} className="picker-item" onClick={() => onGroup(g)} style={{ '--g': groupColor(g.id) }}>
+                <span className="grow">
+                  <b style={{ color: 'var(--g)' }}>{g.name}</b>
+                  {mine(g) && <span className="pill pill-green"> grup Anda</span>}
+                  <div className="small muted">{ms.map((m) => m.name).join(', ')}</div>
+                </span>
+                <span className="small muted">{ms.length} orang</span>
+              </button>
+            )
+          })}
+        </div>
+        {!isAdmin && <p className="small muted">Party fix dimasukkan ke party yang Anda pimpin.</p>}
+      </div>
     </div>
   )
 }
