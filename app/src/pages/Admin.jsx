@@ -345,49 +345,130 @@ function ImportHistory() {
 }
 
 function AdminUsers() {
-  const { user } = useApp()
+  const { user, members, reloadMembers } = useApp()
   const [run, busy] = useAction()
   const [profiles, setProfiles] = useState([])
+  const [view, setView] = useState('all') // all | multi | none | admin
+  const [search, setSearch] = useState('')
   const load = useCallback(() => q(supabase.from('profiles').select('*').order('display_name')).then(setProfiles), [])
   useEffect(() => {
     load().catch(() => {})
   }, [load])
 
-  const toggle = (p) =>
+  // karakter yang diklaim per akun
+  const claims = useMemo(() => {
+    const map = new Map()
+    for (const m of members) if (m.user_id) map.set(m.user_id, [...(map.get(m.user_id) || []), m])
+    return map
+  }, [members])
+
+  const multi = profiles.filter((p) => (claims.get(p.id)?.length ?? 0) > 1)
+  const none = profiles.filter((p) => !claims.get(p.id)?.length)
+  const admins = profiles.filter((p) => p.is_admin)
+
+  const list = (view === 'multi' ? multi : view === 'none' ? none : view === 'admin' ? admins : profiles)
+    .filter((p) => {
+      const s = search.trim().toLowerCase()
+      if (!s) return true
+      return (p.display_name || '').toLowerCase().includes(s) || (claims.get(p.id) || []).some((m) => m.name.toLowerCase().includes(s))
+    })
+    .sort((a, b) => (claims.get(b.id)?.length ?? 0) - (claims.get(a.id)?.length ?? 0) || (a.display_name || '').localeCompare(b.display_name || ''))
+
+  const toggle = (p) => {
+    if (!p.is_admin && !confirm(`Jadikan ${p.display_name} admin?\nAdmin bisa import data, mengatur semua party, konfirmasi war, dan mengangkat admin lain.`)) return
     run(async () => {
       await q(supabase.from('profiles').update({ is_admin: !p.is_admin }).eq('id', p.id))
       await load()
     }, p.is_admin ? `${p.display_name} bukan admin lagi` : `${p.display_name} sekarang admin`)
+  }
+
+  const unclaim = (p, m) => {
+    if (!confirm(`Lepas klaim ${m.name} dari akun ${p.display_name}?`)) return
+    run(async () => {
+      await rpc('unclaim_member', { p_member_id: m.id })
+      await reloadMembers()
+    }, `Klaim ${m.name} dilepas`)
+  }
 
   return (
     <div className="card">
       <h3>Akun terdaftar ({profiles.length})</h3>
-      <p className="muted small">Semua yang pernah login. Admin bisa membuat event, mengatur semua party, dan import data.</p>
+      <p className="muted small">
+        Semua yang pernah login, beserta karakter yang mereka klaim. Akun yang mengklaim lebih dari 1 karakter ditandai{' '}
+        <span className="pill pill-gold">2+ karakter</span>; periksa apakah itu memang alt miliknya, atau lepas klaimnya.
+      </p>
+
+      <div className="tabs">
+        {[
+          ['all', `Semua (${profiles.length})`],
+          ['multi', `Klaim lebih dari 1 (${multi.length})`],
+          ['none', `Belum klaim (${none.length})`],
+          ['admin', `Admin (${admins.length})`],
+        ].map(([k, l]) => (
+          <button key={k} className={view === k ? 'active' : ''} onClick={() => setView(k)}>
+            {l}
+          </button>
+        ))}
+      </div>
+      <div className="filters">
+        <input placeholder="Cari nama akun / karakter…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+
       <div className="table-wrap">
         <table className="table compact">
           <thead>
             <tr>
-              <th>Nama</th>
+              <th>Akun</th>
+              <th>Karakter diklaim</th>
               <th>Bergabung</th>
               <th>Admin</th>
             </tr>
           </thead>
           <tbody>
-            {profiles.map((p) => (
-              <tr key={p.id}>
-                <td className="row gap-sm">
-                  {p.avatar_url && <img src={p.avatar_url} alt="" className="avatar avatar-sm" />}
-                  {p.display_name}
-                </td>
-                <td className="muted">{fmtDate(p.created_at, false)}</td>
-                <td>
-                  <label className="row gap-sm">
+            {list.map((p) => {
+              const cs = claims.get(p.id) || []
+              return (
+                <tr key={p.id} className={cs.length > 1 ? 'row-warn' : ''}>
+                  <td>
+                    <div className="row gap-sm">
+                      {p.avatar_url && <img src={p.avatar_url} alt="" className="avatar avatar-sm" />}
+                      <b>{p.display_name}</b>
+                      {p.id === user.id && <span className="small muted">(Anda)</span>}
+                    </div>
+                  </td>
+                  <td className="wrap-cell">
+                    {cs.length === 0 ? (
+                      <span className="muted small">belum klaim</span>
+                    ) : (
+                      <div className="claim-list">
+                        {cs.length > 1 && <span className="pill pill-gold">{cs.length} karakter</span>}
+                        {cs.map((m) => (
+                          <span key={m.id} className="claim-chip" title={`${m.class} · GS ${fmtNum(m.gear_score)}`}>
+                            {m.name}
+                            <span className="muted"> · {m.class}</span>
+                            {!m.active && <span className="muted"> (tidak aktif)</span>}
+                            <button title="Lepas klaim" disabled={busy} onClick={() => unclaim(p, m)}>
+                              ✕
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                  <td className="muted">{fmtDate(p.created_at, false)}</td>
+                  <td>
                     <input type="checkbox" checked={p.is_admin} disabled={busy || p.id === user.id} onChange={() => toggle(p)} />
-                    {p.id === user.id && <span className="small muted">(Anda)</span>}
-                  </label>
+                  </td>
+                </tr>
+              )
+            })}
+            {list.length === 0 && (
+              <tr>
+                <td colSpan={4} className="muted small">
+                  Tidak ada akun di kategori ini.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
