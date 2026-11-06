@@ -162,7 +162,20 @@ export default function EventDetail({ id }) {
     return null
   }
 
+  /** karakter lain milik akun yang sama yang sudah ada di event ini (aturan 1 akun = 1 karakter) */
+  function sameAccountIn(memberId) {
+    const owner = memberById.get(memberId)?.user_id
+    if (!ev.one_per_account || !owner) return null
+    const other = signups.find((x) => x.member_id !== memberId && memberById.get(x.member_id)?.user_id === owner)
+    return other ? memberById.get(other.member_id) : null
+  }
+
   async function join(memberId, party_no, slot_no, okMsg) {
+    const other = sameAccountIn(memberId)
+    if (other) {
+      toast(`Event ini 1 akun = 1 karakter: ${memberById.get(memberId)?.name} satu akun dengan ${other.name} yang sudah ikut`, 'err')
+      return false
+    }
     const ok = await run(async () => {
       await rpc('join_slot', { p_event_id: id, p_member_id: memberId, p_party_no: party_no, p_slot_no: slot_no })
       await loadSignups()
@@ -181,6 +194,7 @@ export default function EventDetail({ id }) {
     if (r) {
       setPicked(null)
       toast(`Party fix "${g.name}": ${r.placed} orang masuk party${r.sub ? `, ${r.sub} belum dapat slot` : ''}`)
+      if (r.skipped) toast(`${r.skipped} karakter dilewati: event ini 1 akun = 1 karakter`, 'err')
     }
   }
 

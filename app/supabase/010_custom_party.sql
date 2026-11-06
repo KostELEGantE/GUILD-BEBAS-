@@ -133,7 +133,7 @@ returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   ev public.events; ids bigint[]; ord int[]; n int; i int := 1;
   need int; best int; best_free int; free int; p int; v_slot int;
-  placed int := 0; to_sub int := 0;
+  placed int := 0; to_sub int := 0; skipped int := 0; kept bigint[];
   v_admin boolean := public.event_admin(p_event_id); v_member boolean := public.in_my_group(p_group_id);
 begin
   select * into ev from public.events where id = p_event_id;
@@ -151,13 +151,22 @@ begin
   if ids is null then raise exception 'Party fix kosong'; end if;
   n := cardinality(ids);
 
-  if ev.one_per_account and (
-       (select count(user_id) - count(distinct user_id) from public.members where id = any(ids)) > 0
-       or exists (select 1 from public.members a
-                   join public.members b on b.user_id = a.user_id and b.id <> a.id
-                   join public.event_signups s on s.member_id = b.id and s.event_id = p_event_id
-                  where a.id = any(ids) and not (b.id = any(ids)))) then
-    raise exception 'Event ini hanya boleh 1 karakter per akun';
+  -- 1 akun = 1 karakter: per akun hanya 1 karakter grup yang ikut (yang sudah ada di event diutamakan),
+  -- dan akun yang sudah punya karakter lain di event ini dilewati
+  if ev.one_per_account then
+    select coalesce(array_agg(t.id order by t.ord), '{}') into kept from (
+      select x.id, x.ord,
+             row_number() over (partition by coalesce(m.user_id::text, 'm' || x.id)
+                                order by (exists (select 1 from public.event_signups s
+                                                   where s.event_id = p_event_id and s.member_id = x.id)) desc, x.ord) rn
+        from unnest(ids) with ordinality x(id, ord) join public.members m on m.id = x.id
+       where m.user_id is null or not exists (
+               select 1 from public.event_signups s join public.members b on b.id = s.member_id
+                where s.event_id = p_event_id and b.user_id = m.user_id and not (b.id = any(ids)))
+    ) t where t.rn = 1;
+    skipped := n - cardinality(kept);
+    ids := kept; n := cardinality(ids);
+    if n = 0 then raise exception 'Event ini hanya boleh 1 karakter per akun'; end if;
   end if;
 
   delete from public.event_signups where event_id = p_event_id and member_id = any(ids);
@@ -196,7 +205,7 @@ begin
     i := i + 1; to_sub := to_sub + 1;
   end loop;
 
-  return jsonb_build_object('placed', placed, 'sub', to_sub);
+  return jsonb_build_object('placed', placed, 'sub', to_sub, 'skipped', skipped);
 end $$;
 
 -- ---------- tutup / buka slot (booking untuk pemain dari luar guild) ----------

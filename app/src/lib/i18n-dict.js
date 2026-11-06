@@ -468,6 +468,8 @@ export const DICT = {
 // Teks dinamis (berisi nama/angka). $1, $2 … = bagian yang diisi.
 // Format: [regex, [Indonesia, Melayu, English, ไทย, Filipino]]
 export const PATTERNS = [
+  [/^(\d+) karakter dilewati: event ini 1 akun = 1 karakter$/, ['', '$1 watak dilangkau: acara ini 1 akaun = 1 watak', '$1 characters skipped: this event is 1 account = 1 character', 'ข้าม $1 ตัวละคร: อีเวนต์นี้ 1 บัญชี = 1 ตัวละคร', '$1 karakter ang nilaktawan: 1 account = 1 karakter ang event na ito']],
+  [/^Event ini 1 akun = 1 karakter: (.+) satu akun dengan (.+) yang sudah ikut$/, ['', 'Acara ini 1 akaun = 1 watak: $1 satu akaun dengan $2 yang sudah menyertai', 'This event is 1 account = 1 character: $1 is on the same account as $2, who already joined', 'อีเวนต์นี้ 1 บัญชี = 1 ตัวละคร: $1 อยู่บัญชีเดียวกับ $2 ที่เข้าร่วมแล้ว', '1 account = 1 karakter ang event na ito: kapareho ng account ni $1 si $2 na nakasali na']],
   [/^\+ Tambah party di (.+) \(mau memimpin party sendiri\?\)$/, ['+ Tambah party di $1 (ingin memimpin party sendiri?)', '+ Tambah parti di $1 (mahu mengetuai parti sendiri?)', '+ Add a party to $1 (want to lead your own party?)', '+ เพิ่มปาร์ตี้ใน $1 (อยากนำปาร์ตี้เอง?)', '+ Magdagdag ng party sa $1 (gusto mong pamunuan ang sariling party?)']],
   [/^Tutup slot (\d+) di (.+) untuk siapa\?$/, ['', 'Tutup slot $1 dalam $2 untuk siapa?', 'Close slot $1 in $2 for whom?', 'ปิดช่อง $1 ใน $2 ให้ใคร?', 'Isara ang slot $1 sa $2 para kanino?']],
   [/^Diblokir \((\d+)\)$/, ['', 'Disekat ($1)', 'Banned ($1)', 'ถูกแบน ($1)', 'Naka-ban ($1)']],
