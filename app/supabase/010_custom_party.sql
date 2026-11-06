@@ -215,6 +215,7 @@ declare ev public.events; v_label text := left(nullif(btrim(p_label), ''), 40);
 begin
   select * into ev from public.events where id = p_event_id;
   if not found then raise exception 'Event tidak ditemukan'; end if;
+  if ev.is_permanent and nullif(btrim(p_label), '') is not null then raise exception 'Slot booking tidak dipakai di papan Guild League / Polarity Zone'; end if;
   if not public.event_admin(p_event_id) then
     raise exception 'Hanya pembuat event atau moderator yang bisa menutup slot';
   end if;

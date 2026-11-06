@@ -451,6 +451,25 @@ export const DICT = {
   'Sedang berlangsung': ['', 'Sedang berlangsung', 'In progress', 'กำลังดำเนินอยู่', 'Kasalukuyang nagaganap'],
   'sedang berlangsung': ['', 'sedang berlangsung', 'in progress', 'กำลังดำเนินอยู่', 'nagaganap na'],
   'sudah lewat': ['', 'sudah berlalu', 'already passed', 'ผ่านไปแล้ว', 'lumipas na'],
+  // ---- isi dari screenshot ----
+  '📷 Isi dari screenshot': ['', '📷 Isi daripada tangkapan skrin', '📷 Fill from screenshot', '📷 เติมจากภาพหน้าจอ', '📷 Punan mula sa screenshot'],
+  'Baca nama dari screenshot layar party di game': ['', 'Baca nama daripada tangkapan skrin parti dalam permainan', 'Read names from a screenshot of the in-game party screen', 'อ่านชื่อจากภาพหน้าจอปาร์ตี้ในเกม', 'Basahin ang mga pangalan mula sa screenshot ng party screen sa laro'],
+  '📷 Isi party dari screenshot': ['', '📷 Isi parti daripada tangkapan skrin', '📷 Fill parties from a screenshot', '📷 เติมปาร์ตี้จากภาพหน้าจอ', '📷 Punan ang party mula sa screenshot'],
+  'Ambil screenshot layar party di game (judul “Party 1, Party 2…” harus terlihat), lalu pilih file atau tempel dengan Ctrl+V. Nama dibaca otomatis dan dicocokkan dengan roster; Anda bisa memeriksa dulu sebelum disimpan.': ['', 'Ambil tangkapan skrin skrin parti dalam permainan (tajuk “Party 1, Party 2…” mesti kelihatan), kemudian pilih fail atau tampal dengan Ctrl+V. Nama dibaca secara automatik dan dipadankan dengan senarai ahli; anda boleh menyemak dahulu sebelum disimpan.', 'Take a screenshot of the in-game party screen (the “Party 1, Party 2…” headers must be visible), then choose the file or paste it with Ctrl+V. Names are read automatically and matched to the roster; you can check them before saving.', 'ถ่ายภาพหน้าจอปาร์ตี้ในเกม (ต้องเห็นหัวข้อ “Party 1, Party 2…”) แล้วเลือกไฟล์หรือวางด้วย Ctrl+V ระบบจะอ่านชื่อและจับคู่กับรายชื่อ ตรวจสอบได้ก่อนบันทึก', 'Kumuha ng screenshot ng party screen sa laro (dapat kita ang “Party 1, Party 2…”), saka piliin ang file o i-paste gamit ang Ctrl+V. Awtomatikong binabasa at itinutugma ang mga pangalan sa roster; masusuri mo muna bago i-save.'],
+  '🖼 Pilih / seret / tempel screenshot': ['', '🖼 Pilih / seret / tampal tangkapan skrin', '🖼 Choose / drop / paste a screenshot', '🖼 เลือก / ลาก / วางภาพหน้าจอ', '🖼 Pumili / i-drop / i-paste ang screenshot'],
+  'Klik untuk ganti gambar': ['', 'Klik untuk tukar gambar', 'Click to change the image', 'คลิกเพื่อเปลี่ยนรูป', 'I-click para palitan ang larawan'],
+  'Menyiapkan gambar…': ['', 'Menyediakan gambar…', 'Preparing image…', 'กำลังเตรียมรูป…', 'Inihahanda ang larawan…'],
+  'Memuat pembaca gambar…': ['', 'Memuatkan pembaca gambar…', 'Loading the image reader…', 'กำลังโหลดตัวอ่านรูป…', 'Nilo-load ang image reader…'],
+  'Gagal memuat pembaca gambar. Periksa koneksi internet.': ['', 'Gagal memuatkan pembaca gambar. Semak sambungan internet.', 'Could not load the image reader. Check your internet connection.', 'โหลดตัวอ่านรูปไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต', 'Hindi ma-load ang image reader. Suriin ang internet.'],
+  'File bukan gambar': ['', 'Fail bukan gambar', 'The file is not an image', 'ไฟล์ไม่ใช่รูปภาพ', 'Hindi larawan ang file'],
+  '“Party 1” di screenshot =': ['', '“Party 1” dalam tangkapan skrin =', '“Party 1” in the screenshot =', '“Party 1” ในภาพ =', '“Party 1” sa screenshot ='],
+  'Tidak ada nama yang terbaca. Pastikan screenshot memperlihatkan judul “Party …” dan nama karakter dengan jelas.': ['', 'Tiada nama yang dibaca. Pastikan tangkapan skrin menunjukkan tajuk “Party …” dan nama watak dengan jelas.', 'No names were read. Make sure the screenshot clearly shows the “Party …” headers and character names.', 'อ่านชื่อไม่ได้ ตรวจสอบว่าภาพเห็นหัวข้อ “Party …” และชื่อตัวละครชัดเจน', 'Walang nabasang pangalan. Siguraduhing malinaw ang “Party …” at mga pangalan sa screenshot.'],
+  'Teks yang terbaca dari gambar': ['', 'Teks yang dibaca daripada gambar', 'Text read from the image', 'ข้อความที่อ่านได้จากรูป', 'Tekstong nabasa mula sa larawan'],
+  '— lewati —': ['', '— langkau —', '— skip —', '— ข้าม —', '— laktawan —'],
+  'Keluarkan anggota lain dari party ini yang tidak ada di screenshot': ['', 'Keluarkan ahli lain daripada parti ini yang tiada dalam tangkapan skrin', 'Remove other members from these parties who are not in the screenshot', 'นำสมาชิกอื่นที่ไม่อยู่ในภาพออกจากปาร์ตี้เหล่านี้', 'Alisin sa mga party na ito ang ibang miyembrong wala sa screenshot'],
+  'Nama yang tertutup (mis. oleh notifikasi item) tidak terbaca. Pilih manual di daftar di atas.': ['', 'Nama yang terlindung (cth. oleh notifikasi item) tidak dapat dibaca. Pilih secara manual dalam senarai di atas.', 'Names that are covered (e.g. by an item popup) cannot be read. Pick them manually in the list above.', 'ชื่อที่ถูกบัง (เช่น ป๊อปอัปไอเทม) อ่านไม่ได้ เลือกเองจากรายการด้านบน', 'Hindi mababasa ang mga natakpang pangalan (hal. ng item popup). Piliin nang manu-mano sa listahan sa itaas.'],
+  'Menyimpan…': ['', 'Menyimpan…', 'Saving…', 'กำลังบันทึก…', 'Sine-save…'],
+  'Slot booking tidak dipakai di papan Guild League / Polarity Zone': ['', 'Tempahan slot tidak digunakan di papan Guild League / Polarity Zone', 'Slot booking is not used on the Guild League / Polarity Zone boards', 'ไม่ใช้การจองช่องในกระดาน Guild League / Polarity Zone', 'Hindi ginagamit ang slot booking sa Guild League / Polarity Zone board'],
   // ---- party custom ----
   '(biarkan kosong jika ada yang mengklaim karakter temannya; satu karakter tetap hanya bisa masuk 1 slot)': ['', '(biarkan kosong jika ada yang menuntut watak kawannya; satu watak tetap hanya boleh masuk 1 slot)', "(leave unticked if someone claims a friend's character; a character can still only take 1 slot)", '(ไม่ต้องติ๊กถ้ามีคนเคลมตัวละครของเพื่อน ตัวละครหนึ่งยังเข้าได้แค่ 1 ช่อง)', '(huwag lagyan ng check kung may nag-claim ng karakter ng kaibigan; 1 slot lang pa rin bawat karakter)'],
   '+ Tambah party': ['', '+ Tambah parti', '+ Add party', '+ เพิ่มปาร์ตี้', '+ Magdagdag ng party'],
@@ -484,6 +503,11 @@ export const DICT = {
 // Teks dinamis (berisi nama/angka). $1, $2 … = bagian yang diisi.
 // Format: [regex, [Indonesia, Melayu, English, ไทย, Filipino]]
 export const PATTERNS = [
+  [/^Membaca nama… (\d+)%$/, ['', 'Membaca nama… $1%', 'Reading names… $1%', 'กำลังอ่านชื่อ… $1%', 'Binabasa ang pangalan… $1%']],
+  [/^(\d+) cocok · (\d+) perlu dipilih$/, ['', '$1 sepadan · $2 perlu dipilih', '$1 matched · $2 need picking', 'ตรงกัน $1 · ต้องเลือก $2', '$1 tugma · $2 kailangang piliin']],
+  [/^Masukkan (\d+) karakter$/, ['', 'Masukkan $1 watak', 'Add $1 characters', 'ใส่ $1 ตัวละคร', 'Idagdag ang $1 karakter']],
+  [/^(\d+) karakter dimasukkan dari screenshot$/, ['', '$1 watak dimasukkan daripada tangkapan skrin', '$1 characters added from the screenshot', 'ใส่ $1 ตัวละครจากภาพแล้ว', '$1 karakter ang naidagdag mula sa screenshot']],
+  [/^(.+): (.+) penuh$/, ['', '$1: $2 penuh', '$1: $2 is full', '$1: $2 เต็ม', '$1: puno ang $2']],
   [/^(\d+) hari$/, ['', '$1 hari', '$1d', '$1 วัน', '$1 araw']],
   [/^(\d+) hari lagi$/, ['', '$1 hari lagi', 'in $1 days', 'อีก $1 วัน', 'sa loob ng $1 araw']],
   [/^(\d+) jam lagi$/, ['', '$1 jam lagi', 'in $1 hours', 'อีก $1 ชั่วโมง', 'sa loob ng $1 oras']],

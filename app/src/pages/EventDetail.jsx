@@ -9,6 +9,7 @@ import Attendance from './Attendance.jsx'
 import MemberPicker from '../components/MemberPicker.jsx'
 import GroupChip from '../components/GroupChip.jsx'
 import JobIcon from '../components/JobIcon.jsx'
+import ScreenshotFill from '../components/ScreenshotFill.jsx'
 
 export default function EventDetail({ id }) {
   const { members, myMembers, isAdmin: isMod, toast, groupByMember, groups, user } = useApp()
@@ -23,6 +24,7 @@ export default function EventDetail({ id }) {
   const [fillParty, setFillParty] = useState(null) // party yang baru diklaim leader -> jendela isi party
   const [leaderPick, setLeaderPick] = useState(null) // moderator menunjuk leader untuk party ini
   const [pickerSlot, setPickerSlot] = useState(null) // {party_no, slot_no}
+  const [shotOpen, setShotOpen] = useState(false) // isi party dari screenshot game
   const [groupAsk, setGroupAsk] = useState(null) // {memberId, g, party_no, slot_no}: seluruh party fix atau satu orang?
   const [dragId, setDragId] = useState(null) // member_id yang sedang diseret
   const [over, setOver] = useState(null) // 'p' | 'p-s' | 'side' yang sedang disorot
@@ -114,6 +116,10 @@ export default function EventDetail({ id }) {
   const isOwner = isCustom && ev.created_by === user.id
   const isAdmin = isMod || isOwner
   const isBoard = ev.is_permanent
+  // booking slot hanya untuk event biasa / party custom, tidak di papan GL & PZ
+  const canReserve = isAdmin && !isBoard
+  // isi dari screenshot: hanya papan Guild League & Polarity Zone, untuk moderator
+  const canShot = isMod && isBoard && (ev.mode === 'guild_league' || ev.mode === 'polarity_zone')
   const isOpen = ev.status === 'open'
   const size = ev.party_size
   const secs = sectionsOf(ev)
@@ -528,7 +534,7 @@ export default function EventDetail({ id }) {
                       <span className="slot-name notranslate">{rsv[slotNo]}</span>
                       <span className="small muted reserved-tag">booking</span>
                     </span>
-                    {isAdmin && (
+                    {canReserve && (
                       <button className="icon-btn" title="Buka slot" disabled={busy} onClick={() => unreserve(p, slotNo)}>
                         ✕
                       </button>
@@ -538,7 +544,7 @@ export default function EventDetail({ id }) {
               )
             if (!s)
               return (
-                <li key={slotNo} className={isAdmin ? 'slot-row' : undefined}>
+                <li key={slotNo} className={canReserve ? 'slot-row' : undefined}>
                   <button
                     className={`slot slot-empty ${picked || pickedGroup || dragId ? 'slot-target' : ''} ${over === `${p}-${slotNo}` ? 'drop-over' : ''}`}
                     disabled={busy || (!isAdmin && !isOpen)}
@@ -547,7 +553,7 @@ export default function EventDetail({ id }) {
                   >
                     {dragId ? 'Lepas di sini' : picked || pickedGroup ? 'Pindah ke sini' : canManageParty(p) ? '+ Isi' : isOpen ? '+ Gabung' : '—'}
                   </button>
-                  {isAdmin && !dragId && !picked && !pickedGroup && (
+                  {canReserve && !dragId && !picked && !pickedGroup && (
                     <button className="slot-lock" title="Tutup slot (booking untuk pemain lain)" disabled={busy} onClick={() => reserve(p, slotNo)}>
                       🔒
                     </button>
@@ -621,6 +627,11 @@ export default function EventDetail({ id }) {
           {isBoard && isAdmin && (
             <button className="btn btn-gold" disabled={busy} onClick={confirmWar}>
               ✓ Konfirmasi war
+            </button>
+          )}
+          {canShot && (
+            <button className="btn btn-ghost" onClick={() => setShotOpen(true)} title="Baca nama dari screenshot layar party di game">
+              📷 Isi dari screenshot
             </button>
           )}
           <button className="btn btn-ghost" onClick={copyText}>
@@ -871,6 +882,21 @@ export default function EventDetail({ id }) {
             setLeaderPick(null)
             claimLeader(p, memberId)
           }}
+        />
+      )}
+
+      {shotOpen && (
+        <ScreenshotFill
+          ev={ev}
+          size={size}
+          partyName={partyName}
+          members={members}
+          memberById={memberById}
+          signups={signups}
+          reservedOf={reservedOf}
+          toast={toast}
+          onDone={() => loadSignups().catch(() => {})}
+          onClose={() => setShotOpen(false)}
         />
       )}
 
