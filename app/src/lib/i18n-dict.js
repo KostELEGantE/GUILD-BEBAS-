@@ -415,11 +415,37 @@ export const DICT = {
   'Slot tidak valid': ['', 'Slot tidak sah', 'Invalid slot', 'ช่องไม่ถูกต้อง', 'Hindi valid ang slot'],
   'Sub Moderator tidak bisa mengubah Super Moderator': ['', 'Sub Moderator tidak boleh mengubah Super Moderator', 'A Sub Moderator cannot change a Super Moderator', 'Sub Moderator แก้ไข Super Moderator ไม่ได้', 'Hindi puwedeng baguhin ng Sub Moderator ang Super Moderator'],
   'Tidak diizinkan': ['', 'Tidak dibenarkan', 'Not allowed', 'ไม่ได้รับอนุญาต', 'Hindi pinapayagan'],
+  // ---- blokir akun ----
+  Blokir: ['', 'Sekat', 'Ban', 'แบน', 'I-ban'],
+  'Buka blokir': ['', 'Buka sekatan', 'Unban', 'ยกเลิกแบน', 'Alisin ang ban'],
+  Diblokir: ['', 'Disekat', 'Banned', 'ถูกแบน', 'Naka-ban'],
+  'Akun diblokir': ['', 'Akaun disekat', 'Account banned', 'บัญชีถูกแบน', 'Naka-ban ang account'],
+  'Akun ini diblokir oleh moderator guild dan tidak bisa membuka website.': ['', 'Akaun ini disekat oleh moderator guild dan tidak boleh membuka laman web.', 'This account was banned by a guild moderator and cannot open the website.', 'บัญชีนี้ถูกม็อดเดอเรเตอร์กิลด์แบน และเปิดเว็บไซต์ไม่ได้', 'Na-ban ng moderator ng guild ang account na ito at hindi nito mabubuksan ang website.'],
+  'Alasan:': ['', 'Sebab:', 'Reason:', 'เหตุผล:', 'Dahilan:'],
+  'Jika menurut Anda ini keliru, hubungi moderator guild.': ['', 'Jika anda rasa ini satu kesilapan, hubungi moderator guild.', 'If you think this is a mistake, contact a guild moderator.', 'หากคิดว่าเป็นความผิดพลาด โปรดติดต่อม็อดเดอเรเตอร์กิลด์', 'Kung sa tingin mo ay mali ito, kontakin ang moderator ng guild.'],
+  'Akun ini diblokir oleh moderator guild. Hubungi moderator jika menurut Anda ini keliru.': ['', 'Akaun ini disekat oleh moderator guild. Hubungi moderator jika anda rasa ini satu kesilapan.', 'This account was banned by a guild moderator. Contact a moderator if you think this is a mistake.', 'บัญชีนี้ถูกม็อดเดอเรเตอร์กิลด์แบน โปรดติดต่อม็อดเดอเรเตอร์หากคิดว่าเป็นความผิดพลาด', 'Na-ban ng moderator ng guild ang account na ito. Kontakin ang moderator kung sa tingin mo ay mali ito.'],
+  'Akun Anda diblokir oleh moderator': ['', 'Akaun anda disekat oleh moderator', 'Your account was banned by a moderator', 'บัญชีของคุณถูกม็อดเดอเรเตอร์แบน', 'Na-ban ng moderator ang account mo'],
+  '· oleh': ['', '· oleh', '· by', '· โดย', '· ni'],
+  'Akun ini akan langsung keluar dan tidak bisa membuka website lagi sampai blokirnya dibuka.': ['', 'Akaun ini akan terus dilog keluar dan tidak boleh membuka laman web lagi sehingga sekatan dibuka.', 'This account will be logged out immediately and cannot open the website until it is unbanned.', 'บัญชีนี้จะถูกออกจากระบบทันทีและเปิดเว็บไซต์ไม่ได้จนกว่าจะยกเลิกแบน', 'Agad na mala-log out ang account na ito at hindi mabubuksan ang website hanggang ma-unban.'],
+  'Alasan (boleh dikosongkan):': ['', 'Sebab (boleh dibiarkan kosong):', 'Reason (optional):', 'เหตุผล (ไม่บังคับ):', 'Dahilan (opsyonal):'],
+  'OK = lepas klaim, Batal = biarkan tetap diklaim': ['', 'OK = lepaskan tuntutan, Batal = kekalkan tuntutan', 'OK = release claims, Cancel = keep them claimed', 'OK = ยกเลิกการเคลม, ยกเลิก = เก็บการเคลมไว้', 'OK = i-unclaim, Cancel = panatilihing naka-claim'],
+  'membuat akun langsung keluar dan tidak bisa membuka website lagi. Super Moderator tidak bisa diblokir. Blokir bisa dibuka kapan saja dari tab': ['', 'membuat akaun terus dilog keluar dan tidak boleh membuka laman web lagi. Super Moderator tidak boleh disekat. Sekatan boleh dibuka bila-bila masa dari tab', 'logs the account out immediately and blocks it from the website. A Super Moderator cannot be banned. You can unban at any time from the tab', 'ทำให้บัญชีออกจากระบบทันทีและเปิดเว็บไซต์ไม่ได้อีก Super Moderator แบนไม่ได้ ยกเลิกแบนได้ทุกเมื่อจากแท็บ', 'agad na nila-log out ang account at hinaharangan sa website. Hindi puwedeng i-ban ang Super Moderator. Puwedeng i-unban anumang oras mula sa tab na'],
+  'Hanya moderator': ['', 'Hanya moderator', 'Moderators only', 'เฉพาะม็อดเดอเรเตอร์', 'Para sa moderator lang'],
+  'Hanya moderator yang bisa memblokir akun': ['', 'Hanya moderator boleh menyekat akaun', 'Only moderators can ban accounts', 'เฉพาะม็อดเดอเรเตอร์ที่แบนบัญชีได้', 'Moderator lang ang puwedeng mag-ban ng account'],
+  'Tidak bisa memblokir akun sendiri': ['', 'Tidak boleh menyekat akaun sendiri', 'You cannot ban your own account', 'แบนบัญชีตัวเองไม่ได้', 'Hindi mo puwedeng i-ban ang sarili mong account'],
+  'Super Moderator tidak bisa diblokir': ['', 'Super Moderator tidak boleh disekat', 'A Super Moderator cannot be banned', 'Super Moderator แบนไม่ได้', 'Hindi puwedeng i-ban ang Super Moderator'],
+  'Akun tidak ditemukan': ['', 'Akaun tidak dijumpai', 'Account not found', 'ไม่พบบัญชี', 'Hindi nahanap ang account'],
 }
 
 // Teks dinamis (berisi nama/angka). $1, $2 … = bagian yang diisi.
 // Format: [regex, [Indonesia, Melayu, English, ไทย, Filipino]]
 export const PATTERNS = [
+  [/^Diblokir \((\d+)\)$/, ['', 'Disekat ($1)', 'Banned ($1)', 'ถูกแบน ($1)', 'Naka-ban ($1)']],
+  [/^Blokir akun (.+)\?$/, ['', 'Sekat akaun $1?', 'Ban account $1?', 'แบนบัญชี $1?', 'I-ban ang account na $1?']],
+  [/^Buka blokir akun (.+)\? Akun ini bisa login lagi\.$/, ['', 'Buka sekatan akaun $1? Akaun ini boleh log masuk semula.', 'Unban account $1? They will be able to log in again.', 'ยกเลิกแบนบัญชี $1? บัญชีนี้จะเข้าสู่ระบบได้อีกครั้ง', 'I-unban ang account na $1? Makakapag-log in na ulit ito.']],
+  [/^Lepas juga klaim karakternya \((.+)\)\?$/, ['', 'Lepaskan juga tuntutan wataknya ($1)?', 'Also release their claimed characters ($1)?', 'ยกเลิกการเคลมตัวละครของเขาด้วยไหม ($1)?', 'I-unclaim din ang mga karakter niya ($1)?']],
+  [/^Blokir (.+) dibuka$/, ['', 'Sekatan $1 dibuka', '$1 unbanned', 'ยกเลิกแบน $1 แล้ว', 'Na-unban si $1']],
+  [/^(.+) diblokir$/, ['', '$1 disekat', '$1 banned', 'แบน $1 แล้ว', 'Na-ban si $1']],
   [/^Semua \((\d+)\)$/, ['', 'Semua ($1)', 'All ($1)', 'ทั้งหมด ($1)', 'Lahat ($1)']],
   [/^Karakter saya \((\d+)\)$/, ['', 'Watak saya ($1)', 'My characters ($1)', 'ตัวละครของฉัน ($1)', 'Aking karakter ($1)']],
   [/^Belum diklaim \((\d+)\)$/, ['', 'Belum dituntut ($1)', 'Unclaimed ($1)', 'ยังไม่เคลม ($1)', 'Hindi pa na-claim ($1)']],

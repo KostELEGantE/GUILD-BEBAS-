@@ -7,13 +7,24 @@ import LangSwitch from '../components/LangSwitch.jsx'
 // tidak bisa kembali ke halaman ini, jadi yang dipakai adalah email + password.
 const IS_FILE = window.location.protocol === 'file:'
 
+// error dari login OAuth (mis. akun diblokir) dikirim lewat URL
+function urlError() {
+  const sp = new URLSearchParams(window.location.search)
+  const hp = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  const d = sp.get('error_description') || hp.get('error_description')
+  if (!d) return null
+  if (window.history.replaceState) window.history.replaceState(null, '', window.location.pathname)
+  if (/banned/i.test(d)) return { type: 'err', text: 'Akun ini diblokir oleh moderator guild. Hubungi moderator jika menurut Anda ini keliru.' }
+  return { type: 'err', text: d.replace(/\+/g, ' ') }
+}
+
 export default function Login() {
   const [mode, setMode] = useState(IS_FILE ? 'password' : 'discord')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [isSignup, setIsSignup] = useState(false)
-  const [msg, setMsg] = useState(null)
+  const [msg, setMsg] = useState(urlError)
   const [busy, setBusy] = useState(false)
 
   const redirectTo = window.location.origin + window.location.pathname
@@ -50,6 +61,8 @@ export default function Login() {
         if (error) {
           if (/confirm/i.test(error.message)) throw new Error('Email belum dikonfirmasi. Cek inbox/spam untuk link konfirmasi.')
           if (/invalid/i.test(error.message)) throw new Error('Email atau password salah.')
+          if (/banned/i.test(error.message))
+            throw new Error('Akun ini diblokir oleh moderator guild. Hubungi moderator jika menurut Anda ini keliru.')
           throw error
         }
       }

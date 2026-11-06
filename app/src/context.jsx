@@ -14,6 +14,10 @@ export function AppProvider({ session, children }) {
   const toastId = useRef(0)
 
   const toast = useCallback((msg, type = 'ok') => {
+    // diblokir saat sedang membuka website -> muat ulang profil untuk menampilkan layar blokir
+    if (type === 'err' && /diblokir oleh moderator/i.test(String(msg))) {
+      supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle().then(({ data }) => data && setProfile(data))
+    }
     const id = ++toastId.current
     setToasts((t) => [...t, { id, msg, type }])
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), type === 'err' ? 6000 : 3500)
@@ -40,7 +44,10 @@ export function AppProvider({ session, children }) {
     let alive = true
     ;(async () => {
       try {
-        await Promise.all([loadProfile(), loadMembers(), loadGroups().catch(() => {})])
+        const prof = await q(supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle())
+        if (alive) setProfile(prof)
+        if (prof?.banned_at) return // akun diblokir: data guild tidak dimuat
+        await Promise.all([loadMembers(), loadGroups().catch(() => {})])
       } catch (e) {
         if (alive) toast(e.message, 'err')
       } finally {

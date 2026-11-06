@@ -67,6 +67,8 @@ function Shell() {
 
   const activeNav = page === 'event' ? 'events' : page
 
+  if (profile?.banned_at) return <Banned profile={profile} />
+
   return (
     <div className="app">
       <header className="topbar">
@@ -110,6 +112,28 @@ function Shell() {
       )}
 
       <main className="main">{content}</main>
+    </div>
+  )
+}
+
+function Banned({ profile }) {
+  return (
+    <div className="login">
+      <div className="login-card banned-card">
+        <LangSwitch className="login-lang" />
+        <div className="ban-icon">⛔</div>
+        <h1>Akun diblokir</h1>
+        <p className="muted">Akun ini diblokir oleh moderator guild dan tidak bisa membuka website.</p>
+        {profile.ban_reason && (
+          <p>
+            Alasan: <b className="notranslate">{profile.ban_reason}</b>
+          </p>
+        )}
+        <p className="muted small">Jika menurut Anda ini keliru, hubungi moderator guild.</p>
+        <button className="btn btn-ghost btn-lg" onClick={() => supabase.auth.signOut()}>
+          Keluar
+        </button>
+      </div>
     </div>
   )
 }

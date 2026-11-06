@@ -370,9 +370,11 @@ function AdminUsers() {
 
   const multi = profiles.filter((p) => (claims.get(p.id)?.length ?? 0) > 1)
   const none = profiles.filter((p) => !claims.get(p.id)?.length)
-  const admins = profiles.filter((p) => p.is_admin)
+  const admins = profiles.filter((p) => p.is_admin && !p.banned_at)
+  const banned = profiles.filter((p) => p.banned_at)
+  const nameOf = (id) => profiles.find((x) => x.id === id)?.display_name ?? '–'
 
-  const list = (view === 'multi' ? multi : view === 'none' ? none : view === 'admin' ? admins : profiles)
+  const list = (view === 'multi' ? multi : view === 'none' ? none : view === 'admin' ? admins : view === 'banned' ? banned : profiles)
     .filter((p) => {
       const s = search.trim().toLowerCase()
       if (!s) return true
@@ -389,6 +391,24 @@ function AdminUsers() {
       await q(supabase.from('profiles').update({ is_admin: role !== 'member', is_super: role === 'super' }).eq('id', p.id))
       await load()
     }, `${p.display_name} sekarang ${label}`)
+  }
+
+  const ban = (p) => {
+    const reason = prompt(`Blokir akun ${p.display_name}?\n\nAkun ini akan langsung keluar dan tidak bisa membuka website lagi sampai blokirnya dibuka.\n\nAlasan (boleh dikosongkan):`, '')
+    if (reason === null) return
+    const cs = claims.get(p.id) || []
+    const release = cs.length > 0 && confirm(`Lepas juga klaim karakternya (${cs.map((m) => m.name).join(', ')})?\n\nOK = lepas klaim, Batal = biarkan tetap diklaim`)
+    run(async () => {
+      await rpc('ban_user', { p_user_id: p.id, p_reason: reason, p_release_claims: release })
+      await Promise.all([load(), reloadMembers()])
+    }, `${p.display_name} diblokir`)
+  }
+  const unban = (p) => {
+    if (!confirm(`Buka blokir akun ${p.display_name}? Akun ini bisa login lagi.`)) return
+    run(async () => {
+      await rpc('unban_user', { p_user_id: p.id })
+      await load()
+    }, `Blokir ${p.display_name} dibuka`)
   }
 
   const unclaim = (p, m) => {
@@ -410,6 +430,10 @@ function AdminUsers() {
         Semua yang pernah login, beserta karakter yang mereka klaim. Akun yang mengklaim lebih dari 1 karakter ditandai{' '}
         <span className="pill pill-gold">2+ karakter</span>; periksa apakah itu memang alt miliknya, atau lepas klaimnya.
       </p>
+      <p className="muted small">
+        <b>Blokir</b> membuat akun langsung keluar dan tidak bisa membuka website lagi. Super Moderator tidak bisa diblokir.
+        Blokir bisa dibuka kapan saja dari tab <b>Diblokir</b>.
+      </p>
 
       <div className="tabs">
         {[
@@ -417,6 +441,7 @@ function AdminUsers() {
           ['multi', `Klaim lebih dari 1 (${multi.length})`],
           ['none', `Belum klaim (${none.length})`],
           ['admin', `Moderator (${admins.length})`],
+          ['banned', `Diblokir (${banned.length})`],
         ].map(([k, l]) => (
           <button key={k} className={view === k ? 'active' : ''} onClick={() => setView(k)}>
             {l}
@@ -435,19 +460,32 @@ function AdminUsers() {
               <th>IGN diklaim</th>
               <th>Bergabung</th>
               <th>Peran</th>
+              <th />
             </tr>
           </thead>
           <tbody>
             {list.map((p) => {
               const cs = claims.get(p.id) || []
               return (
-                <tr key={p.id} className={cs.length > 1 ? 'row-warn' : ''}>
+                <tr key={p.id} className={p.banned_at ? 'row-banned' : cs.length > 1 ? 'row-warn' : ''}>
                   <td>
                     <div className="row gap-sm">
                       {p.avatar_url && <img src={p.avatar_url} alt="" className="avatar avatar-sm" />}
                       <b>{p.display_name}</b>
                       {p.id === user.id && <span className="small muted">(Anda)</span>}
+                      {p.banned_at && <span className="pill pill-red">Diblokir</span>}
                     </div>
+                    {p.banned_at && (
+                      <div className="small muted">
+                        {fmtDate(p.banned_at)} · oleh <span className="notranslate">{nameOf(p.banned_by)}</span>
+                        {p.ban_reason && (
+                          <>
+                            {' · '}
+                            <span className="notranslate">“{p.ban_reason}”</span>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="wrap-cell">
                     {cs.length === 0 ? (
@@ -480,12 +518,26 @@ function AdminUsers() {
                       </select>
                     )}
                   </td>
+                  <td className="actions">
+                    {p.banned_at ? (
+                      <button className="btn btn-sm" disabled={busy} onClick={() => unban(p)}>
+                        Buka blokir
+                      </button>
+                    ) : (
+                      p.id !== user.id &&
+                      !p.is_super && (
+                        <button className="btn btn-danger btn-sm" disabled={busy} onClick={() => ban(p)}>
+                          Blokir
+                        </button>
+                      )
+                    )}
+                  </td>
                 </tr>
               )
             })}
             {list.length === 0 && (
               <tr>
-                <td colSpan={4} className="muted small">
+                <td colSpan={5} className="muted small">
                   Tidak ada akun di kategori ini.
                 </td>
               </tr>
