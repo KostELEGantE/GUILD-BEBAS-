@@ -1,0 +1,138 @@
+import { useEffect, useState } from 'react'
+import { supabase, rpc } from './lib/supabase.js'
+import { AppProvider, useApp, useAction } from './context.jsx'
+import Login from './pages/Login.jsx'
+import Events from './pages/Events.jsx'
+import EventDetail from './pages/EventDetail.jsx'
+import Roster from './pages/Roster.jsx'
+import Stats from './pages/Stats.jsx'
+import Admin from './pages/Admin.jsx'
+import Groups from './pages/Groups.jsx'
+import logo from './assets/logo.webp'
+
+function useHash() {
+  const [hash, setHash] = useState(window.location.hash || '#/events')
+  useEffect(() => {
+    const on = () => setHash(window.location.hash || '#/events')
+    window.addEventListener('hashchange', on)
+    return () => window.removeEventListener('hashchange', on)
+  }, [])
+  return hash
+}
+
+export default function App() {
+  const [session, setSession] = useState(undefined)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    return () => sub.subscription.unsubscribe()
+  }, [])
+
+  if (session === undefined) return <div className="center-screen muted">Memuat…</div>
+  if (!session) return <Login />
+
+  return (
+    <AppProvider key={session.user.id} session={session}>
+      <Shell />
+    </AppProvider>
+  )
+}
+
+function Shell() {
+  const hash = useHash()
+  const { profile, isAdmin, loading, myMembers } = useApp()
+  const parts = hash.replace(/^#\/?/, '').split('/')
+  const page = parts[0] || 'events'
+
+  const nav = [
+    ['events', 'Event & Party'],
+    ['groups', 'Party Fix'],
+    ['roster', 'Roster'],
+    ['stats', 'Kehadiran'],
+    ...(isAdmin ? [['admin', 'Admin']] : []),
+  ]
+
+  let content
+  if (loading) content = <div className="muted pad">Memuat data guild…</div>
+  else if (page === 'event' && parts[1]) content = <EventDetail id={Number(parts[1])} />
+  else if (page === 'roster') content = <Roster />
+  else if (page === 'groups') content = <Groups />
+  else if (page === 'stats') content = <Stats />
+  else if (page === 'admin' && isAdmin) content = <Admin />
+  else content = <Events />
+
+  const activeNav = page === 'event' ? 'events' : page
+
+  return (
+    <div className="app">
+      <header className="topbar">
+        <a className="brand" href="#/events">
+          <img src={logo} alt="" className="brand-logo" />
+          <span>
+            BEBAS <span className="brand-sub">Guild</span>
+          </span>
+        </a>
+        <nav className="nav">
+          {nav.map(([k, label]) => (
+            <a key={k} href={`#/${k}`} className={activeNav === k ? 'active' : ''}>
+              {label}
+            </a>
+          ))}
+        </nav>
+        <div className="userbox">
+          {profile?.avatar_url && <img src={profile.avatar_url} alt="" className="avatar" />}
+          <span className="username">
+            {profile?.display_name ?? '…'}
+            {isAdmin && <span className="pill pill-gold">Admin</span>}
+          </span>
+          <button className="btn btn-ghost btn-sm" onClick={() => supabase.auth.signOut()}>
+            Keluar
+          </button>
+        </div>
+      </header>
+
+      <FirstAdminBanner />
+      {!loading && myMembers.length === 0 && page !== 'roster' && (
+        <div className="banner">
+          Anda belum punya karakter. Buka <a href="#/roster">Roster</a> lalu klik <b>Klaim</b> pada karakter Anda
+          supaya bisa masuk party.
+        </div>
+      )}
+
+      <main className="main">{content}</main>
+    </div>
+  )
+}
+
+function FirstAdminBanner() {
+  const { isAdmin, reloadProfile, toast } = useApp()
+  const [noAdmin, setNoAdmin] = useState(false)
+  const [run, busy] = useAction()
+
+  useEffect(() => {
+    if (isAdmin) return
+    rpc('admin_exists').then((exists) => setNoAdmin(!exists)).catch(() => {})
+  }, [isAdmin])
+
+  if (isAdmin || !noAdmin) return null
+  return (
+    <div className="banner banner-gold">
+      Belum ada admin di guild ini. Jika Anda pengurus guild, jadikan akun ini admin pertama.
+      <button
+        className="btn btn-gold btn-sm"
+        disabled={busy}
+        onClick={() =>
+          run(async () => {
+            const ok = await rpc('claim_first_admin')
+            if (!ok) throw new Error('Admin sudah ada')
+            await reloadProfile()
+            toast('Anda sekarang admin')
+          })
+        }
+      >
+        Jadikan saya admin
+      </button>
+    </div>
+  )
+}

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BEBAS Guild · Party Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // File ini butuh "npm run dev". Jika dibuka langsung, arahkan ke versi tes satu file.
+      if (location.protocol === 'file:') {
+        document.body.style.cssText = 'background:#0f1117;color:#e7e9ee;font-family:sans-serif;padding:40px'
+        document.getElementById('root').innerHTML =
+          '<h2>File ini bukan untuk dibuka langsung</h2><p>Untuk tes tanpa instalasi, buka <a style="color:#f3cf85" href="guild-party-test.html">guild-party-test.html</a> di folder yang sama.</p>'
+      }
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
