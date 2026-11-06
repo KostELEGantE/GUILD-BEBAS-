@@ -436,6 +436,11 @@ export const DICT = {
   'Tidak bisa memblokir akun sendiri': ['', 'Tidak boleh menyekat akaun sendiri', 'You cannot ban your own account', 'แบนบัญชีตัวเองไม่ได้', 'Hindi mo puwedeng i-ban ang sarili mong account'],
   'Super Moderator tidak bisa diblokir': ['', 'Super Moderator tidak boleh disekat', 'A Super Moderator cannot be banned', 'Super Moderator แบนไม่ได้', 'Hindi puwedeng i-ban ang Super Moderator'],
   'Akun tidak ditemukan': ['', 'Akaun tidak dijumpai', 'Account not found', 'ไม่พบบัญชี', 'Hindi nahanap ang account'],
+  // ---- pilihan party fix ----
+  Hanya: ['', 'Hanya', 'Only', 'เฉพาะ', 'Si'],
+  'anggota party fix': ['', 'ahli parti tetap', 'is in fixed party', 'อยู่ในปาร์ตี้ประจำ', 'ay kasama sa fixed party'],
+  'Tetap bersama; jika party penuh, sisanya lanjut ke party berikutnya.': ['', 'Kekal bersama; jika parti penuh, bakinya ke parti seterusnya.', 'Stay together; if the party is full, the rest go to the next party.', 'อยู่ด้วยกัน ถ้าปาร์ตี้เต็ม ที่เหลือจะไปปาร์ตี้ถัดไป', 'Magkakasama; kung puno ang party, sa susunod na party ang iba.'],
+  'Anggota party fix lainnya tidak ikut dipindah.': ['', 'Ahli parti tetap yang lain tidak dipindahkan.', 'The other fixed-party members stay where they are.', 'สมาชิกปาร์ตี้ประจำคนอื่นไม่ถูกย้าย', 'Hindi gagalawin ang ibang miyembro ng fixed party.'],
   // ---- party custom ----
   '+ Tambah party': ['', '+ Tambah parti', '+ Add party', '+ เพิ่มปาร์ตี้', '+ Magdagdag ng party'],
   Lainnya: ['', 'Lain-lain', 'Other', 'อื่น ๆ', 'Iba pa'],
@@ -468,6 +473,9 @@ export const DICT = {
 // Teks dinamis (berisi nama/angka). $1, $2 … = bagian yang diisi.
 // Format: [regex, [Indonesia, Melayu, English, ไทย, Filipino]]
 export const PATTERNS = [
+  [/^Masukkan ke (.+)$/, ['', 'Masukkan ke $1', 'Add to $1', 'ใส่เข้า $1', 'Idagdag sa $1']],
+  [/^Seluruh party fix \((\d+) orang\)$/, ['', 'Seluruh parti tetap ($1 orang)', 'Whole fixed party ($1 people)', 'ทั้งปาร์ตี้ประจำ ($1 คน)', 'Buong fixed party ($1 tao)']],
+  [/^Event 1 akun = 1 karakter: hanya (\d+) karakter yang bisa ikut\.$/, ['', 'Acara 1 akaun = 1 watak: hanya $1 watak boleh menyertai.', '1 account = 1 character event: only $1 characters can join.', 'อีเวนต์ 1 บัญชี = 1 ตัวละคร: เข้าร่วมได้แค่ $1 ตัวละคร', '1 account = 1 karakter: $1 karakter lang ang makakasali.']],
   [/^(\d+) karakter dilewati: event ini 1 akun = 1 karakter$/, ['', '$1 watak dilangkau: acara ini 1 akaun = 1 watak', '$1 characters skipped: this event is 1 account = 1 character', 'ข้าม $1 ตัวละคร: อีเวนต์นี้ 1 บัญชี = 1 ตัวละคร', '$1 karakter ang nilaktawan: 1 account = 1 karakter ang event na ito']],
   [/^Event ini 1 akun = 1 karakter: (.+) satu akun dengan (.+) yang sudah ikut$/, ['', 'Acara ini 1 akaun = 1 watak: $1 satu akaun dengan $2 yang sudah menyertai', 'This event is 1 account = 1 character: $1 is on the same account as $2, who already joined', 'อีเวนต์นี้ 1 บัญชี = 1 ตัวละคร: $1 อยู่บัญชีเดียวกับ $2 ที่เข้าร่วมแล้ว', '1 account = 1 karakter ang event na ito: kapareho ng account ni $1 si $2 na nakasali na']],
   [/^\+ Tambah party di (.+) \(mau memimpin party sendiri\?\)$/, ['+ Tambah party di $1 (ingin memimpin party sendiri?)', '+ Tambah parti di $1 (mahu mengetuai parti sendiri?)', '+ Add a party to $1 (want to lead your own party?)', '+ เพิ่มปาร์ตี้ใน $1 (อยากนำปาร์ตี้เอง?)', '+ Magdagdag ng party sa $1 (gusto mong pamunuan ang sariling party?)']],

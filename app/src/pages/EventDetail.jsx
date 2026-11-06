@@ -23,6 +23,7 @@ export default function EventDetail({ id }) {
   const [fillParty, setFillParty] = useState(null) // party yang baru diklaim leader -> jendela isi party
   const [leaderPick, setLeaderPick] = useState(null) // moderator menunjuk leader untuk party ini
   const [pickerSlot, setPickerSlot] = useState(null) // {party_no, slot_no}
+  const [groupAsk, setGroupAsk] = useState(null) // {memberId, g, party_no, slot_no}: seluruh party fix atau satu orang?
   const [dragId, setDragId] = useState(null) // member_id yang sedang diseret
   const [over, setOver] = useState(null) // 'p' | 'p-s' | 'side' yang sedang disorot
   const [run, busy] = useAction()
@@ -210,9 +211,8 @@ export default function EventDetail({ id }) {
 
   function pickInto(memberId, party_no, slot_no) {
     const g = groupByMember.get(memberId)
-    const name = memberById.get(memberId)?.name
-    if (g && party_no && confirm(`${name} ada di party fix "${g.name}". Masukkan seluruh party fix bersama?\n\nOK = seluruh grup · Batal = ${name} saja`))
-      return placeGroup(g, party_no)
+    // anggota party fix: tanya lewat jendela pilihan (seluruh grup atau orang ini saja)
+    if (g && party_no) return setGroupAsk({ memberId, g, party_no, slot_no })
     return join(memberId, party_no, slot_no)
   }
 
@@ -867,6 +867,26 @@ export default function EventDetail({ id }) {
         />
       )}
 
+      {groupAsk && (
+        <GroupChoiceModal
+          ask={groupAsk}
+          partyName={partyName(groupAsk.party_no)}
+          memberById={memberById}
+          onePerAccount={ev.one_per_account}
+          onWhole={() => {
+            const a = groupAsk
+            setGroupAsk(null)
+            placeGroup(a.g, a.party_no)
+          }}
+          onOne={() => {
+            const a = groupAsk
+            setGroupAsk(null)
+            join(a.memberId, a.party_no, a.slot_no)
+          }}
+          onClose={() => setGroupAsk(null)}
+        />
+      )}
+
       {pickerSlot && (
         <MemberPicker
           title={`Isi ${partyName(pickerSlot.party_no)} – slot ${pickerSlot.slot_no}`}
@@ -1232,6 +1252,59 @@ function FillPartyModal({ title, free, groups, myIds, isAdmin, memberById, onGro
           })}
         </div>
         {!isAdmin && <p className="small muted">Party fix dimasukkan ke party yang Anda pimpin.</p>}
+      </div>
+    </div>
+  )
+}
+
+/** Jendela pilihan: masukkan seluruh party fix, atau hanya karakter yang dipilih */
+function GroupChoiceModal({ ask, partyName, memberById, onePerAccount, onWhole, onOne, onClose }) {
+  const { g, memberId } = ask
+  const name = memberById.get(memberId)?.name
+  const ms = (g.group_members || []).map((gm) => memberById.get(gm.member_id)).filter((m) => m && m.active)
+  const accounts = new Set(ms.map((m) => m.user_id || `m${m.id}`)).size
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal choice-modal" onClick={(e) => e.stopPropagation()} style={{ '--g': groupColor(g.id) }}>
+        <div className="modal-head">
+          <h3>{`Masukkan ke ${partyName}`}</h3>
+          <button className="icon-btn" onClick={onClose} title="Tutup">
+            ✕
+          </button>
+        </div>
+        <p className="small muted">
+          <b className="notranslate">{name}</b> anggota party fix <b className="notranslate" style={{ color: 'var(--g)' }}>{g.name}</b>:
+        </p>
+        <div className="choice-members">
+          {ms.map((m) => (
+            <span key={m.id} className={`choice-member ${m.id === memberId ? 'is-me' : ''}`}>
+              <JobIcon m={m} size={22} />
+              <span className="notranslate">{m.name}</span>
+            </span>
+          ))}
+        </div>
+        <button className="choice-btn choice-primary" onClick={onWhole}>
+          <span className="choice-icon">👥</span>
+          <span className="grow">
+            <b>{`Seluruh party fix (${ms.length} orang)`}</b>
+            <span className="small muted">Tetap bersama; jika party penuh, sisanya lanjut ke party berikutnya.</span>
+            {onePerAccount && accounts < ms.length && (
+              <span className="small text-gold">{`Event 1 akun = 1 karakter: hanya ${accounts} karakter yang bisa ikut.`}</span>
+            )}
+          </span>
+        </button>
+        <button className="choice-btn" onClick={onOne}>
+          <span className="choice-icon">👤</span>
+          <span className="grow">
+            <b>
+              Hanya <span className="notranslate">{name}</span>
+            </b>
+            <span className="small muted">Anggota party fix lainnya tidak ikut dipindah.</span>
+          </span>
+        </button>
+        <button className="btn btn-ghost" onClick={onClose}>
+          Batal
+        </button>
       </div>
     </div>
   )

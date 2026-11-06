@@ -595,3 +595,23 @@ tr:hover .inline-edit { opacity: 1; }
 @media (hover: none) { .slot-lock { opacity: .9; } }
 
 .add-party { white-space: normal; height: auto; }
+
+/* ---------- jendela pilihan party fix ---------- */
+.choice-modal { max-width: 440px; display: flex; flex-direction: column; gap: 10px; }
+.choice-members { display: flex; flex-wrap: wrap; gap: 6px; }
+.choice-member {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 4px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--bg-2); font-size: 12.5px; font-weight: 600;
+}
+.choice-member .job-icon { flex: none; }
+.choice-member.is-me { border-color: var(--g); box-shadow: 0 0 0 1px var(--g) inset; }
+.choice-btn {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
+  padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-2); color: var(--text);
+  font: inherit;
+}
+.choice-btn .grow { display: flex; flex-direction: column; gap: 2px; }
+.choice-btn:hover { border-color: var(--g, var(--gold)); background: color-mix(in srgb, var(--g, var(--gold)) 8%, var(--bg-2)); }
+.choice-primary { border-color: color-mix(in srgb, var(--g) 55%, transparent); }
+.choice-icon { font-size: 22px; flex: none; }
+.text-gold { color: var(--gold-2); }
