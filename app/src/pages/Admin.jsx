@@ -344,8 +344,14 @@ function ImportHistory() {
   )
 }
 
+const ROLE_LABEL = { member: 'Member', sub: 'Sub Moderator', super: 'Super Moderator' }
+const ROLE_HELP = {
+  sub: 'Sub Moderator bisa import data, mengatur semua party dan event, konfirmasi war, serta mengangkat/mencabut sesama Sub Moderator.',
+  super: 'Super Moderator punya akses penuh, termasuk mengangkat dan mencabut Super Moderator lain.',
+}
+
 function AdminUsers() {
-  const { user, members, reloadMembers } = useApp()
+  const { user, members, reloadMembers, isSuper } = useApp()
   const [run, busy] = useAction()
   const [profiles, setProfiles] = useState([])
   const [view, setView] = useState('all') // all | multi | none | admin
@@ -374,12 +380,15 @@ function AdminUsers() {
     })
     .sort((a, b) => (claims.get(b.id)?.length ?? 0) - (claims.get(a.id)?.length ?? 0) || (a.display_name || '').localeCompare(b.display_name || ''))
 
-  const toggle = (p) => {
-    if (!p.is_admin && !confirm(`Jadikan ${p.display_name} admin?\nAdmin bisa import data, mengatur semua party, konfirmasi war, dan mengangkat admin lain.`)) return
+  const roleOf = (p) => (p.is_super ? 'super' : p.is_admin ? 'sub' : 'member')
+  const setRole = (p, role) => {
+    const label = ROLE_LABEL[role]
+    if (role !== 'member' && !confirm(`Jadikan ${p.display_name} ${label}?\n\n${ROLE_HELP[role]}`)) return
+    if (role === 'member' && !confirm(`Cabut peran moderator ${p.display_name}?`)) return
     run(async () => {
-      await q(supabase.from('profiles').update({ is_admin: !p.is_admin }).eq('id', p.id))
+      await q(supabase.from('profiles').update({ is_admin: role !== 'member', is_super: role === 'super' }).eq('id', p.id))
       await load()
-    }, p.is_admin ? `${p.display_name} bukan admin lagi` : `${p.display_name} sekarang admin`)
+    }, `${p.display_name} sekarang ${label}`)
   }
 
   const unclaim = (p, m) => {
@@ -394,6 +403,10 @@ function AdminUsers() {
     <div className="card">
       <h3>Akun terdaftar ({profiles.length})</h3>
       <p className="muted small">
+        <b>Super Moderator</b> mengatur semua peran. <b>Sub Moderator</b> mengelola guild (party, event, import, konfirmasi war)
+        dan bisa mengangkat atau mencabut sesama Sub Moderator, tapi tidak bisa mengubah Super Moderator.
+      </p>
+      <p className="muted small">
         Semua yang pernah login, beserta karakter yang mereka klaim. Akun yang mengklaim lebih dari 1 karakter ditandai{' '}
         <span className="pill pill-gold">2+ karakter</span>; periksa apakah itu memang alt miliknya, atau lepas klaimnya.
       </p>
@@ -403,7 +416,7 @@ function AdminUsers() {
           ['all', `Semua (${profiles.length})`],
           ['multi', `Klaim lebih dari 1 (${multi.length})`],
           ['none', `Belum klaim (${none.length})`],
-          ['admin', `Admin (${admins.length})`],
+          ['admin', `Moderator (${admins.length})`],
         ].map(([k, l]) => (
           <button key={k} className={view === k ? 'active' : ''} onClick={() => setView(k)}>
             {l}
@@ -421,7 +434,7 @@ function AdminUsers() {
               <th>Akun</th>
               <th>Karakter diklaim</th>
               <th>Bergabung</th>
-              <th>Admin</th>
+              <th>Peran</th>
             </tr>
           </thead>
           <tbody>
@@ -457,7 +470,15 @@ function AdminUsers() {
                   </td>
                   <td className="muted">{fmtDate(p.created_at, false)}</td>
                   <td>
-                    <input type="checkbox" checked={p.is_admin} disabled={busy || p.id === user.id} onChange={() => toggle(p)} />
+                    {p.id === user.id || (p.is_super && !isSuper) ? (
+                      <span className={`pill ${p.is_super ? 'pill-gold' : p.is_admin ? 'pill-green' : ''}`}>{ROLE_LABEL[roleOf(p)]}</span>
+                    ) : (
+                      <select className="select-sm" value={roleOf(p)} disabled={busy} onChange={(e) => setRole(p, e.target.value)}>
+                        <option value="member">Member</option>
+                        <option value="sub">Sub Moderator</option>
+                        {isSuper && <option value="super">Super Moderator</option>}
+                      </select>
+                    )}
                   </td>
                 </tr>
               )

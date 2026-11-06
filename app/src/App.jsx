@@ -84,7 +84,7 @@ function Shell() {
           {profile?.avatar_url && <img src={profile.avatar_url} alt="" className="avatar" />}
           <span className="username">
             {profile?.display_name ?? '…'}
-            {isAdmin && <span className="pill pill-gold">Admin</span>}
+            {isAdmin && <span className="pill pill-gold">{profile?.is_super ? 'Super Mod' : 'Sub Mod'}</span>}
           </span>
           <button className="btn btn-ghost btn-sm" onClick={() => supabase.auth.signOut()}>
             Keluar

@@ -75,6 +75,7 @@ export function AppProvider({ session, children }) {
     user: session.user,
     profile,
     isAdmin: !!profile?.is_admin,
+    isSuper: !!profile?.is_super,
     members,
     myMembers,
     loading,
