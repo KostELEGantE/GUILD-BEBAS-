@@ -431,8 +431,8 @@ function AdminUsers() {
         <table className="table compact">
           <thead>
             <tr>
-              <th>Akun</th>
-              <th>Karakter diklaim</th>
+              <th>Akun login (Discord/Google)</th>
+              <th>IGN diklaim</th>
               <th>Bergabung</th>
               <th>Peran</th>
             </tr>

@@ -829,7 +829,7 @@ function NotJoined({ list, isAdmin, busy, full, onAdd, onAddGroup, canDrag, drag
         </div>
         <div className="small muted">
           {m.class ?? '–'} · GS {fmtNum(m.gear_score)}
-          {!m.owner && ' · belum klaim'}
+          {!m.user_id && ' · belum klaim'}
         </div>
       </div>
       {isAdmin && !groupByMember.get(m.id) && (

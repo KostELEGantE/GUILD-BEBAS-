@@ -29,7 +29,7 @@ export default function Roster() {
       .filter((m) => view !== 'unclaimed' || !m.user_id)
       .filter((m) => !cls || m.class === cls)
       .filter((m) => !role || m.role === role)
-      .filter((m) => !s || m.name.toLowerCase().includes(s) || (m.owner?.display_name || '').toLowerCase().includes(s))
+      .filter((m) => !s || m.name.toLowerCase().includes(s) || (isAdmin && (m.owner?.display_name || '').toLowerCase().includes(s)))
       .sort(SORTS[sort])
   }, [members, view, user.id, cls, role, search, sort])
 
@@ -139,7 +139,7 @@ export default function Roster() {
               <th className="num">Gear Score</th>
               <th className="num">Kontribusi minggu ini</th>
               <th>Jabatan</th>
-              <th>Pemilik akun</th>
+              <th>{isAdmin ? 'Akun login' : 'Status'}</th>
               <th />
             </tr>
           </thead>
@@ -174,7 +174,17 @@ export default function Roster() {
                   <td className="num">{fmtNum(m.gear_score)}</td>
                   <td className="num">{fmtNum(m.weekly_contribution)}</td>
                   <td className="muted">{m.position ?? '–'}</td>
-                  <td>{m.owner?.display_name ?? <span className="muted">—</span>}</td>
+                  <td>
+                    {!m.user_id ? (
+                      <span className="muted">belum diklaim</span>
+                    ) : isAdmin ? (
+                      m.owner?.display_name ?? 'diklaim'
+                    ) : mine ? (
+                      <span className="text-green">milik Anda</span>
+                    ) : (
+                      <span className="muted">diklaim</span>
+                    )}
+                  </td>
                   <td className="actions">
                     {!m.user_id && m.active && (
                       <button className="btn btn-sm" disabled={busy} onClick={() => claim(m.id)}>
@@ -186,7 +196,7 @@ export default function Roster() {
                         className="btn btn-ghost btn-sm"
                         disabled={busy}
                         onClick={() => {
-                          if (mine || confirm(`Lepas klaim ${m.name} dari ${m.owner?.display_name}?`)) unclaim(m.id)
+                          if (mine || confirm(`Lepas klaim ${m.name}${m.owner?.display_name ? ` dari akun ${m.owner.display_name}` : ''}?`)) unclaim(m.id)
                         }}
                       >
                         Lepas

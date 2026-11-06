@@ -6,7 +6,7 @@ import { downloadXlsx } from '../lib/sheet.js'
 import { Stat } from './Attendance.jsx'
 
 export default function Stats() {
-  const { toast, user, members } = useApp()
+  const { toast, user, members, isAdmin } = useApp()
   const [days, setDays] = useState(30)
   const [rows, setRows] = useState(null)
   const [sort, setSort] = useState('rate_asc')
@@ -61,7 +61,7 @@ export default function Stats() {
         Izin: x.excused,
         'No-show': x.no_show,
         'Kehadiran %': x.attendance_rate,
-        'Pemilik akun': x.owner,
+        ...(isAdmin ? { 'Akun login': x.owner } : {}),
       })),
       `kehadiran-${days}hari.xlsx`,
       'Kehadiran',
@@ -143,7 +143,7 @@ export default function Stats() {
                   <tr key={x.member_id} className={mineIds.has(x.member_id) ? 'row-mine' : ''}>
                     <td>
                       <b>{x.name}</b>
-                      {x.owner && <div className="small muted">{x.owner}</div>}
+                      {isAdmin && x.owner && <div className="small muted">akun: {x.owner}</div>}
                     </td>
                     <td className="muted">{x.class}</td>
                     <td className="num">{x.signed_up}</td>

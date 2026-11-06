@@ -42,6 +42,8 @@ export default function App() {
 function Shell() {
   const hash = useHash()
   const { profile, isAdmin, loading, myMembers } = useApp()
+  // tampil dengan IGN (karakter yang diklaim); nama akun hanya sebagai keterangan
+  const ign = myMembers[0]?.name
   const parts = hash.replace(/^#\/?/, '').split('/')
   const page = parts[0] || 'events'
 
@@ -82,8 +84,9 @@ function Shell() {
         </nav>
         <div className="userbox">
           {profile?.avatar_url && <img src={profile.avatar_url} alt="" className="avatar" />}
-          <span className="username">
-            {profile?.display_name ?? '…'}
+          <span className="username" title={`Akun: ${profile?.display_name ?? ''}`}>
+            {ign ?? profile?.display_name ?? '…'}
+            {myMembers.length > 1 && <span className="small muted">+{myMembers.length - 1}</span>}
             {isAdmin && <span className="pill pill-gold">{profile?.is_super ? 'Super Mod' : 'Sub Mod'}</span>}
           </span>
           <button className="btn btn-ghost btn-sm" onClick={() => supabase.auth.signOut()}>
