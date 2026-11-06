@@ -1,7 +1,5 @@
 -- 006: nama akun (Discord/Google) hanya terlihat oleh moderator & pemiliknya sendiri
-drop policy if exists "read_profiles" on public.profiles;
-create policy "read_profiles" on public.profiles for select to authenticated
-  using (id = auth.uid() or public.is_admin());
+alter policy "read_profiles" on public.profiles using (id = auth.uid() or public.is_admin());
 
 create or replace function public.participation_stats(p_days int default 30)
 returns table (
