@@ -435,3 +435,6 @@ tr:hover .inline-edit { opacity: 1; }
 .live-dot.on { color: var(--green); border-color: rgba(79,194,138,.4); }
 .live-dot.on::before { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 1.6s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .35; } }
+.party-warn { border-color: rgba(239,107,107,.55) !important; }
+.party-alert { margin: 0 0 4px; padding: 2px 6px; border-radius: 6px; font-size: 10.5px; font-weight: 700; color: var(--red); background: rgba(239,107,107,.12); border: 1px solid rgba(239,107,107,.35); }
+.section-tag.warn { color: var(--red); background: rgba(239,107,107,.12); }

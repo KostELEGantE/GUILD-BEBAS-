@@ -331,6 +331,21 @@ export default function EventDetail({ id }) {
     )
   }
 
+  /** jumlah party berisi orang tapi tanpa Healer dalam satu bagian */
+  const noHealerIn = (sec) => {
+    let n = 0
+    for (let p = sec.from; p <= sec.to; p++) {
+      const ms = []
+      for (let k = 1; k <= size; k++) {
+        const su = slotMap.get(`${p}-${k}`)
+        const m = su && memberById.get(su.member_id)
+        if (m) ms.push(m)
+      }
+      if (ms.length && !ms.some((m) => m.role === 'Healer')) n++
+    }
+    return n
+  }
+
   /** party fix yang anggotanya ada di slot-slot ini: [[group, jumlah], ...] */
   const groupsIn = (slots) => {
     const cnt = new Map()
@@ -346,9 +361,10 @@ export default function EventDetail({ id }) {
     const ms = slots.filter(Boolean).map((s) => memberById.get(s.member_id)).filter(Boolean)
     const roleCount = ROLES.map((r) => [r[0], ms.filter((m) => m.role === r).length]).filter(([, n]) => n)
     const mine = myPartyNos.has(p)
+    const noHealer = ms.length > 0 && !ms.some((m) => m.role === 'Healer')
     return (
       <div
-        className={`party-card ${mine ? 'party-mine' : ''} ${over === `${p}` ? 'drop-over' : ''}`}
+        className={`party-card ${mine ? 'party-mine' : ''} ${noHealer ? 'party-warn' : ''} ${over === `${p}` ? 'drop-over' : ''}`}
         key={p}
         {...dropProps(`${p}`, (mid, g) => dropInto(mid, p, null, g))}
         onClick={pickedGroup ? (e) => {
@@ -378,6 +394,11 @@ export default function EventDetail({ id }) {
           </span>
         </div>
         <div className="party-meta">{roleCount.length ? roleCount.map(([r, n]) => `${n}${r}`).join(' ') : ' '}</div>
+        {noHealer && (
+          <div className="party-alert" title="Party ini belum punya Healer (mis. High Priest)">
+            ⚠ Tidak ada healer
+          </div>
+        )}
         {groupsIn(slots).map(([g, n]) => {
           const movable = canMoveGroup(g)
           const active = pickedGroup?.id === g.id
@@ -635,6 +656,7 @@ export default function EventDetail({ id }) {
                   <h2 className="section-title">
                     {sec.name} · {sec.count}/{sec.parties * size}
                     {isBoard && sec.attend && <span className="section-tag">dihitung hadir</span>}
+                    {noHealerIn(sec) > 0 && <span className="section-tag warn">⚠ {noHealerIn(sec)} party tanpa healer</span>}
                   </h2>
                   <div className={`party-grid compact ${i > 0 ? 'sub-grid' : ''}`}>
                     {Array.from({ length: sec.parties }, (_, j) => partyCard(sec.from + j))}
