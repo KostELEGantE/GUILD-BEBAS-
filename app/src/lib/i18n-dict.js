@@ -442,6 +442,7 @@ export const DICT = {
   'Tetap bersama; jika party penuh, sisanya lanjut ke party berikutnya.': ['', 'Kekal bersama; jika parti penuh, bakinya ke parti seterusnya.', 'Stay together; if the party is full, the rest go to the next party.', 'อยู่ด้วยกัน ถ้าปาร์ตี้เต็ม ที่เหลือจะไปปาร์ตี้ถัดไป', 'Magkakasama; kung puno ang party, sa susunod na party ang iba.'],
   'Anggota party fix lainnya tidak ikut dipindah.': ['', 'Ahli parti tetap yang lain tidak dipindahkan.', 'The other fixed-party members stay where they are.', 'สมาชิกปาร์ตี้ประจำคนอื่นไม่ถูกย้าย', 'Hindi gagalawin ang ibang miyembro ng fixed party.'],
   // ---- party custom ----
+  '(biarkan kosong jika ada yang mengklaim karakter temannya; satu karakter tetap hanya bisa masuk 1 slot)': ['', '(biarkan kosong jika ada yang menuntut watak kawannya; satu watak tetap hanya boleh masuk 1 slot)', "(leave unticked if someone claims a friend's character; a character can still only take 1 slot)", '(ไม่ต้องติ๊กถ้ามีคนเคลมตัวละครของเพื่อน ตัวละครหนึ่งยังเข้าได้แค่ 1 ช่อง)', '(huwag lagyan ng check kung may nag-claim ng karakter ng kaibigan; 1 slot lang pa rin bawat karakter)'],
   '+ Tambah party': ['', '+ Tambah parti', '+ Add party', '+ เพิ่มปาร์ตี้', '+ Magdagdag ng party'],
   Lainnya: ['', 'Lain-lain', 'Other', 'อื่น ๆ', 'Iba pa'],
   'Lainnya (ketik sendiri)': ['', 'Lain-lain (taip sendiri)', 'Other (type your own)', 'อื่น ๆ (พิมพ์เอง)', 'Iba pa (i-type mo)'],

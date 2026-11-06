@@ -205,7 +205,7 @@ export function EventForm({ initial, onDone, customModes = [] }) {
       : {
           mode: isAdmin ? 'siege' : 'custom',
           custom_mode: '',
-          one_per_account: true,
+          one_per_account: false,
           title: '',
           starts_at: toLocalInput(start),
           party_size: 5,
@@ -336,7 +336,10 @@ export function EventForm({ initial, onDone, customModes = [] }) {
         <label className="check-label span-2">
           <input type="checkbox" checked={!!f.one_per_account} onChange={(e) => set('one_per_account', e.target.checked)} />
           <span>
-            1 akun = 1 karakter <span className="muted small">(pemain tidak bisa memasukkan karakter kedua/alt)</span>
+            1 akun = 1 karakter{' '}
+            <span className="muted small">
+              (biarkan kosong jika ada yang mengklaim karakter temannya; satu karakter tetap hanya bisa masuk 1 slot)
+            </span>
           </span>
         </label>
       )}
