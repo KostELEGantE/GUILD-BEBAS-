@@ -447,4 +447,13 @@ tr:hover .inline-edit { opacity: 1; }
   border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
 }
 .table .job-icon { margin-right: 6px; }
-.party-grid.compact .job-icon { width: 18px !important; height: 18px !important; }
+.party-grid.compact .job-icon { width: 24px !important; height: 24px !important; }
+/* gambar ikon job: besar, dengan cincin warna role (Tank biru, Healer hijau, Support emas, DPS merah) */
+.job-icon.job-img {
+  background: color-mix(in srgb, var(--c) 14%, transparent); border: none; position: relative;
+  border-radius: 50%; box-shadow: 0 0 0 2px var(--c); padding: 1px;
+}
+.job-icon.job-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.party-grid.compact .job-icon.job-img { width: 30px !important; height: 30px !important; }
+.party-grid.compact .slot { min-height: 42px; }
+.side-item .job-icon.job-img, .picker-item .job-icon.job-img { width: 32px !important; height: 32px !important; }

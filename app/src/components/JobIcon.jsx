@@ -1,3 +1,38 @@
+import alithea from '../assets/jobs/alithea.png'
+import assassinCross from '../assets/jobs/assassin-cross.png'
+import champion from '../assets/jobs/champion.png'
+import clown from '../assets/jobs/clown.png'
+import creator from '../assets/jobs/creator.png'
+import gypsy from '../assets/jobs/gypsy.png'
+import highPriest from '../assets/jobs/high-priest.png'
+import highWizard from '../assets/jobs/high-wizard.png'
+import lordKnight from '../assets/jobs/lord-knight.png'
+import nightWatch from '../assets/jobs/night-watch.png'
+import paladin from '../assets/jobs/paladin.png'
+import scholar from '../assets/jobs/scholar.png'
+import sniper from '../assets/jobs/sniper.png'
+import stalker from '../assets/jobs/stalker.png'
+import whitesmith from '../assets/jobs/whitesmith.png'
+
+// Gambar ikon job (disediakan oleh admin guild). Job tanpa gambar memakai ikon garis di bawah.
+const IMG = {
+  Alithea: alithea,
+  'Assassin Cross': assassinCross,
+  Champion: champion,
+  Clown: clown,
+  Creator: creator,
+  Gypsy: gypsy,
+  'High Priest': highPriest,
+  'High Wizard': highWizard,
+  'Lord Knight': lordKnight,
+  'Night Watch': nightWatch,
+  Paladin: paladin,
+  Scholar: scholar,
+  Sniper: sniper,
+  Stalker: stalker,
+  Whitesmith: whitesmith,
+}
+
 // Ikon job sederhana buatan sendiri (bukan aset game), digambar dengan garis SVG.
 // Bentuk = job, warna = role (Tank biru, Healer hijau, Support emas, DPS merah).
 
@@ -45,9 +80,16 @@ export function jobGlyph(cls) {
   return JOB[cls] ?? 'user'
 }
 
-export default function JobIcon({ m, size = 18 }) {
+export default function JobIcon({ m, size = 30 }) {
   if (!m) return null
   const color = ROLE_COLOR[m.role] ?? 'var(--muted)'
+  const img = IMG[m.class]
+  if (img)
+    return (
+      <span className="job-icon job-img" style={{ '--c': color, width: size, height: size }} title={`${m.class} · ${m.role ?? '–'}`}>
+        <img src={img} alt={m.class} width={size} height={size} draggable={false} />
+      </span>
+    )
   return (
     <span
       className="job-icon"

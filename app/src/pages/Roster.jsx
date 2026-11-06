@@ -152,7 +152,7 @@ export default function Roster() {
                 <tr key={m.id} className={mine ? 'row-mine' : ''}>
                   <td>
                     <span className={isOnline(m.online_status) ? 'online-dot' : 'offline-dot'} title={m.online_status || ''} />
-                    <JobIcon m={m} size={20} />
+                    <JobIcon m={m} size={32} />
                     <b>{m.name}</b>
                     {(mine || isAdmin) && (
                       <button className="icon-btn inline-edit" title="Ganti nama (jika nama di game berubah)" onClick={() => renameOf(m)}>
