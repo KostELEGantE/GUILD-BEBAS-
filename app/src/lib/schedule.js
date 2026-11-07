@@ -19,7 +19,8 @@ export const SCHEDULE = [
   { day: 5, start: '21:30', end: '22:30', name: 'Battle for Miracle Isle' },
   { day: 6, start: '08:00', end: '23:59', name: 'Luminous Vale', special: true },
   { day: 6, start: '20:00', end: '20:50', name: 'Clash of The Chosen', special: true },
-  { day: 0, start: '12:00', end: '21:00', name: 'Polarity Zone', mode: 'polarity_zone', guild: true },
+  { day: 0, start: '19:00', end: '19:30', name: 'Polarity Zone · party up', guild: true },
+  { day: 0, start: '19:30', end: '21:00', name: 'Polarity Zone', mode: 'polarity_zone', guild: true },
   { day: 0, start: '21:00', end: '22:00', name: 'Siege', mode: 'siege' },
 ]
 
