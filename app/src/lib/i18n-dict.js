@@ -6,6 +6,7 @@ export const DICT = {
   // ---------- navigasi & umum ----------
   'Event & Party': ['', 'Acara & Parti', 'Events & Parties', 'อีเวนต์และปาร์ตี้', 'Event at Party'],
   'Party Fix': ['', 'Parti Tetap', 'Fixed Party', 'ปาร์ตี้ประจำ', 'Fixed Party'],
+  Absensi: ['', 'Hadir', 'Attend', 'เข้าร่วม', 'Dalo'],
   Anggota: ['', 'Ahli', 'Members', 'สมาชิก', 'Miyembro'],
   Roster: ['Daftar Anggota', 'Senarai Ahli', 'Roster', 'รายชื่อสมาชิก', 'Roster'],
   Kehadiran: ['', 'Kehadiran', 'Attendance', 'การเข้าร่วม', 'Attendance'],
@@ -479,6 +480,7 @@ export const DICT = {
   'Hanya slot kosong yang diisi; anggota lain tidak digeser. Karakter dari screenshot yang sekarang ada di bagian lain (mis. di Sub) ditarik ke sini. Nama yang tertutup (mis. notifikasi item) pilih manual.': ['', 'Hanya slot kosong diisi; ahli lain tidak dialihkan. Watak dalam tangkapan skrin yang kini berada di bahagian lain (cth. Sub) ditarik ke sini. Nama yang terlindung (cth. notifikasi item) pilih secara manual.', 'Only empty slots are filled; other members are not moved. Characters from the screenshot who are currently somewhere else (e.g. in Sub) are pulled here. Pick covered names (e.g. under an item popup) manually.', 'เติมเฉพาะช่องว่าง ไม่ย้ายสมาชิกคนอื่น ตัวละครในภาพที่อยู่ส่วนอื่น (เช่น Sub) จะถูกดึงมาที่นี่ ชื่อที่ถูกบังให้เลือกเอง', 'Bakanteng slot lang ang pupunuin; hindi gagalawin ang iba. Ang mga karakter sa screenshot na nasa ibang bahagi (hal. Sub) ay hihilahin dito. Piliin nang manu-mano ang natakpang pangalan.'],
   'Klik untuk memasukkan pemain ini saja': ['', 'Klik untuk memasukkan pemain ini sahaja', 'Click to add only this player', 'คลิกเพื่อใส่เฉพาะผู้เล่นคนนี้', 'I-click para idagdag ang player na ito lang'],
   'Klik untuk memasukkan seluruh party fix': ['', 'Klik untuk memasukkan seluruh parti tetap', 'Click to add the whole fixed party', 'คลิกเพื่อใส่ทั้งปาร์ตี้ประจำ', 'I-click para idagdag ang buong fixed party'],
+  'Gabung server Discord guild': ['', 'Sertai pelayan Discord guild', 'Join the guild Discord server', 'เข้าร่วมเซิร์ฟเวอร์ Discord ของกิลด์', 'Sumali sa Discord server ng guild'],
   // ---- party custom ----
   '(biarkan kosong jika ada yang mengklaim karakter temannya; satu karakter tetap hanya bisa masuk 1 slot)': ['', '(biarkan kosong jika ada yang menuntut watak kawannya; satu watak tetap hanya boleh masuk 1 slot)', "(leave unticked if someone claims a friend's character; a character can still only take 1 slot)", '(ไม่ต้องติ๊กถ้ามีคนเคลมตัวละครของเพื่อน ตัวละครหนึ่งยังเข้าได้แค่ 1 ช่อง)', '(huwag lagyan ng check kung may nag-claim ng karakter ng kaibigan; 1 slot lang pa rin bawat karakter)'],
   '+ Tambah party': ['', '+ Tambah parti', '+ Add party', '+ เพิ่มปาร์ตี้', '+ Magdagdag ng party'],

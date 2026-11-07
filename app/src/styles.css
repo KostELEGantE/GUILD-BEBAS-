@@ -769,3 +769,7 @@ tr:hover .inline-edit { opacity: 1; }
 .side-item.clickable:hover { background: rgba(255,255,255,.04); }
 .side-group-btn { background: none; border: 0; padding: 2px 0; font: inherit; font-weight: 700; color: var(--g); cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
 .side-group-btn:hover:not(:disabled) { text-decoration-style: solid; }
+
+/* tautan Discord di menu utama */
+.nav a.nav-discord { color: #a5adff; }
+.nav a.nav-discord:hover { background: rgba(88,101,242,.15); color: #c3c8ff; }

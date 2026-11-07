@@ -12,6 +12,9 @@ import logo from './assets/logo.webp'
 import LangSwitch from './components/LangSwitch.jsx'
 import ServerClock from './components/ServerClock.jsx'
 
+// server Discord guild (link undangan)
+const DISCORD_URL = 'https://discord.gg/ex4R57YNw'
+
 function useHash() {
   const [hash, setHash] = useState(window.location.hash || '#/events')
   useEffect(() => {
@@ -54,7 +57,7 @@ function Shell() {
     ['events', 'Event & Party', '⚔', 'Event'],
     ['groups', 'Party Fix', '🤝', 'Party Fix'],
     ['roster', 'Roster', '👥', 'Anggota'],
-    ['stats', 'Kehadiran', '📊', 'Kehadiran'],
+    ['stats', 'Kehadiran', '📊', 'Absensi'],
     ...(isAdmin ? [['admin', 'Admin', '⚙', 'Admin']] : []),
   ]
 
@@ -90,6 +93,13 @@ function Shell() {
               <span className="nav-short">{short}</span>
             </a>
           ))}
+          <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" className="nav-discord" title="Gabung server Discord guild">
+            <span className="nav-icon" aria-hidden="true">
+              💬
+            </span>
+            <span className="nav-label">Discord</span>
+            <span className="nav-short">Discord</span>
+          </a>
         </nav>
         <div className="userbox">
           {profile?.avatar_url && <img src={profile.avatar_url} alt="" className="avatar" />}
