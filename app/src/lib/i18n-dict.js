@@ -506,6 +506,12 @@ export const DICT = {
   'Tidak dibatasi untuk website statis': ['', 'Tiada had untuk laman web statik', 'Unlimited for static websites', 'ไม่จำกัดสำหรับเว็บไซต์แบบคงที่', 'Walang limit para sa static website'],
   'Rincian lengkap:': ['', 'Butiran penuh:', 'Full details:', 'รายละเอียดทั้งหมด:', 'Buong detalye:'],
   'dashboard Cloudflare': ['', 'papan pemuka Cloudflare', 'Cloudflare dashboard', 'แดชบอร์ด Cloudflare', 'Cloudflare dashboard'],
+  'Ambil screenshot layar party di game (judul “Party 1, Party 2…” harus terlihat), lalu pilih file atau tempel dengan Ctrl+V. Setiap party di screenshot mengganti isi party website yang Anda pilih; ikon mahkota 👑 = leader party.': ['', 'Ambil tangkapan skrin parti dalam permainan (tajuk “Party 1, Party 2…” mesti kelihatan), kemudian pilih fail atau tampal dengan Ctrl+V. Setiap parti dalam tangkapan skrin menggantikan isi parti laman web yang anda pilih; ikon mahkota 👑 = ketua parti.', 'Take a screenshot of the in-game party screen (the “Party 1, Party 2…” headers must be visible), then choose the file or paste it with Ctrl+V. Each party in the screenshot replaces the website party you pick; the 👑 crown icon = party leader.', 'ถ่ายภาพหน้าจอปาร์ตี้ในเกม (ต้องเห็น “Party 1, Party 2…”) แล้วเลือกไฟล์หรือวางด้วย Ctrl+V แต่ละปาร์ตี้ในภาพจะแทนที่ปาร์ตี้บนเว็บที่คุณเลือก ไอคอนมงกุฎ 👑 = หัวหน้าปาร์ตี้', 'Kumuha ng screenshot ng party screen sa laro (dapat kita ang “Party 1, Party 2…”), saka piliin ang file o i-paste gamit ang Ctrl+V. Papalitan ng bawat party sa screenshot ang party sa website na pipiliin mo; ang korona 👑 = party leader.'],
+  dipakai: ['', 'digunakan', 'used by', 'ใช้โดย', 'gamit ng'],
+  'Leader party (klik untuk batal)': ['', 'Ketua parti (klik untuk batal)', 'Party leader (click to undo)', 'หัวหน้าปาร์ตี้ (คลิกเพื่อยกเลิก)', 'Party leader (i-click para alisin)'],
+  'Jadikan leader party': ['', 'Jadikan ketua parti', 'Make party leader', 'ตั้งเป็นหัวหน้าปาร์ตี้', 'Gawing party leader'],
+  'Ringkasan perubahan': ['', 'Ringkasan perubahan', 'Summary of changes', 'สรุปการเปลี่ยนแปลง', 'Buod ng mga pagbabago'],
+  'Saya sudah memeriksa perpindahan & karakter yang dikeluarkan di atas': ['', 'Saya telah menyemak perpindahan & watak yang dikeluarkan di atas', 'I have checked the moves and removed characters above', 'ฉันตรวจสอบการย้ายและตัวละครที่ถูกนำออกด้านบนแล้ว', 'Nasuri ko na ang mga paglipat at inalis na karakter sa itaas'],
   // ---- party custom ----
   '(biarkan kosong jika ada yang mengklaim karakter temannya; satu karakter tetap hanya bisa masuk 1 slot)': ['', '(biarkan kosong jika ada yang menuntut watak kawannya; satu watak tetap hanya boleh masuk 1 slot)', "(leave unticked if someone claims a friend's character; a character can still only take 1 slot)", '(ไม่ต้องติ๊กถ้ามีคนเคลมตัวละครของเพื่อน ตัวละครหนึ่งยังเข้าได้แค่ 1 ช่อง)', '(huwag lagyan ng check kung may nag-claim ng karakter ng kaibigan; 1 slot lang pa rin bawat karakter)'],
   '+ Tambah party': ['', '+ Tambah parti', '+ Add party', '+ เพิ่มปาร์ตี้', '+ Magdagdag ng party'],
@@ -539,6 +545,13 @@ export const DICT = {
 // Teks dinamis (berisi nama/angka). $1, $2 … = bagian yang diisi.
 // Format: [regex, [Indonesia, Melayu, English, ไทย, Filipino]]
 export const PATTERNS = [
+  [/^✖ Keluar dari (.+) \(ke daftar tunggu\):$/, ['', '✖ Keluar dari $1 (ke senarai menunggu):', '✖ Leaving $1 (to the waiting list):', '✖ ออกจาก $1 (ไปยังรายชื่อรอ):', '✖ Aalis sa $1 (papunta sa waiting list):']],
+  [/^✚ (\d+) masuk baru$/, ['', '✚ $1 masuk baharu', '✚ $1 newly added', '✚ เพิ่มใหม่ $1', '✚ $1 bagong pasok']],
+  [/^⇄ (\d+) pindah party:$/, ['', '⇄ $1 bertukar parti:', '⇄ $1 switch party:', '⇄ ย้ายปาร์ตี้ $1:', '⇄ $1 lilipat ng party:']],
+  [/^✖ (\d+) dikeluarkan ke daftar tunggu:$/, ['', '✖ $1 dikeluarkan ke senarai menunggu:', '✖ $1 moved to the waiting list:', '✖ $1 ถูกย้ายไปรายชื่อรอ:', '✖ $1 inilipat sa waiting list:']],
+  [/^👑 Leader:$/, ['', '👑 Ketua:', '👑 Leader:', '👑 หัวหน้า:', '👑 Leader:']],
+  [/^(\d+) nama tidak terbaca \(dilewati\)$/, ['', '$1 nama tidak dapat dibaca (dilangkau)', '$1 names unreadable (skipped)', 'อ่านชื่อไม่ได้ $1 (ข้าม)', '$1 pangalan hindi nabasa (nilaktawan)']],
+  [/^Terapkan \((\d+) karakter\)$/, ['', 'Gunakan ($1 watak)', 'Apply ($1 characters)', 'ใช้ ($1 ตัวละคร)', 'Ilapat ($1 karakter)']],
   [/^Diperbarui (.+) · otomatis tiap 1 menit$/, ['', 'Dikemas kini $1 · automatik setiap 1 minit', 'Updated $1 · auto every 1 minute', 'อัปเดต $1 · อัตโนมัติทุก 1 นาที', 'Na-update $1 · awtomatiko bawat 1 minuto']],
   [/^(\S+) akun · (\S+) aktif 7 hari$/, ['', '$1 akaun · $2 aktif 7 hari', '$1 accounts · $2 active in 7 days', '$1 บัญชี · ใช้งาน 7 วัน $2', '$1 account · $2 aktibo sa 7 araw']],
   [/^(\d+) masuk (.+) · (\d+) tidak terbaca · (\d+) tidak muat$/, ['', '$1 masuk $2 · $3 tidak dibaca · $4 tidak muat', '$1 into $2 · $3 unread · $4 don\'t fit', 'เข้า $2 $1 · อ่านไม่ได้ $3 · ไม่พอ $4', '$1 sa $2 · $3 hindi nabasa · $4 hindi kasya']],

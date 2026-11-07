@@ -887,9 +887,9 @@ export default function EventDetail({ id }) {
           members={members}
           memberById={memberById}
           signups={signups}
-          reservedOf={reservedOf}
+          leaderOf={(p) => parties.find((x) => x.party_no === p)?.leader_member_id ?? null}
           toast={toast}
-          onDone={() => loadSignups().catch(() => {})}
+          onDone={() => Promise.all([loadSignups(), loadParties()]).catch(() => {})}
           onClose={() => setShotOpen(false)}
         />
       )}

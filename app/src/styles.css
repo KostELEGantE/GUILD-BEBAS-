@@ -791,3 +791,15 @@ tr:hover .inline-edit { opacity: 1; }
 .usage-notes { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 
 .usage-toggle { align-self: flex-start; }
+
+/* screenshot: tujuan party, leader, ringkasan */
+.shot-party-name { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.shot-target { max-width: 100%; font-weight: 600; }
+.shot-crown { flex: none; width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--line); background: transparent; cursor: pointer; filter: grayscale(1); opacity: .35; padding: 0; font-size: 13px; }
+.shot-crown.on { filter: none; opacity: 1; border-color: var(--gold); background: rgba(227,180,90,.15); }
+.shot-crown:disabled { cursor: default; }
+.shot-out { margin-top: 6px; padding: 6px 8px; border-radius: 7px; background: rgba(239,107,107,.08); color: var(--red); }
+.shot-summary { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--bg-2); }
+.shot-summary-title { font-weight: 700; margin-bottom: 4px; }
+.shot-summary ul { margin: 0 0 6px; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.shot-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
