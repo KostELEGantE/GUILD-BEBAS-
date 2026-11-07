@@ -50,11 +50,12 @@ function Shell() {
   const page = parts[0] || 'events'
 
   const nav = [
-    ['events', 'Event & Party', '⚔'],
-    ['groups', 'Party Fix', '🤝'],
-    ['roster', 'Roster', '👥'],
-    ['stats', 'Kehadiran', '📊'],
-    ...(isAdmin ? [['admin', 'Admin', '⚙']] : []),
+    // [kunci, label, ikon, label pendek untuk menu bawah di HP]
+    ['events', 'Event & Party', '⚔', 'Event'],
+    ['groups', 'Party Fix', '🤝', 'Party Fix'],
+    ['roster', 'Roster', '👥', 'Anggota'],
+    ['stats', 'Kehadiran', '📊', 'Kehadiran'],
+    ...(isAdmin ? [['admin', 'Admin', '⚙', 'Admin']] : []),
   ]
 
   let content
@@ -80,12 +81,13 @@ function Shell() {
           </span>
         </a>
         <nav className="nav">
-          {nav.map(([k, label, icon]) => (
+          {nav.map(([k, label, icon, short]) => (
             <a key={k} href={`#/${k}`} className={activeNav === k ? 'active' : ''}>
               <span className="nav-icon" aria-hidden="true">
                 {icon}
               </span>
               <span className="nav-label">{label}</span>
+              <span className="nav-short">{short}</span>
             </a>
           ))}
         </nav>

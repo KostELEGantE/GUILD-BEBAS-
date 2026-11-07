@@ -107,7 +107,7 @@ export default function Stats() {
           <option value="contrib">Kontribusi minggu ini</option>
           <option value="name">Nama</option>
         </select>
-        <label className="row gap-sm small">
+        <label className="check-label small">
           <input type="checkbox" checked={onlyActive} onChange={(e) => setOnlyActive(e.target.checked)} /> Hanya member aktif
         </label>
       </div>
@@ -121,7 +121,7 @@ export default function Stats() {
         </div>
       ) : (
         <div className="table-wrap card flush">
-          <table className="table">
+          <table className="table table-cards">
             <thead>
               <tr>
                 <th>Karakter</th>
@@ -145,13 +145,13 @@ export default function Stats() {
                       <b>{x.name}</b>
                       {isAdmin && x.owner && <div className="small muted">akun: {x.owner}</div>}
                     </td>
-                    <td className="muted hide-sm">{x.class}</td>
-                    <td className="num hide-xs">{x.signed_up}</td>
-                    <td className="num">{x.present}</td>
-                    <td className="num">{x.absent}</td>
-                    <td className="num hide-sm">{x.excused}</td>
-                    <td className={`num ${x.no_show ? 'text-red' : ''}`}>{x.no_show}</td>
-                    <td>
+                    <td className="muted hide-sm tc-class">{x.class}</td>
+                    <td className="num hide-xs" data-label="Mendaftar">{x.signed_up}</td>
+                    <td className="num" data-label="Hadir">{x.present}</td>
+                    <td className="num" data-label="Tidak hadir">{x.absent}</td>
+                    <td className="num hide-sm" data-label="Izin">{x.excused}</td>
+                    <td className={`num ${x.no_show ? 'text-red' : ''}`} data-label="No-show">{x.no_show}</td>
+                    <td className="tc-rate">
                       <div className="rate">
                         <div className="meter">
                           <div className={`meter-fill fill-${tone}`} style={{ width: `${rate}%` }} />
@@ -159,7 +159,7 @@ export default function Stats() {
                         <span className="small">{x.attendance_rate == null ? '–' : `${rate}%`}</span>
                       </div>
                     </td>
-                    <td className="num hide-sm">{fmtNum(x.weekly_contribution)}</td>
+                    <td className="num hide-sm" data-label="Kontribusi minggu ini">{fmtNum(x.weekly_contribution)}</td>
                   </tr>
                 )
               })}

@@ -75,7 +75,7 @@ export function tr(text) {
 
 // ---------- penerapan ke DOM ----------
 const textState = new WeakMap() // node -> { src, out }
-const ATTRS = ['placeholder', 'title', 'aria-label']
+const ATTRS = ['placeholder', 'title', 'aria-label', 'data-label']
 const SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'CODE', 'PRE'])
 
 function skip(el, forAttr = false) {

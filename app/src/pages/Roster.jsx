@@ -130,7 +130,7 @@ export default function Roster() {
       </div>
 
       <div className="table-wrap card flush">
-        <table className="table">
+        <table className="table table-cards">
           <thead>
             <tr>
               <th>Karakter</th>
@@ -160,8 +160,8 @@ export default function Roster() {
                       </button>
                     )}
                   </td>
-                  <td className="num hide-sm">{m.level ?? '–'}</td>
-                  <td className="hide-xs">{m.class ?? '–'}</td>
+                  <td className="num hide-sm" data-label="Lv">{m.level ?? '–'}</td>
+                  <td className="hide-xs tc-class">{m.class ?? '–'}</td>
                   <td>
                     {canRole ? (
                       <select className="select-sm" value={m.role ?? ''} disabled={busy} onChange={(e) => setRoleOf(m.id, e.target.value)}>
@@ -173,8 +173,8 @@ export default function Roster() {
                       <span className={`role-tag role-${(m.role || 'dps').toLowerCase()}`}>{m.role ?? '–'}</span>
                     )}
                   </td>
-                  <td className="num">{fmtNum(m.gear_score)}</td>
-                  <td className="num hide-sm">{fmtNum(m.weekly_contribution)}</td>
+                  <td className="num" data-label="GS">{fmtNum(m.gear_score)}</td>
+                  <td className="num hide-sm" data-label="Kontribusi minggu ini">{fmtNum(m.weekly_contribution)}</td>
                   <td className="muted hide-sm notranslate">{m.position ?? '–'}</td>
                   <td>
                     {!m.user_id ? (

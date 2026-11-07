@@ -691,3 +691,75 @@ tr:hover .inline-edit { opacity: 1; }
 .shot-note.note-move { color: var(--gold-2); border-color: rgba(227,180,90,.5); }
 .shot-note.note-left { color: var(--red); border-color: rgba(239,107,107,.5); }
 .shot-row .shot-read { width: 84px; }
+
+/* =====================================================================
+   HP: perbaikan menyeluruh (lebar 320–480px)
+   ===================================================================== */
+.nav-short { display: none; }
+@media (max-width: 860px) {
+  .nav-label { display: none; }
+  .nav-short { display: block; font-size: 10.5px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .nav > a { flex: 1 1 0; min-width: 0; }
+  .lang-select { max-width: 92px; }
+  .userbox { min-width: 0; }
+  .username { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* party fix: kartu tidak melebar keluar layar */
+  .group-grid { grid-template-columns: minmax(0, 1fr); }
+  .group-card { min-width: 0; }
+  .group-card .side-item { min-width: 0; }
+
+  /* tombol & input lebih mudah disentuh */
+  .btn-sm { min-height: 34px; }
+  .mini-btn { min-height: 28px; padding: 3px 10px; }
+  .select-sm { min-height: 34px; }
+  .back { display: inline-flex; align-items: center; min-height: 36px; }
+  .check-label input[type=checkbox] { width: 20px; height: 20px; }
+  .filters { gap: 8px; }
+  .filters .check-label { flex: 1 0 100%; }
+}
+@media (hover: none) {
+  .icon-btn { min-width: 30px; min-height: 30px; }
+  .party-grid.compact .icon-btn { width: 30px; height: 30px; font-size: 13px; }
+  .inline-edit { padding: 4px 8px; }
+}
+
+/* papan party: 1 kolom di HP kecil supaya nama karakter tidak terpotong */
+@container (max-width: 459px) {
+  .party-grid.compact { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .party-grid.compact .party-card { padding: 10px; }
+  .party-grid.compact .party-name, .party-grid.compact .party-name-input { font-size: 14px; }
+  .party-grid.compact .slot { min-height: 44px; }
+  .party-grid.compact .slot-name { font-size: 13.5px; }
+  .party-grid.compact .slot-empty { min-height: 36px; font-size: 12.5px; }
+}
+
+/* tabel roster & kehadiran -> kartu di HP */
+@media (max-width: 600px) {
+  .table-cards thead { display: none; }
+  .table-cards, .table-cards tbody { display: block; width: 100%; }
+  .table-cards tr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .table-cards td { display: block; padding: 0; border: 0; white-space: normal; text-align: left !important; }
+  .table-cards td:first-child { flex: 1 0 100%; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .table-cards td[data-label]::before { content: attr(data-label); display: block; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .table-cards td.actions { margin-left: auto; }
+  .table-cards td.tc-class { color: var(--muted); font-size: 12.5px; }
+  .table-cards td.tc-rate { flex: 1 0 100%; }
+  .table-cards td.tc-rate .meter { flex: 1; }
+  .table-cards .hide-xs { display: none; }
+  .table-cards .hide-sm[data-label], .table-cards td.tc-class.hide-xs { display: block; }
+  .table-wrap.card.flush { overflow: visible; }
+}
+
+@media (max-width: 600px) {
+  .table-cards td[data-label] { min-width: 62px; }
+  .table-cards td.tc-class.hide-sm { display: block; }
+  .table-cards td:first-child + td.tc-class { margin-top: -4px; }
+  .table-cards td.tc-rate .rate { display: flex; align-items: center; gap: 8px; width: 100%; }
+}
+@media (max-width: 860px) {
+  .filters .check-label { display: flex !important; justify-content: flex-start; align-items: center; gap: 8px; width: 100%; }
+  .filters .check-label input[type=checkbox] { flex: none; width: 20px !important; min-width: 0; height: 20px; padding: 0; }
+}
+
+@media (max-width: 600px) { .table-cards td.tc-class { flex: 1 0 100%; } .table-cards td:first-child + td.tc-class { margin-top: -8px; } }

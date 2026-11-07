@@ -6,6 +6,7 @@ export const DICT = {
   // ---------- navigasi & umum ----------
   'Event & Party': ['', 'Acara & Parti', 'Events & Parties', 'อีเวนต์และปาร์ตี้', 'Event at Party'],
   'Party Fix': ['', 'Parti Tetap', 'Fixed Party', 'ปาร์ตี้ประจำ', 'Fixed Party'],
+  Anggota: ['', 'Ahli', 'Members', 'สมาชิก', 'Miyembro'],
   Roster: ['Daftar Anggota', 'Senarai Ahli', 'Roster', 'รายชื่อสมาชิก', 'Roster'],
   Kehadiran: ['', 'Kehadiran', 'Attendance', 'การเข้าร่วม', 'Attendance'],
   Admin: ['', 'Admin', 'Admin', 'แอดมิน', 'Admin'],
