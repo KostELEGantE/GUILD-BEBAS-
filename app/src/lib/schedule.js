@@ -21,7 +21,7 @@ export const SCHEDULE = [
   { day: 6, start: '20:00', end: '20:50', name: 'Clash of The Chosen', special: true },
   { day: 0, start: '19:00', end: '19:30', name: 'Polarity Zone · party up', guild: true },
   { day: 0, start: '19:30', end: '21:00', name: 'Polarity Zone', mode: 'polarity_zone', guild: true },
-  { day: 0, start: '21:00', end: '22:00', name: 'Siege', mode: 'siege' },
+  { day: 0, start: '20:50', end: '22:00', name: 'Siege', mode: 'siege' },
 ]
 
 export const TZ = 'Asia/Jakarta'
