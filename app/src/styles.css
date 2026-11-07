@@ -763,3 +763,9 @@ tr:hover .inline-edit { opacity: 1; }
 }
 
 @media (max-width: 600px) { .table-cards td.tc-class { flex: 1 0 100%; } .table-cards td:first-child + td.tc-class { margin-top: -8px; } }
+
+/* daftar belum bergabung: klik pemain = pemain itu saja, klik nama grup = seluruh party fix */
+.side-item.clickable { cursor: pointer; }
+.side-item.clickable:hover { background: rgba(255,255,255,.04); }
+.side-group-btn { background: none; border: 0; padding: 2px 0; font: inherit; font-weight: 700; color: var(--g); cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.side-group-btn:hover:not(:disabled) { text-decoration-style: solid; }

@@ -205,10 +205,8 @@ export default function EventDetail({ id }) {
     }
   }
 
-  /** Masuk otomatis: party fix ikut bersama; individu ke Main dulu, lalu party Sub */
+  /** Masuk otomatis satu karakter saja (seluruh party fix lewat nama grup): Main dulu, lalu party Sub */
   function autoJoin(memberId) {
-    const g = groupByMember.get(memberId)
-    if (g) return placeGroup(g, null)
     const name = memberById.get(memberId)?.name
     const e = firstEmpty(1, ev.party_count)
     if (e) return join(memberId, e.p, e.s, `${name} masuk ${partyName(e.p)}`)
@@ -216,9 +214,7 @@ export default function EventDetail({ id }) {
   }
 
   function pickInto(memberId, party_no, slot_no) {
-    const g = groupByMember.get(memberId)
-    // anggota party fix: tanya lewat jendela pilihan (seluruh grup atau orang ini saja)
-    if (g && party_no) return setGroupAsk({ memberId, g, party_no, slot_no })
+    // pilih satu pemain = hanya pemain itu; seluruh party fix dipilih lewat nama grupnya
     return join(memberId, party_no, slot_no)
   }
 
@@ -281,9 +277,6 @@ export default function EventDetail({ id }) {
       if (!e) return toast(`${partyName(p)} sudah penuh`, 'err')
       s = e.s
     }
-    // dari daftar "Belum bergabung": party fix selalu masuk bersama
-    const g = groupByMember.get(memberId)
-    if (!cur && g) return placeGroup(g, p)
     return join(memberId, p, s)
   }
 
@@ -1073,13 +1066,17 @@ function NotJoined({ list, isAdmin, busy, full, onAdd, onAddGroup, canDrag, drag
   }, [shown, groupByMember])
 
   const myIdSet = new Set(myMembers.map((m) => m.id))
+  // satu pemain bisa dimasukkan sendiri oleh admin, atau oleh pemiliknya
+  const canAdd = (m) => isAdmin || myIdSet.has(m.id)
   const canDragGroup = (g) => isAdmin || (g.group_members || []).some((gm) => myIdSet.has(gm.member_id))
 
   const item = (m) => (
     <li
       key={m.id}
-      className={`side-item ${canDrag(m) ? 'draggable' : ''} ${dragging === m.id ? 'is-dragging' : ''}`}
+      className={`side-item ${canDrag(m) ? 'draggable' : ''} ${canAdd(m) ? 'clickable' : ''} ${dragging === m.id ? 'is-dragging' : ''}`}
       {...(canDrag(m) ? dragProps(m.id) : {})}
+      onClick={canAdd(m) && !busy ? () => onAdd(m.id) : undefined}
+      title={canAdd(m) ? 'Klik untuk memasukkan pemain ini saja' : undefined}
     >
       <JobIcon m={m} />
       <div className="slot-info">
@@ -1092,11 +1089,14 @@ function NotJoined({ list, isAdmin, busy, full, onAdd, onAddGroup, canDrag, drag
           {!m.user_id && ' · belum klaim'}
         </div>
       </div>
-      {isAdmin && !groupByMember.get(m.id) && (
+      {canAdd(m) && (
         <button
           className="btn btn-sm"
           disabled={busy}
-          onClick={() => onAdd(m.id)}
+          onClick={(e) => {
+            e.stopPropagation()
+            onAdd(m.id)
+          }}
           title={full ? 'Semua party penuh: masuk daftar tunggu' : 'Masuk slot kosong pertama'}
         >
           + Party
@@ -1149,7 +1149,19 @@ function NotJoined({ list, isAdmin, busy, full, onAdd, onAddGroup, canDrag, drag
                   {...(canDragGroup(blk.g) ? dragProps(`g:${blk.g.id}`) : {})}
                   title="Seret untuk memasukkan seluruh party fix"
                 >
-                  <span className="side-group-name notranslate">{blk.g.name}</span>
+                  {isAdmin || canDragGroup(blk.g) ? (
+                    <button
+                      type="button"
+                      className="side-group-name side-group-btn notranslate"
+                      disabled={busy}
+                      onClick={() => onAddGroup(blk.g)}
+                      title="Klik untuk memasukkan seluruh party fix"
+                    >
+                      {blk.g.name}
+                    </button>
+                  ) : (
+                    <span className="side-group-name notranslate">{blk.g.name}</span>
+                  )}
                   <span className="small muted">
                     {blk.items.length}
                     {blk.total > blk.items.length ? `/${blk.total}` : ''} orang
