@@ -803,3 +803,137 @@ tr:hover .inline-edit { opacity: 1; }
 .shot-summary-title { font-weight: 700; margin-bottom: 4px; }
 .shot-summary ul { margin: 0 0 6px; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
 .shot-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+
+/* =====================================================================
+   Strategi perang (peta Guild League)
+   ===================================================================== */
+.strat { display: flex; flex-direction: column; gap: 10px; }
+.strat-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.strat-tabs { margin: 0; }
+.tab-count { margin-left: 6px; font-size: 11px; padding: 0 6px; border-radius: 99px; background: var(--bg-2); color: var(--muted); }
+.strat-state.st-saved { color: var(--green); }
+.strat-state.st-err { color: var(--red); }
+.strat-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
+.strat-map-wrap { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.strat-map { position: relative; width: 100%; max-width: 760px; aspect-ratio: 1; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: #2d7a2a; touch-action: none; user-select: none; container-type: inline-size; }
+.strat-map img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.strat-empty { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: rgba(10,12,18,.75); color: #fff; padding: 6px 12px; border-radius: 99px; white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
+.strat-token { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; z-index: 2; touch-action: none; }
+.strat-token.editable { cursor: grab; }
+.strat-token.editable:active { cursor: grabbing; }
+.strat-token.is-sel { z-index: 5; }
+.tok-badge { width: clamp(26px, 7.5cqw, 42px); height: clamp(26px, 7.5cqw, 42px); border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #ffe08a, #d99a2b); border: 2px solid #3a2410; box-shadow: 0 2px 6px rgba(0,0,0,.45); color: #2b1a06; font-weight: 800; }
+.tok-badge.sm { width: 26px; height: 26px; font-size: 12px; flex: none; }
+.tok-num { font-size: clamp(11px, 3cqw, 17px); line-height: 1; }
+.strat-token.is-sel .tok-badge { outline: 3px solid #fff; outline-offset: 1px; }
+.tok-label { font-size: clamp(9px, 2.1cqw, 12px); font-weight: 700; color: #fff; background: rgba(10,12,18,.72); padding: 1px 6px; border-radius: 6px; white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.tok-member .job-icon { box-shadow: 0 2px 6px rgba(0,0,0,.5); border-radius: 50%; }
+.strat-token.tok-member.is-sel .job-icon { outline: 3px solid #fff; outline-offset: 1px; }
+.tok-note { background: var(--note); color: #1b1305; font-weight: 700; font-size: clamp(10px, 2.3cqw, 13px); padding: 3px 9px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,.4); max-width: 160px; text-align: center; }
+.strat-token.tok-note.is-sel .tok-note, .strat-token.is-sel .tok-note { outline: 3px solid #fff; }
+.strat-side { position: sticky; top: 76px; max-height: calc(100vh - 100px); overflow: auto; display: flex; flex-direction: column; gap: 8px; margin: 0; }
+.strat-pal-tabs { margin: 0; }
+.strat-pal { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.strat-pal-group { margin: 6px 0 2px; font-weight: 700; }
+.strat-pal-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.strat-pal-item .grow { display: flex; flex-direction: column; min-width: 0; }
+.strat-pal-item:hover:not(:disabled) { border-color: var(--gold); }
+.strat-pal-item.on { border-color: rgba(90,208,138,.5); background: rgba(90,208,138,.07); }
+.strat-pal-item:disabled { opacity: .5; cursor: default; }
+.strat-detail { display: flex; flex-direction: column; gap: 8px; }
+.strat-members { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.strat-members li { display: flex; align-items: center; gap: 8px; }
+@media (max-width: 900px) {
+  .strat-layout { grid-template-columns: minmax(0, 1fr); }
+  .strat-side { position: static; max-height: none; }
+  .strat-map { max-width: none; }
+}
+
+/* tombol strategi perang yang mudah terlihat */
+.btn-strat { background: linear-gradient(135deg, #2f7d3a, #a8642c); color: #fff; border-color: transparent; font-weight: 700; }
+.btn-strat:hover { filter: brightness(1.1); }
+.pill-strat { cursor: pointer; border: 1px solid rgba(95,179,255,.5); background: rgba(95,179,255,.12); color: #8fcbff; font: inherit; font-size: 11.5px; font-weight: 700; }
+.pill-strat:hover { background: rgba(95,179,255,.22); }
+
+.strat-pal-item.draggable { cursor: grab; }
+.strat.is-dragging, .strat.is-dragging * { cursor: grabbing !important; user-select: none; }
+.strat-ghost { position: fixed; z-index: 9999; transform: translate(-50%, -120%); pointer-events: none; background: rgba(10,12,18,.88); color: #fff; font-weight: 700; font-size: 12px; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); white-space: nowrap; }
+.strat-ghost.over { border-color: var(--gold); background: rgba(227,180,90,.95); color: #1b1305; }
+.strat-map.drop-over { outline: 3px dashed var(--gold); outline-offset: -3px; }
+
+.strat-box { position: absolute; z-index: 6; border: 2px solid #7fe08f; background: rgba(127,224,143,.15); pointer-events: none; }
+.strat-tip { margin: 0; }
+
+/* token party: perisai bernomor + spanduk nama leader + titik role anggota */
+.tok-unit { display: flex; align-items: center; filter: drop-shadow(0 3px 5px rgba(0,0,0,.55)); }
+.tok-shield {
+  position: relative; z-index: 1; flex: none;
+  width: clamp(26px, 6.6cqw, 40px); height: clamp(30px, 7.6cqw, 46px);
+  display: grid; place-items: center;
+  clip-path: polygon(50% 0, 100% 14%, 100% 58%, 50% 100%, 0 58%, 0 14%);
+  background: linear-gradient(160deg, #fff1b8 0%, #f2c14e 38%, #b9771b 100%);
+}
+.tok-shield::after {
+  content: ''; position: absolute; inset: 3px;
+  clip-path: polygon(50% 0, 100% 14%, 100% 58%, 50% 100%, 0 58%, 0 14%);
+  background: linear-gradient(160deg, #7a1f1f, #3b0d0d);
+  z-index: -1;
+}
+.tok-shield .tok-num { color: #ffe08a; font-weight: 900; font-size: clamp(12px, 3.2cqw, 19px); text-shadow: 0 1px 0 #000, 0 0 6px rgba(255,200,80,.5); margin-top: -10%; }
+.unit-sub .tok-shield { background: linear-gradient(160deg, #ffffff 0%, #c9d3df 40%, #6b7a8c 100%); }
+.unit-sub .tok-shield::after { background: linear-gradient(160deg, #1f3c7a, #0d1a3b); }
+.unit-sub .tok-shield .tok-num { color: #dbe8ff; text-shadow: 0 1px 0 #000, 0 0 6px rgba(120,170,255,.6); }
+.tok-banner {
+  margin-left: -8px; padding: 3px 9px 4px 12px; min-width: 0;
+  background: linear-gradient(90deg, rgba(20,16,10,.92), rgba(40,30,18,.92));
+  border: 1px solid rgba(242,193,78,.7); border-left: 0; border-radius: 0 9px 9px 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.unit-sub .tok-banner { border-color: rgba(160,190,230,.7); background: linear-gradient(90deg, rgba(10,16,30,.92), rgba(20,30,50,.92)); }
+.tok-lead { color: #fff; font-weight: 800; font-size: clamp(9px, 2.2cqw, 12.5px); line-height: 1.1; white-space: nowrap; max-width: clamp(70px, 22cqw, 140px); overflow: hidden; text-overflow: ellipsis; }
+.tok-crown { margin-right: 3px; }
+.tok-roles { display: flex; gap: 2px; }
+.tok-pip { width: clamp(4px, 1.1cqw, 7px); height: clamp(4px, 1.1cqw, 7px); border-radius: 2px; background: var(--role, #e05a5a); }
+.tok-pip.role-dps { --role: #ef6b6b; } .tok-pip.role-support { --role: #f2c14e; }
+.tok-pip.pip-empty { background: transparent; border: 1px solid rgba(255,255,255,.35); }
+.unit-empty .tok-banner { opacity: .75; }
+.strat-token.is-sel .tok-unit { filter: drop-shadow(0 0 0 #fff) drop-shadow(0 0 6px #7fe08f) drop-shadow(0 3px 5px rgba(0,0,0,.55)); }
+.strat-token.is-sel .tok-banner { border-color: #7fe08f; }
+
+/* grup otomatis: party yang dipimpin orang yang sama */
+.strat-group { position: absolute; z-index: 1; border: 2px dashed rgba(255,224,138,.85); border-radius: 12px; background: rgba(242,193,78,.08); pointer-events: none; }
+.strat-group-label { position: absolute; left: 6px; top: 0; transform: translateY(-55%); background: #f2c14e; color: #2b1a06; font-weight: 800; font-size: clamp(9px, 2cqw, 11.5px); padding: 1px 8px; border-radius: 99px; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+
+/* token grup leader (ringkas): nama di atas, perisai nomor di bawah */
+.tok-lgroup { gap: 3px; filter: drop-shadow(0 3px 5px rgba(0,0,0,.55)); }
+.lg-head { background: linear-gradient(90deg, #f2c14e, #ffdf8a); color: #2b1a06; font-weight: 800; font-size: clamp(9px, 2.1cqw, 12px); padding: 1px 8px; border-radius: 99px; white-space: nowrap; max-width: clamp(80px, 26cqw, 160px); overflow: hidden; text-overflow: ellipsis; border: 1px solid #8a5a12; }
+.unit-sub .lg-head { background: linear-gradient(90deg, #c9d3df, #ffffff); border-color: #44556b; color: #0d1a3b; }
+.lg-shields { display: flex; gap: 2px; }
+.tok-shield.sm { width: clamp(18px, 4.4cqw, 28px); height: clamp(21px, 5cqw, 32px); }
+.tok-shield.sm .tok-num { font-size: clamp(10px, 2.4cqw, 14px); }
+.tok-lgroup.is-sel .lg-head { outline: 2px solid #7fe08f; outline-offset: 1px; }
+.tok-lgroup.is-sel .lg-shields { filter: drop-shadow(0 0 4px #7fe08f); }
+.strat-multi-party { display: flex; flex-direction: column; gap: 1px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+
+/* token party tunggal: nama jelas di atas, perisai kecil + titik role di bawah */
+.tok-solo { display: flex; flex-direction: column; align-items: center; gap: 3px; filter: drop-shadow(0 3px 5px rgba(0,0,0,.55)); }
+.solo-row { display: flex; align-items: center; gap: 4px; }
+.solo-row .tok-roles { flex-direction: column; gap: 1px; background: rgba(10,12,18,.7); padding: 2px; border-radius: 4px; }
+.lg-head { font-size: clamp(10px, 2.5cqw, 13.5px) !important; padding: 2px 9px !important; }
+.lg-head.no-lead { background: rgba(14,16,24,.88); color: #fff; border-color: rgba(255,255,255,.35); }
+.unit-sub .lg-head.no-lead { background: rgba(10,16,30,.9); color: #dbe8ff; }
+.unit-empty .lg-head.no-lead { opacity: .8; }
+.strat-token.is-sel .tok-solo .lg-head { outline: 2px solid #7fe08f; outline-offset: 1px; }
+.strat-token.is-sel .tok-solo .tok-shield { filter: drop-shadow(0 0 4px #7fe08f); }
+.solo-row { flex-direction: column; gap: 2px; }
+.solo-row .tok-roles { flex-direction: row; padding: 1px 2px; }
+
+.locked-board { max-width: 520px; margin: 40px auto; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.locked-board .lock-icon { font-size: 40px; }
+.locked-board h2 { margin: 0; }
+.acct-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 3px; }
+.acct-email { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; word-break: break-all; }
+.prov { font-size: 10.5px; font-weight: 700; padding: 0 6px; border-radius: 99px; border: 1px solid var(--line); }
+.prov-discord { color: #a5adff; border-color: rgba(88,101,242,.5); }
+.prov-google { color: #8fd18f; border-color: rgba(80,180,90,.5); }
+.prov-email { color: #f2c14e; border-color: rgba(242,193,78,.6); }

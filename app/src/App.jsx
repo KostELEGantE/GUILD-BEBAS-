@@ -63,7 +63,7 @@ function Shell() {
 
   let content
   if (loading) content = <div className="muted pad">Memuat data guild…</div>
-  else if (page === 'event' && parts[1]) content = <EventDetail id={Number(parts[1])} />
+  else if (page === 'event' && parts[1]) content = <EventDetail id={Number(parts[1])} initialTab={parts[2]} />
   else if (page === 'roster') content = <Roster />
   else if (page === 'groups') content = <Groups />
   else if (page === 'stats') content = <Stats />

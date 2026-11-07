@@ -361,9 +361,15 @@ function AdminUsers() {
   const [view, setView] = useState('all') // all | multi | none | admin
   const [search, setSearch] = useState('')
   const load = useCallback(() => q(supabase.from('profiles').select('*').order('display_name')).then(setProfiles), [])
+  // email & cara login: hanya Super Moderator (untuk mengenali akun asing)
+  const [accts, setAccts] = useState(new Map())
   useEffect(() => {
     load().catch(() => {})
-  }, [load])
+    if (isSuper)
+      rpc('admin_accounts')
+        .then((rows) => setAccts(new Map((rows || []).map((r) => [r.id, r]))))
+        .catch(() => {})
+  }, [load, isSuper])
 
   // karakter yang diklaim per akun
   const claims = useMemo(() => {
@@ -382,7 +388,11 @@ function AdminUsers() {
     .filter((p) => {
       const s = search.trim().toLowerCase()
       if (!s) return true
-      return (p.display_name || '').toLowerCase().includes(s) || (claims.get(p.id) || []).some((m) => m.name.toLowerCase().includes(s))
+      return (
+        (p.display_name || '').toLowerCase().includes(s) ||
+        (accts.get(p.id)?.email || '').toLowerCase().includes(s) ||
+        (claims.get(p.id) || []).some((m) => m.name.toLowerCase().includes(s))
+      )
     })
     .sort((a, b) => (claims.get(b.id)?.length ?? 0) - (claims.get(a.id)?.length ?? 0) || (a.display_name || '').localeCompare(b.display_name || ''))
 
@@ -479,6 +489,23 @@ function AdminUsers() {
                       {p.id === user.id && <span className="small muted">(Anda)</span>}
                       {p.banned_at && <span className="pill pill-red">Diblokir</span>}
                     </div>
+                    {isSuper && accts.get(p.id) && (
+                      <div className="acct-line small">
+                        {accts
+                          .get(p.id)
+                          .providers.split(',')
+                          .filter(Boolean)
+                          .map((pv) => (
+                            <span key={pv} className={`prov prov-${pv}`}>
+                              {pv === 'discord' ? 'Discord' : pv === 'google' ? 'Google' : 'Email'}
+                            </span>
+                          ))}
+                        <span className="notranslate acct-email">{accts.get(p.id).email || '—'}</span>
+                        {accts.get(p.id).providers === 'email' && !accts.get(p.id).email_confirmed && (
+                          <span className="pill pill-red">email belum dikonfirmasi</span>
+                        )}
+                      </div>
+                    )}
                     {p.banned_at && (
                       <div className="small muted">
                         {fmtDate(p.banned_at)} · oleh <span className="notranslate">{nameOf(p.banned_by)}</span>

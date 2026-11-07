@@ -186,6 +186,19 @@ function EventCard({ e, s }) {
           {m.custom ? `${filled}/${cap}` : `${first.name} ${filled}/${cap}`}
           {rest.length ? ` · ${rest.length > 2 ? `+${rest.length} bagian` : rest.join(' · ')}` : ''}
         </span>
+        {e.is_permanent && e.mode === 'guild_league' && (
+          <button
+            type="button"
+            className="pill pill-strat"
+            onClick={(ev) => {
+              ev.preventDefault()
+              ev.stopPropagation()
+              window.location.hash = `#/event/${e.id}/strategy`
+            }}
+          >
+            🗺 Strategi
+          </button>
+        )}
         {e.mode === 'custom' && e.created_by === user?.id && <span className="pill pill-gold">Buatan Anda</span>}
         {s?.mine && <span className="pill pill-green">Anda ikut</span>}
       </div>

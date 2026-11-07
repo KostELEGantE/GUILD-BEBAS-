@@ -10,8 +10,9 @@ import MemberPicker from '../components/MemberPicker.jsx'
 import GroupChip from '../components/GroupChip.jsx'
 import JobIcon from '../components/JobIcon.jsx'
 import ScreenshotFill from '../components/ScreenshotFill.jsx'
+import StrategyBoard from '../components/StrategyBoard.jsx'
 
-export default function EventDetail({ id }) {
+export default function EventDetail({ id, initialTab }) {
   const { members, myMembers, isAdmin: isMod, toast, groupByMember, groups, user } = useApp()
   const [ev, setEv] = useState(null)
   const [parties, setParties] = useState([])
@@ -54,7 +55,8 @@ export default function EventDetail({ id }) {
   }, [id, loadParties, loadSignups, toast])
 
   useEffect(() => {
-    setTab('party')
+    // #/event/1/strategy membuka langsung tab strategi
+    setTab(initialTab === 'strategy' ? 'strategy' : 'party')
     setPicked(null)
     load()
   }, [load])
@@ -574,6 +576,22 @@ export default function EventDetail({ id }) {
     )
   }
 
+  // papan Guild League hanya untuk akun yang sudah mengklaim karakter guild
+  if (ev.mode === 'guild_league' && !isMod && myMembers.length === 0)
+    return (
+      <div className="locked-board card">
+        <div className="lock-icon">🔒</div>
+        <h2>Guild League hanya untuk anggota guild</h2>
+        <p className="muted">
+          Akun ini belum mengklaim karakter. Buka <a href="#/roster">Daftar Anggota</a>, cari karakter Anda, lalu klik <b>Klaim</b>.
+          Setelah itu papan Guild League, susunan party, dan strategi perang bisa dibuka.
+        </p>
+        <a className="btn btn-gold" href="#/roster">
+          Klaim karakter saya
+        </a>
+      </div>
+    )
+
   return (
     <div style={{ '--mode': mode.color }}>
       {ev.parent_id ? (
@@ -620,6 +638,11 @@ export default function EventDetail({ id }) {
           {isBoard && isAdmin && (
             <button className="btn btn-gold" disabled={busy} onClick={confirmWar}>
               ✓ Konfirmasi war
+            </button>
+          )}
+          {isBoard && ev.mode === 'guild_league' && (
+            <button className={`btn ${tab === 'strategy' ? 'btn-gold' : 'btn-strat'}`} onClick={() => setTab(tab === 'strategy' ? 'party' : 'strategy')}>
+              {tab === 'strategy' ? '← Kembali ke susunan party' : '🗺 Strategi perang'}
             </button>
           )}
           {canShot && (
@@ -695,6 +718,11 @@ export default function EventDetail({ id }) {
         <button className={tab === 'party' ? 'active' : ''} onClick={() => setTab('party')}>
           Susunan party
         </button>
+        {isBoard && ev.mode === 'guild_league' && (
+          <button className={tab === 'strategy' ? 'active' : ''} onClick={() => setTab('strategy')}>
+            🗺 Strategi perang
+          </button>
+        )}
         {isBoard ? (
           <button className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>
             Riwayat war & kehadiran
@@ -708,6 +736,21 @@ export default function EventDetail({ id }) {
 
       {tab === 'attendance' && <Attendance ev={ev} signups={signups} onChanged={load} />}
       {tab === 'history' && <WarHistory board={ev} />}
+      {tab === 'strategy' && (
+        <StrategyBoard
+          ev={ev}
+          secs={secs}
+          size={size}
+          parties={parties}
+          signups={signups}
+          memberById={memberById}
+          partyName={partyName}
+          leaderOf={leaderOf}
+          canEdit={isMod || myLeadCount > 0}
+          toast={toast}
+          user={user}
+        />
+      )}
 
       {tab === 'party' && (
         <>
