@@ -773,3 +773,21 @@ tr:hover .inline-edit { opacity: 1; }
 /* tautan Discord di menu utama */
 .nav a.nav-discord { color: #a5adff; }
 .nav a.nav-discord:hover { background: rgba(88,101,242,.15); color: #c3c8ff; }
+
+/* ---------- panel kuota gratis (Admin) ---------- */
+.usage-card { display: flex; flex-direction: column; gap: 10px; }
+.usage-card h3 { margin: 0; }
+.usage-head { margin: 8px 0 0; display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.usage-logo { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; font-size: 13px; }
+.usage-logo.supa { background: rgba(62,207,142,.15); color: #3ecf8e; }
+.usage-logo.cf { background: rgba(244,129,32,.15); color: #f48120; }
+.usage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.usage-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--bg-2); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.usage-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.usage-label { font-weight: 600; font-size: 13px; }
+.usage-val { font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.usage-item .meter { flex: none; height: 8px; }
+.usage-foot { display: flex; justify-content: space-between; gap: 8px; }
+.usage-notes { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+
+.usage-toggle { align-self: flex-start; }

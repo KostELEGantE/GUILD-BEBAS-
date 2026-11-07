@@ -1,3 +1,4 @@
+import UsagePanel from '../components/UsagePanel.jsx'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, q, rpc } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
@@ -22,6 +23,7 @@ export default function Admin() {
           <p className="muted">Import data member dari game dan atur siapa saja yang menjadi admin.</p>
         </div>
       </div>
+      <UsagePanel />
       <ImportMembers />
       <ImportHistory />
       <AdminUsers />
