@@ -978,3 +978,4 @@ a.server-time:hover { background: rgba(255,255,255,.05); }
 .picker-prio { border: 1px solid color-mix(in srgb, var(--gold, #e3b45a) 45%, var(--line)); border-radius: 10px; margin-bottom: 8px; background: color-mix(in srgb, var(--gold, #e3b45a) 6%, transparent); }
 .picker-prio-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid color-mix(in srgb, var(--gold, #e3b45a) 25%, var(--line)); }
 .picker-sep { padding: 6px 4px 4px; text-transform: uppercase; letter-spacing: .5px; }
+.bench-card { margin-bottom: 14px; border-color: color-mix(in srgb, var(--gold, #e3b45a) 45%, var(--line)); }

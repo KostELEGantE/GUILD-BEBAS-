@@ -901,29 +901,10 @@ export default function EventDetail({ id, initialTab }) {
 
           <div className="event-layout">
             <div className="event-main">
-              {secs.map((sec, i) => (
-                <section key={sec.from}>
-                  <h2 className="section-title">
-                    {`${sec.name} · ${sec.count}/${sec.parties * size}`}
-                    {isBoard && sec.attend && <span className="section-tag">dihitung hadir</span>}
-                    {noHealerIn(sec) > 0 && <span className="section-tag warn">⚠ {noHealerIn(sec)} party tanpa healer</span>}
-                  </h2>
-                  <div className={`party-grid compact ${i > 0 ? 'sub-grid' : ''}`}>
-                    {Array.from({ length: sec.parties }, (_, j) => partyCard(sec.from + j))}
-                  </div>
-                </section>
-              ))}
-
-              {(isAdmin || (isOpen && myMembers.length > 0)) && ev.party_count < 60 && (
-                <button className="btn btn-ghost add-party" disabled={busy} onClick={addParty}>
-                  {isCustom ? '+ Tambah party' : `+ Tambah party di ${secs[secs.length - 1]?.name} (mau memimpin party sendiri?)`}
-                </button>
-              )}
-
               {loose.length > 0 && (
-                <div className="card">
+                <div className="card bench-card">
                   <h3>Belum dapat party · {loose.length}</h3>
-                  <p className="muted small">Sudah mendaftar tapi semua party penuh. Tambah party atau pindahkan ke slot kosong.</p>
+                  <p className="muted small">Sudah mendaftar, menunggu slot. Party fix dikelompokkan: seret nama grup ke party, atau klik nama grup lalu slot kosong.</p>
                   <ul className="bench">
                     {benchBlocks.map((blk) =>
                       blk.g ? (
@@ -956,6 +937,26 @@ export default function EventDetail({ id, initialTab }) {
                   </ul>
                 </div>
               )}
+
+              {secs.map((sec, i) => (
+                <section key={sec.from}>
+                  <h2 className="section-title">
+                    {`${sec.name} · ${sec.count}/${sec.parties * size}`}
+                    {isBoard && sec.attend && <span className="section-tag">dihitung hadir</span>}
+                    {noHealerIn(sec) > 0 && <span className="section-tag warn">⚠ {noHealerIn(sec)} party tanpa healer</span>}
+                  </h2>
+                  <div className={`party-grid compact ${i > 0 ? 'sub-grid' : ''}`}>
+                    {Array.from({ length: sec.parties }, (_, j) => partyCard(sec.from + j))}
+                  </div>
+                </section>
+              ))}
+
+              {(isAdmin || (isOpen && myMembers.length > 0)) && ev.party_count < 60 && (
+                <button className="btn btn-ghost add-party" disabled={busy} onClick={addParty}>
+                  {isCustom ? '+ Tambah party' : `+ Tambah party di ${secs[secs.length - 1]?.name} (mau memimpin party sendiri?)`}
+                </button>
+              )}
+
             </div>
 
             <NotJoined
