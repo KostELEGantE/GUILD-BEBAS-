@@ -100,8 +100,11 @@ export function layout(words, imgH, rowsGuess) {
   gaps.sort((a, b) => a - b)
   const rowH = gaps.length ? gaps[0] : (imgH - top) / rowsGuess
 
-  // kata nama (bukan LV / angka / judul), digabung per baris dalam satu sel
-  const names = ws.filter((w) => !NOISE.test(w.t) && norm(w.t).length >= 2 && w.y0 > top)
+  // kata nama (bukan LV / angka / judul / ikon), digabung per baris dalam satu sel.
+  // Ikon kelas (kiri) dan lencana merah (kanan atas) sering terbaca sebagai "10)", "1G]", "Ys," dsb:
+  // kata seperti itu punya < 2 huruf atau keyakinan OCR rendah, jadi dibuang.
+  const letters = (s) => (norm(s).match(/[a-z]/g) || []).length
+  const names = ws.filter((w) => !NOISE.test(w.t) && !/^[l1i|]v\.?\d*$/i.test(w.t) && letters(w.t) >= 2 && w.y0 > top && !(w.conf < 45 && w.t.length <= 3))
   const cells = new Map()
   for (const w of names) {
     const party = colOf((w.x0 + w.x1) / 2)
@@ -115,11 +118,18 @@ export function layout(words, imgH, rowsGuess) {
   const colW = xs.length > 1 ? Math.min(...xs.slice(1).map((x, i) => x - xs[i])) : null
   const cellList = [...cells.values()]
     .map((c) => {
-      // pakai baris teks paling atas di sel (nama), abaikan teks lain yang menimpa
+      // kelompokkan kata per baris teks di sel; nama = baris dengan keyakinan OCR tertinggi
       c.parts.sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0)
-      const first = c.parts[0]
-      const line = c.parts.filter((w) => Math.abs(w.y0 - first.y0) < (first.y1 - first.y0) * 0.6)
-      return { party: c.party, slot: c.slot, text: line.map((w) => w.t).join(' ') }
+      const lines = []
+      for (const w of c.parts) {
+        const ln = lines.find((l) => Math.abs(l[0].y0 - w.y0) < (l[0].y1 - l[0].y0) * 0.6)
+        if (ln) ln.push(w)
+        else lines.push([w])
+      }
+      const scored = lines
+        .map((l) => ({ text: l.map((w) => w.t).join(' '), conf: l.reduce((s, w) => s + (w.conf ?? 0), 0) / l.length, len: letters(l.map((w) => w.t).join('')) }))
+        .sort((a, b) => b.conf - a.conf || b.len - a.len)
+      return { party: c.party, slot: c.slot, text: scored[0].text, alts: scored.map((s) => s.text) }
     })
     .sort((a, b) => a.party - b.party || a.slot - b.slot)
   return { cells: cellList, geo: { heads, colW, top, rowH } }
@@ -191,13 +201,17 @@ export function matchAll(cells, members) {
   const pool = members.filter((m) => m.active).map((m) => ({ m, k: norm(m.name) })).filter((x) => x.k.length >= 2)
   const cands = []
   cells.forEach((c, i) => {
-    const t = norm(c.text)
-    if (t.length < 2) return
+    // coba setiap baris teks di sel (nama bisa bukan baris pertama), pakai skor terbaik
+    const texts = [...new Set([c.text, ...(c.alts || [])].map(norm))].filter((t) => t.length >= 2)
     for (const { m, k } of pool) {
-      let s = sim(t, k)
-      // nama terpotong / ada teks tambahan: cocok jika salah satu memuat yang lain (min. 4 huruf)
-      if (Math.min(t.length, k.length) >= 4 && (k.includes(t) || t.includes(k))) s = Math.max(s, 0.8)
-      if (s >= 0.6) cands.push({ i, m, s })
+      let best = 0
+      for (const t of texts) {
+        let s = sim(t, k)
+        // nama terpotong / ada teks tambahan: cocok jika salah satu memuat yang lain (min. 4 huruf)
+        if (Math.min(t.length, k.length) >= 4 && (k.includes(t) || t.includes(k))) s = Math.max(s, 0.8)
+        best = Math.max(best, s)
+      }
+      if (best >= 0.6) cands.push({ i, m, s: best })
     }
   })
   cands.sort((a, b) => b.s - a.s)
