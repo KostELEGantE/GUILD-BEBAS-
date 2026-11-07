@@ -1052,6 +1052,19 @@ export default function EventDetail({ id, initialTab }) {
         <MemberPicker
           title={`Isi ${partyName(pickerSlot.party_no)} – slot ${pickerSlot.slot_no}`}
           excludeIds={mainIds}
+          priorityGroupIds={
+            new Set(
+              [...slotMap.values()]
+                .filter((x) => x.party_no === pickerSlot.party_no)
+                .map((x) => groupByMember.get(x.member_id)?.id)
+                .filter(Boolean),
+            )
+          }
+          onPickGroup={(ids) => {
+            const p = pickerSlot.party_no
+            setPickerSlot(null)
+            moveMany(ids, p)
+          }}
           onClose={() => setPickerSlot(null)}
           onPick={(memberId) => {
             const sl = pickerSlot
