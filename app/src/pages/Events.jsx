@@ -217,7 +217,8 @@ const DEFAULT_SECTIONS = {
     sec('Normal Dungeon 3', 'ND3-', 10),
     sec('Normal Dungeon 4', 'ND4-', 10),
   ],
-  siege: [sec('Main', 'Party', 12)],
+  // Siege: semua party campur, dibagi per tugas (bisa diubah lewat Ubah)
+  siege: [sec('Defense', 'Defense', 4), sec('Attack', 'Attack', 4), sec('Breaker', 'Breaker', 4)],
 }
 
 // event custom: satu bagian "Party" yang tidak dihitung hadir
