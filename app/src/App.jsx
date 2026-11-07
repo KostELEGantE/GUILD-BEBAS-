@@ -8,6 +8,7 @@ import Roster from './pages/Roster.jsx'
 import Stats from './pages/Stats.jsx'
 import Admin from './pages/Admin.jsx'
 import Groups from './pages/Groups.jsx'
+import Schedule from './pages/Schedule.jsx'
 import logo from './assets/logo.webp'
 import LangSwitch from './components/LangSwitch.jsx'
 import ServerClock from './components/ServerClock.jsx'
@@ -67,6 +68,7 @@ function Shell() {
   else if (page === 'roster') content = <Roster />
   else if (page === 'groups') content = <Groups />
   else if (page === 'stats') content = <Stats />
+  else if (page === 'schedule') content = <Schedule />
   else if (page === 'admin' && isAdmin) content = <Admin />
   else content = <Events />
 

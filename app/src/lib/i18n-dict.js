@@ -544,6 +544,16 @@ export const DICT = {
   'Setelah itu papan Guild League, susunan party, dan strategi perang bisa dibuka.': ['', 'Selepas itu papan Guild League, susunan parti dan strategi perang boleh dibuka.', 'After that the Guild League board, party lineup and war strategy will open.', 'หลังจากนั้นจะเปิดกระดาน Guild League การจัดปาร์ตี้ และกลยุทธ์สงครามได้', 'Pagkatapos nito, mabubuksan na ang Guild League board, ayos ng party at estratehiya.'],
   'Klaim karakter saya': ['', 'Tuntut watak saya', 'Claim my character', 'เคลมตัวละครของฉัน', 'I-claim ang karakter ko'],
   'email belum dikonfirmasi': ['', 'e-mel belum disahkan', 'email not confirmed', 'ยังไม่ยืนยันอีเมล', 'hindi pa kumpirmado ang email'],
+  // ---- jadwal ----
+  'Jadwal mingguan': ['', 'Jadual mingguan', 'Weekly schedule', 'ตารางประจำสัปดาห์', 'Lingguhang iskedyul'],
+  'Semua event game menurut waktu server (GMT+7). Event bertanda 🔨 adalah event guild.': ['', 'Semua acara permainan mengikut waktu pelayan (GMT+7). Acara bertanda 🔨 ialah acara guild.', 'All game events in server time (GMT+7). Events marked 🔨 are guild events.', 'อีเวนต์ทั้งหมดตามเวลาเซิร์ฟเวอร์ (GMT+7) อีเวนต์ที่มี 🔨 คืออีเวนต์กิลด์', 'Lahat ng event sa oras ng server (GMT+7). Ang may 🔨 ay guild event.'],
+  'Sedang berlangsung:': ['', 'Sedang berlangsung:', 'Happening now:', 'กำลังดำเนินอยู่:', 'Nagaganap ngayon:'],
+  '⏭ Berikutnya:': ['', '⏭ Seterusnya:', '⏭ Next:', '⏭ ถัดไป:', '⏭ Susunod:'],
+  dalam: ['', 'dalam', 'in', 'อีก', 'sa loob ng'],
+  'Hari ini': ['', 'Hari ini', 'Today', 'วันนี้', 'Ngayon'],
+  Berikutnya: ['', 'Seterusnya', 'Next', 'ถัดไป', 'Susunod'],
+  'Event guild': ['', 'Acara guild', 'Guild event', 'อีเวนต์กิลด์', 'Guild event'],
+  'Waktu server game (GMT+7) · lihat jadwal mingguan': ['', 'Waktu pelayan permainan (GMT+7) · lihat jadual mingguan', 'Game server time (GMT+7) · see weekly schedule', 'เวลาเซิร์ฟเวอร์เกม (GMT+7) · ดูตารางประจำสัปดาห์', 'Oras ng game server (GMT+7) · tingnan ang lingguhang iskedyul'],
   // ---- party custom ----
   '(biarkan kosong jika ada yang mengklaim karakter temannya; satu karakter tetap hanya bisa masuk 1 slot)': ['', '(biarkan kosong jika ada yang menuntut watak kawannya; satu watak tetap hanya boleh masuk 1 slot)', "(leave unticked if someone claims a friend's character; a character can still only take 1 slot)", '(ไม่ต้องติ๊กถ้ามีคนเคลมตัวละครของเพื่อน ตัวละครหนึ่งยังเข้าได้แค่ 1 ช่อง)', '(huwag lagyan ng check kung may nag-claim ng karakter ng kaibigan; 1 slot lang pa rin bawat karakter)'],
   '+ Tambah party': ['', '+ Tambah parti', '+ Add party', '+ เพิ่มปาร์ตี้', '+ Magdagdag ng party'],
