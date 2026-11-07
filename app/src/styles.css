@@ -963,3 +963,13 @@ a.server-time:hover { background: rgba(255,255,255,.05); }
 .sched-tag.live { background: rgba(90,208,138,.18); color: var(--green); }
 @media (max-width: 1100px) { .sched-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 860px) { .sched-grid { grid-template-columns: minmax(0, 1fr); } .sched-day { padding: 10px; } }
+
+/* "Belum dapat party": anggota party fix yang sama dikelompokkan, bisa diseret/diklik bersama */
+.bench-group { grid-column: 1 / -1; border: 1px solid color-mix(in srgb, var(--g) 45%, var(--line)); border-left: 3px solid var(--g); border-radius: 10px; background: color-mix(in srgb, var(--g) 6%, transparent); }
+.bench-group.is-picked { box-shadow: 0 0 0 2px var(--g); }
+.bench-group > .bench { margin: 0; padding: 8px; }
+.bench-group-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 10px; border-bottom: 1px solid color-mix(in srgb, var(--g) 25%, var(--line)); }
+.bench-group-head.draggable { cursor: grab; }
+.bench-group-head.draggable:hover { background: color-mix(in srgb, var(--g) 12%, transparent); }
+.bench-group-head.is-dragging { opacity: .5; }
+.bench-group-head .gold { color: var(--gold, #e3b45a); }

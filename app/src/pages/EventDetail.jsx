@@ -22,6 +22,7 @@ export default function EventDetail({ id, initialTab }) {
   const [myChar, setMyChar] = useState(null)
   const [picked, setPicked] = useState(null) // member_id yang sedang dipindah
   const [pickedGroup, setPickedGroup] = useState(null) // party fix yang sedang dipindah (klik)
+  const [pickedBench, setPickedBench] = useState(null) // {gid, ids}: anggota party fix di "Belum dapat party" yang dipindah bersama
   const [fillParty, setFillParty] = useState(null) // party yang baru diklaim leader -> jendela isi party
   const [leaderPick, setLeaderPick] = useState(null) // moderator menunjuk leader untuk party ini
   const [pickerSlot, setPickerSlot] = useState(null) // {party_no, slot_no}
@@ -262,7 +263,11 @@ export default function EventDetail({ id, initialTab }) {
       setDragId(null)
       setOver(null)
       if (!raw) return
-      if (raw.startsWith('g:')) {
+      if (raw.startsWith('b:')) {
+        // anggota party fix yang sedang di "Belum dapat party" (hanya mereka, yang sudah di party tidak ikut pindah)
+        const ids = raw.slice(2).split(',').map(Number).filter(Boolean)
+        if (ids.length) onDropId(null, null, ids)
+      } else if (raw.startsWith('g:')) {
         const g = groups.find((x) => String(x.id) === raw.slice(2))
         if (g) onDropId(null, g)
       } else if (Number(raw)) onDropId(Number(raw), null)
@@ -270,7 +275,8 @@ export default function EventDetail({ id, initialTab }) {
   })
 
   /** Karakter (atau seluruh party fix) dijatuhkan ke party p (slot s, atau slot kosong pertama) */
-  function dropInto(memberId, p, s, group) {
+  function dropInto(memberId, p, s, group, many) {
+    if (many) return moveMany(many, p)
     if (group) return placeGroup(group, p)
     const cur = signups.find((x) => x.member_id === memberId)
     if (cur && cur.party_no === p && (!s || cur.slot_no === s)) return
@@ -282,7 +288,39 @@ export default function EventDetail({ id, initialTab }) {
     return join(memberId, p, s)
   }
 
-  async function dropOut(memberId, group) {
+  /** Pindahkan beberapa karakter sekaligus ke party p (lanjut ke party berikutnya kalau p penuh) */
+  async function moveMany(ids, p) {
+    const free = []
+    const order = [...Array(ev.party_count)].map((_, i) => ((p - 1 + i) % ev.party_count) + 1)
+    for (const q of order) {
+      const rs = reservedOf(q)
+      for (let s = 1; s <= size; s++) if (!slotMap.has(`${q}-${s}`) && !rs[s]) free.push({ p: q, s })
+    }
+    const todo = ids.filter((x) => canEdit(x))
+    if (!free.length) return toast(`${partyName(p)} sudah penuh`, 'err')
+    const ok = await run(async () => {
+      let n = 0
+      for (const mid of todo) {
+        const slot = free.shift()
+        if (!slot) break
+        await rpc('join_slot', { p_event_id: id, p_member_id: mid, p_party_no: slot.p, p_slot_no: slot.s })
+        n++
+      }
+      await loadSignups()
+      return n
+    })
+    if (ok) {
+      setPicked(null)
+      setPickedBench(null)
+      toast(`${ok} orang masuk ${partyName(p)}${ok < todo.length ? `, ${todo.length - ok} masih belum dapat slot` : ''}`)
+    }
+  }
+
+  async function dropOut(memberId, group, many) {
+    if (many) {
+      for (const x of many) if (signedIds.has(x)) await leave(x)
+      return
+    }
     if (group) {
       const ids = (group.group_members || []).map((gm) => gm.member_id).filter((x) => signedIds.has(x))
       for (const x of ids) await leave(x)
@@ -295,6 +333,7 @@ export default function EventDetail({ id, initialTab }) {
   const canMoveGroup = (g) => isAdmin || (isOpen && (g.group_members || []).some((gm) => myIds.has(gm.member_id)))
 
   function onEmptySlot(party_no, slot_no) {
+    if (pickedBench) return moveMany(pickedBench.ids, party_no)
     if (pickedGroup) {
       const g = pickedGroup
       setPickedGroup(null)
@@ -447,7 +486,7 @@ export default function EventDetail({ id, initialTab }) {
       <div
         className={`party-card ${mine || iLead(p) ? 'party-mine' : ''} ${leaderOf(p) ? 'party-led' : ''} ${noHealer ? 'party-warn' : ''} ${over === `${p}` ? 'drop-over' : ''}`}
         key={p}
-        {...dropProps(`${p}`, (mid, g) => dropInto(mid, p, null, g))}
+        {...dropProps(`${p}`, (mid, g, many) => dropInto(mid, p, null, g, many))}
         onClick={pickedGroup ? (e) => {
           if (e.target.closest('.group-handle')) return
           const g = pickedGroup
@@ -544,7 +583,7 @@ export default function EventDetail({ id, initialTab }) {
                     className={`slot slot-empty ${picked || pickedGroup || dragId ? 'slot-target' : ''} ${over === `${p}-${slotNo}` ? 'drop-over' : ''}`}
                     disabled={busy || (!isAdmin && !isOpen)}
                     onClick={() => onEmptySlot(p, slotNo)}
-                    {...dropProps(`${p}-${slotNo}`, (mid, g) => dropInto(mid, p, slotNo, g))}
+                    {...dropProps(`${p}-${slotNo}`, (mid, g, many) => dropInto(mid, p, slotNo, g, many))}
                   >
                     {dragId ? 'Lepas di sini' : picked || pickedGroup ? 'Pindah ke sini' : canManageParty(p) ? '+ Isi' : isOpen ? '+ Gabung' : '—'}
                   </button>
@@ -591,6 +630,44 @@ export default function EventDetail({ id, initialTab }) {
         </a>
       </div>
     )
+
+  // "Belum dapat party": anggota party fix yang sama dikumpulkan supaya bisa dipindah bersama
+  const benchBlocks = (() => {
+    const byG = new Map()
+    const solo = []
+    for (const s of loose) {
+      const g = groupByMember.get(s.member_id)
+      if (g) (byG.get(g.id) ?? byG.set(g.id, { g, items: [] }).get(g.id)).items.push(s)
+      else solo.push(s)
+    }
+    const out = []
+    for (const b of byG.values()) {
+      if (b.items.length < 2) solo.push(...b.items)
+      else {
+        const ids = b.items.map((s) => s.member_id)
+        out.push({ ...b, ids, movable: ids.some((x) => canEdit(x)) })
+      }
+    }
+    if (solo.length) out.push({ g: null, items: solo })
+    return out
+  })()
+  const benchItem = (s) => (
+    <li key={s.id}>
+      <SlotFilled
+        m={memberById.get(s.member_id)}
+        group={groupByMember.get(s.member_id)}
+        mine={myIds.has(s.member_id)}
+        picked={picked === s.member_id}
+        drag={canEdit(s.member_id) ? dragProps(s.member_id) : null}
+        editable={canEdit(s.member_id)}
+        onPick={() => {
+          setPickedBench(null)
+          setPicked(picked === s.member_id ? null : s.member_id)
+        }}
+        onRemove={() => leave(s.member_id)}
+      />
+    </li>
+  )
 
   return (
     <div style={{ '--mode': mode.color }}>
@@ -848,20 +925,34 @@ export default function EventDetail({ id, initialTab }) {
                   <h3>Belum dapat party · {loose.length}</h3>
                   <p className="muted small">Sudah mendaftar tapi semua party penuh. Tambah party atau pindahkan ke slot kosong.</p>
                   <ul className="bench">
-                    {loose.map((s) => (
-                      <li key={s.id}>
-                        <SlotFilled
-                          m={memberById.get(s.member_id)}
-                          group={groupByMember.get(s.member_id)}
-                          mine={myIds.has(s.member_id)}
-                          picked={picked === s.member_id}
-                          drag={canEdit(s.member_id) ? dragProps(s.member_id) : null}
-                          editable={canEdit(s.member_id)}
-                          onPick={() => setPicked(picked === s.member_id ? null : s.member_id)}
-                          onRemove={() => leave(s.member_id)}
-                        />
-                      </li>
-                    ))}
+                    {benchBlocks.map((blk) =>
+                      blk.g ? (
+                        <li key={`bg${blk.g.id}`} className={`bench-group ${pickedBench?.gid === blk.g.id ? 'is-picked' : ''}`} style={{ '--g': groupColor(blk.g.id) }}>
+                          <div
+                            className={`bench-group-head ${blk.movable ? 'draggable' : ''} ${dragId === `b:${blk.ids.join(',')}` ? 'is-dragging' : ''}`}
+                            {...(blk.movable ? dragProps(`b:${blk.ids.join(',')}`) : {})}
+                            title="Seret atau klik nama grup, lalu klik party tujuan, untuk memindah mereka bersama"
+                          >
+                            <button
+                              type="button"
+                              className="side-group-name side-group-btn notranslate"
+                              disabled={busy || !blk.movable}
+                              onClick={() => {
+                                setPicked(null)
+                                setPickedBench(pickedBench?.gid === blk.g.id ? null : { gid: blk.g.id, ids: blk.ids })
+                              }}
+                            >
+                              ⠿ {blk.g.name}
+                            </button>
+                            <span className="small muted">{`${blk.ids.length} orang · party fix`}</span>
+                            {pickedBench?.gid === blk.g.id && <span className="small gold">Klik slot kosong di party tujuan</span>}
+                          </div>
+                          <ul className="bench">{blk.items.map(benchItem)}</ul>
+                        </li>
+                      ) : (
+                        blk.items.map(benchItem)
+                      ),
+                    )}
                   </ul>
                 </div>
               )}

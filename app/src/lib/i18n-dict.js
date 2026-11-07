@@ -176,6 +176,8 @@ export const DICT = {
   '+ Grup': ['', '+ Kumpulan', '+ Group', '+ กลุ่ม', '+ Grupo'],
   '+ Tambah party di': ['', '+ Tambah parti di', '+ Add a party to', '+ เพิ่มปาร์ตี้ใน', '+ Magdagdag ng party sa'],
   '(mau memimpin party sendiri?)': ['(ingin memimpin party sendiri?)', '(mahu ketuai parti sendiri?)', '(want to lead your own party?)', '(อยากนำปาร์ตี้เองไหม?)', '(gustong mamuno ng sariling party?)'],
+  'Klik slot kosong di party tujuan': ['', 'Klik slot kosong di parti tujuan', 'Click an empty slot in the target party', 'คลิกช่องว่างในปาร์ตี้ปลายทาง', 'I-click ang bakanteng slot sa target na party'],
+  'Seret atau klik nama grup, lalu klik party tujuan, untuk memindah mereka bersama': ['', 'Seret atau klik nama kumpulan, kemudian klik parti tujuan, untuk memindah mereka bersama', 'Drag, or click the group name then a target party, to move them together', 'ลาก หรือคลิกชื่อกลุ่มแล้วคลิกปาร์ตี้ปลายทาง เพื่อย้ายพร้อมกัน', 'I-drag, o i-click ang pangalan ng grupo tapos ang target na party, para sabay silang ilipat'],
   'Belum dapat party': ['', 'Belum dapat parti', 'No party yet', 'ยังไม่มีปาร์ตี้', 'Wala pang party'],
   'Belum dapat party ·': ['', 'Belum dapat parti ·', 'No party yet ·', 'ยังไม่มีปาร์ตี้ ·', 'Wala pang party ·'],
   'Sudah mendaftar tapi semua party penuh. Tambah party atau pindahkan ke slot kosong.': ['', 'Sudah mendaftar tetapi semua parti penuh. Tambah parti atau pindahkan ke slot kosong.', 'Signed up but all parties are full. Add a party or move them to an empty slot.', 'ลงชื่อแล้วแต่ทุกปาร์ตี้เต็ม เพิ่มปาร์ตี้หรือย้ายไปช่องว่าง', 'Naka-sign up pero puno lahat ng party. Magdagdag ng party o ilipat sa bakanteng slot.'],
@@ -587,6 +589,9 @@ export const DICT = {
 // Teks dinamis (berisi nama/angka). $1, $2 … = bagian yang diisi.
 // Format: [regex, [Indonesia, Melayu, English, ไทย, Filipino]]
 export const PATTERNS = [
+  [/^(\d+) orang · party fix$/, ['', '$1 orang · parti tetap', '$1 people · fixed party', '$1 คน · ปาร์ตี้ประจำ', '$1 tao · fixed party']],
+  [/^(\d+) orang masuk (.+), (\d+) masih belum dapat slot$/, ['', '$1 orang masuk $2, $3 masih belum dapat slot', '$1 moved into $2, $3 still without a slot', 'ย้าย $1 คนเข้า $2 อีก $3 คนยังไม่มีช่อง', '$1 ang pumasok sa $2, $3 pa ang walang slot']],
+  [/^(\d+) orang masuk (.+)$/, ['', '$1 orang masuk $2', '$1 moved into $2', 'ย้าย $1 คนเข้า $2', '$1 ang pumasok sa $2']],
   [/^(\d+) dipilih$/, ['', '$1 dipilih', '$1 selected', 'เลือก $1', '$1 napili']],
   [/^Hapus (\d+) dari peta$/, ['', 'Buang $1 dari peta', 'Remove $1 from map', 'นำ $1 ออกจากแผนที่', 'Alisin ang $1 sa mapa']],
   [/^Hapus semua penempatan di (.+)\?$/, ['', 'Padam semua penempatan di $1?', 'Clear everything placed on the $1?', 'ลบทุกอย่างที่วางบน $1?', 'Burahin lahat ng nakalagay sa $1?']],
