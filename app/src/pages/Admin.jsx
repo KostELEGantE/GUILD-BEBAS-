@@ -15,6 +15,8 @@ const FIELDS = [
 ]
 
 export default function Admin() {
+  // panel kuota hanya untuk Super Moderator
+  const { isSuper } = useApp()
   return (
     <div className="stack">
       <div className="page-head">
@@ -23,7 +25,7 @@ export default function Admin() {
           <p className="muted">Import data member dari game dan atur siapa saja yang menjadi admin.</p>
         </div>
       </div>
-      <UsagePanel />
+      {isSuper && <UsagePanel />}
       <ImportMembers />
       <ImportHistory />
       <AdminUsers />
