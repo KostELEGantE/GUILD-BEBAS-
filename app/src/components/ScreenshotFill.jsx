@@ -253,11 +253,15 @@ export function autoTargets(teams, sec, signups) {
 
 /**
  * Rencana: setiap tim mengganti isi party tujuannya (screenshot = data asli).
- * Hasil: places [{id, team, party, slot}], removed [{id, party}] (keluar ke daftar tunggu).
+ * Hasil: places [{id, team, party, slot}],
+ * relocated [{id, from, party, slot}]: yang tergeser dari party tujuan dipindah ke slot kosong lain
+ *   (utamanya slot yang ditinggalkan anggota screenshot, jadi seperti tukar posisi), supaya tidak ada yang tertendang,
+ * removed [{id, party}]: hanya kalau benar-benar tidak ada slot kosong lagi (ke daftar tunggu).
  */
-export function makePlan({ teams, targets, signups, size }) {
+export function makePlan({ teams, targets, signups, size, sec }) {
   const places = []
   const removed = []
+  const relocated = []
   const inTeams = new Set(teams.flatMap((t) => t.ids))
   for (const t of teams) {
     const p = targets[t.n]
@@ -271,9 +275,37 @@ export function makePlan({ teams, targets, signups, size }) {
       used.add(slot)
       places.push({ id: r.memberId, team: t.n, party: p, slot })
     })
-    for (const s of signups) if (s.party_no === p && !inTeams.has(s.member_id)) removed.push({ id: s.member_id, party: p })
+    for (const s of signups) if (s.party_no === p && !inTeams.has(s.member_id)) removed.push({ id: s.member_id, party: p, slot: s.slot_no })
   }
-  return { places, removed }
+  if (!removed.length || !sec) return { places, removed, relocated }
+
+  // slot yang terisi setelah screenshot diterapkan
+  const targetSet = new Set(Object.values(targets).filter(Boolean))
+  const placed = new Set(places.map((x) => x.id))
+  const taken = new Set(places.map((x) => `${x.party}-${x.slot}`))
+  for (const s of signups) {
+    if (!s.party_no || targetSet.has(s.party_no) || placed.has(s.member_id)) continue
+    taken.add(`${s.party_no}-${s.slot_no}`)
+  }
+  // urutan slot pengganti: dulu slot yang ditinggalkan anggota screenshot (tukar posisi), lalu slot kosong lain di bagian ini
+  const cand = []
+  for (const x of places) {
+    const old = signups.find((s) => s.member_id === x.id)
+    if (old?.party_no && !targetSet.has(old.party_no) && old.party_no >= sec.from && old.party_no <= sec.to) cand.push(`${old.party_no}-${old.slot_no}`)
+  }
+  for (let q = sec.from; q <= sec.to; q++) if (!targetSet.has(q)) for (let k = 1; k <= size; k++) cand.push(`${q}-${k}`)
+  const left = []
+  for (const r of removed) {
+    const key = cand.find((c) => !taken.has(c))
+    if (!key) {
+      left.push(r)
+      continue
+    }
+    taken.add(key)
+    const [pp, ss] = key.split('-').map(Number)
+    relocated.push({ id: r.id, from: r.party, party: pp, slot: ss })
+  }
+  return { places, removed: left, relocated }
 }
 
 export default function ScreenshotFill({ ev, secs, size, partyName, members, memberById, signups, leaderOf, onClose, onDone, toast }) {
@@ -337,7 +369,7 @@ export default function ScreenshotFill({ ev, secs, size, partyName, members, mem
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamKey, secIdx, !!rows])
 
-  const plan = makePlan({ teams, targets, signups, size })
+  const plan = makePlan({ teams, targets, signups, size, sec })
   const curOf = new Map(signups.map((s) => [s.member_id, s]))
   const placeOf = new Map(plan.places.map((x) => [x.id, x]))
   const moved = plan.places.filter((x) => {
@@ -348,7 +380,7 @@ export default function ScreenshotFill({ ev, secs, size, partyName, members, mem
   const leaderChanges = teams
     .filter((t) => t.leader && targets[t.n] && leaderOf(targets[t.n]) !== t.leader)
     .map((t) => ({ party: targets[t.n], id: t.leader }))
-  const needCheck = moved.length + plan.removed.length > 0
+  const needCheck = moved.length + plan.removed.length + plan.relocated.length > 0
   const unread = (rows || []).filter((r) => !r.memberId).length
 
   const setRow = (i, memberId) =>
@@ -399,6 +431,8 @@ export default function ScreenshotFill({ ev, secs, size, partyName, members, mem
         }
         if (await call('join_slot', { p_event_id: ev.id, p_member_id: x.id, p_party_no: x.party, p_slot_no: x.slot }, nameOf(x.id))) ok++
       }
+      // 2b) yang tergeser dari party tujuan dipindah ke slot kosong lain (tidak tertendang)
+      for (const x of plan.relocated) await call('join_slot', { p_event_id: ev.id, p_member_id: x.id, p_party_no: x.party, p_slot_no: x.slot }, nameOf(x.id))
       // 3) leader party dari ikon mahkota
       for (const l of leaderChanges)
         await call('claim_party_leader', { p_event_id: ev.id, p_party_no: l.party, p_member_id: l.id }, nameOf(l.id))
@@ -467,6 +501,7 @@ export default function ScreenshotFill({ ev, secs, size, partyName, members, mem
               {teams.map((t) => {
                 const p = targets[t.n]
                 const out = plan.removed.filter((x) => x.party === p)
+                const shifted = plan.relocated.filter((x) => x.from === p)
                 return (
                   <div key={t.n} className="shot-party">
                     <div className="shot-party-name">
@@ -516,6 +551,12 @@ export default function ScreenshotFill({ ev, secs, size, partyName, members, mem
                         </div>
                       )
                     })}
+                    {p && shifted.length > 0 && (
+                      <div className="shot-out shot-shift small">
+                        <span>{`↪ Digeser dari ${partyName(p)}:`}</span>{' '}
+                        <b className="notranslate">{shifted.map((x) => `${nameOf(x.id)} → ${partyName(x.party)}`).join(', ')}</b>
+                      </div>
+                    )}
                     {p && out.length > 0 && (
                       <div className="shot-out small">
                         <span>{`✖ Keluar dari ${partyName(p)} (ke daftar tunggu):`}</span>{' '}
@@ -535,6 +576,12 @@ export default function ScreenshotFill({ ev, secs, size, partyName, members, mem
                   <li>
                     {`⇄ ${moved.length} pindah party:`}{' '}
                     <span className="notranslate">{moved.map((x) => `${nameOf(x.id)} (${partyName(curOf.get(x.id).party_no)} → ${partyName(x.party)})`).join(', ')}</span>
+                  </li>
+                )}
+                {plan.relocated.length > 0 && (
+                  <li>
+                    {`↪ ${plan.relocated.length} digeser ke party lain (tidak dikeluarkan):`}{' '}
+                    <span className="notranslate">{plan.relocated.map((x) => `${nameOf(x.id)} (${partyName(x.from)} → ${partyName(x.party)})`).join(', ')}</span>
                   </li>
                 )}
                 {plan.removed.length > 0 && (

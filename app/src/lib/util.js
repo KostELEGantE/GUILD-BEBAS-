@@ -117,3 +117,4 @@ export function debounce(fn, ms = 150) {
   d.cancel = () => clearTimeout(t)
   return d
 }
+export const DISCORD_URL = 'https://discord.gg/ex4R57YNw'

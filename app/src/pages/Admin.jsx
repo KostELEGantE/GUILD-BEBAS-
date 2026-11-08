@@ -1,5 +1,5 @@
 import UsagePanel from '../components/UsagePanel.jsx'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, q, rpc } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
 import { fmtDate, fmtNum, nameKey } from '../lib/util.js'
@@ -311,6 +311,7 @@ function ImportMembers() {
 function ImportHistory() {
   const { members } = useApp()
   const [rows, setRows] = useState([])
+  const [open, setOpen] = useState(null)
   useEffect(() => {
     q(supabase.from('imports').select('*, by:profiles(display_name)').order('created_at', { ascending: false }).limit(10))
       .then(setRows)
@@ -332,15 +333,56 @@ function ImportHistory() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td>{fmtDate(r.created_at)}</td>
-                <td>{r.kind === 'members' ? 'Data member' : 'Kehadiran'}</td>
-                <td className="muted">{r.filename}</td>
-                <td className="num">{r.row_count}</td>
-                <td>{r.by?.display_name ?? '–'}</td>
-              </tr>
-            ))}
+            {rows.map((r) => {
+              const c = r.changes
+              const nNew = c?.new?.length ?? 0
+              const nLeft = c?.left?.length ?? 0
+              const nRen = c?.renamed?.length ?? 0
+              const has = nNew + nLeft + nRen > 0
+              return (
+                <Fragment key={r.id}>
+                  <tr className={has ? 'import-row clickable' : 'import-row'} onClick={() => has && setOpen(open === r.id ? null : r.id)}>
+                    <td>{fmtDate(r.created_at)}</td>
+                    <td>{r.kind === 'members' ? 'Data member' : 'Kehadiran'}</td>
+                    <td className="muted">{r.filename}</td>
+                    <td className="num">{r.row_count}</td>
+                    <td>
+                      {r.by?.display_name ?? '–'}{' '}
+                      {has && (
+                        <span className="import-badges">
+                          {nNew > 0 && <span className="pill pill-green">{`+${nNew} baru`}</span>}
+                          {nLeft > 0 && <span className="pill pill-red">{`−${nLeft} keluar`}</span>}
+                          {nRen > 0 && <span className="pill pill-gold">{`${nRen} ganti nama`}</span>}
+                          <span className="muted small">{open === r.id ? '▲' : '▼'}</span>
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                  {open === r.id && (
+                    <tr className="import-detail">
+                      <td colSpan={5}>
+                        {nNew > 0 && (
+                          <div>
+                            <b className="green">{`Member baru (${nNew}):`}</b> <span className="notranslate">{c.new.join(', ')}</span>
+                          </div>
+                        )}
+                        {nLeft > 0 && (
+                          <div>
+                            <b className="red">{`Keluar / tidak ada di file (${nLeft}):`}</b> <span className="notranslate">{c.left.join(', ')}</span>
+                          </div>
+                        )}
+                        {nRen > 0 && (
+                          <div>
+                            <b className="gold">{`Ganti nama (${nRen}):`}</b>{' '}
+                            <span className="notranslate">{c.renamed.map((x) => `${x.from} → ${x.to}`).join(', ')}</span>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              )
+            })}
           </tbody>
         </table>
       </div>

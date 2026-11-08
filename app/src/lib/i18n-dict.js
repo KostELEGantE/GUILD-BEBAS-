@@ -592,6 +592,14 @@ export const DICT = {
 // Teks dinamis (berisi nama/angka). $1, $2 … = bagian yang diisi.
 // Format: [regex, [Indonesia, Melayu, English, ไทย, Filipino]]
 export const PATTERNS = [
+  [/^↪ (\d+) digeser ke party lain \(tidak dikeluarkan\):$/, ['', '↪ $1 dialih ke parti lain (tidak dikeluarkan):', '↪ $1 shifted to another party (not kicked):', '↪ ย้าย $1 คนไปปาร์ตี้อื่น (ไม่ถูกเตะ):', '↪ $1 inilipat sa ibang party (hindi tinanggal):']],
+  [/^↪ Digeser dari (.+):$/, ['', '↪ Dialih dari $1:', '↪ Shifted out of $1:', '↪ ย้ายออกจาก $1:', '↪ Inilipat mula sa $1:']],
+  [/^\+(\d+) baru$/, ['', '+$1 baharu', '+$1 new', '+$1 ใหม่', '+$1 bago']],
+  [/^−(\d+) keluar$/, ['', '−$1 keluar', '−$1 left', '−$1 ออก', '−$1 umalis']],
+  [/^(\d+) ganti nama$/, ['', '$1 tukar nama', '$1 renamed', 'เปลี่ยนชื่อ $1', '$1 nagpalit ng pangalan']],
+  [/^Member baru \((\d+)\):$/, ['', 'Ahli baharu ($1):', 'New members ($1):', 'สมาชิกใหม่ ($1):', 'Bagong miyembro ($1):']],
+  [/^Keluar \/ tidak ada di file \((\d+)\):$/, ['', 'Keluar / tiada dalam fail ($1):', 'Left / not in file ($1):', 'ออก / ไม่อยู่ในไฟล์ ($1):', 'Umalis / wala sa file ($1):']],
+  [/^Ganti nama \((\d+)\):$/, ['', 'Tukar nama ($1):', 'Renamed ($1):', 'เปลี่ยนชื่อ ($1):', 'Nagpalit ng pangalan ($1):']],
   [/^\+ Semua (.+) \((\d+)\)$/, ['', '+ Semua $1 ($2)', '+ All of $1 ($2)', '+ ทั้งหมดของ $1 ($2)', '+ Lahat ng $1 ($2)']],
   [/^(\d+) orang · party fix$/, ['', '$1 orang · parti tetap', '$1 people · fixed party', '$1 คน · ปาร์ตี้ประจำ', '$1 tao · fixed party']],
   [/^(\d+) orang masuk (.+), (\d+) masih belum dapat slot$/, ['', '$1 orang masuk $2, $3 masih belum dapat slot', '$1 moved into $2, $3 still without a slot', 'ย้าย $1 คนเข้า $2 อีก $3 คนยังไม่มีช่อง', '$1 ang pumasok sa $2, $3 pa ang walang slot']],

@@ -979,3 +979,9 @@ a.server-time:hover { background: rgba(255,255,255,.05); }
 .picker-prio-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid color-mix(in srgb, var(--gold, #e3b45a) 25%, var(--line)); }
 .picker-sep { padding: 6px 4px 4px; text-transform: uppercase; letter-spacing: .5px; }
 .bench-card { margin-bottom: 14px; border-color: color-mix(in srgb, var(--gold, #e3b45a) 45%, var(--line)); }
+.import-row.clickable { cursor: pointer; }
+.import-row.clickable:hover td { background: rgba(255,255,255,.03); }
+.import-badges { display: inline-flex; gap: 6px; align-items: center; margin-left: 6px; flex-wrap: wrap; }
+.import-detail td { background: rgba(255,255,255,.02); line-height: 1.7; white-space: normal; }
+.import-detail .green { color: var(--green); } .import-detail .red { color: var(--red); } .import-detail .gold { color: var(--gold, #e3b45a); }
+.shot-out.shot-shift { color: var(--gold, #e3b45a); border-color: rgba(227,180,90,.35); background: rgba(227,180,90,.07); }

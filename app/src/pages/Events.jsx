@@ -1,3 +1,4 @@
+import { DISCORD_URL } from '../lib/util.js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, q } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
@@ -62,6 +63,9 @@ export default function Events() {
             party sendiri untuk mode apa pun (mis. Valkyrie).
           </p>
         </div>
+        <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" className="btn btn-discord" title="Gabung server Discord guild">
+          💬 Discord
+        </a>
         {showForm && (
           <button className="btn btn-ghost" onClick={() => setShowForm(false)}>
             Tutup
