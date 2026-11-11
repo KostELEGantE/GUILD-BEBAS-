@@ -5,7 +5,7 @@ import { AppProvider, useApp, useAction } from './context.jsx'
 import Login from './pages/Login.jsx'
 import Events from './pages/Events.jsx'
 import EventDetail from './pages/EventDetail.jsx'
-import Roster from './pages/Roster.jsx'
+import MyAccount, { LoginCheckIn } from './pages/MyAccount.jsx'
 import Stats from './pages/Stats.jsx'
 import Admin from './pages/Admin.jsx'
 import Groups from './pages/Groups.jsx'
@@ -48,9 +48,9 @@ export default function App() {
 
 function Shell() {
   const hash = useHash()
-  const { profile, isAdmin, loading, myMembers } = useApp()
+  const { profile, isAdmin, loading, myMembers, activeMember, setActiveId, session } = useApp()
   // tampil dengan IGN (karakter yang diklaim); nama akun hanya sebagai keterangan
-  const ign = myMembers[0]?.name
+  const ign = activeMember?.name
   const parts = hash.replace(/^#\/?/, '').split('/')
   const page = parts[0] || 'events'
 
@@ -58,7 +58,7 @@ function Shell() {
     // [kunci, label, ikon, label pendek untuk menu bawah di HP]
     ['events', 'Event & Party', '⚔', 'Event'],
     ['groups', 'Party Fix', '🤝', 'Party Fix'],
-    ['roster', 'Roster', '👥', 'Anggota'],
+    ['me', 'Akun saya', '👤', 'Akun'],
     ['stats', 'Kehadiran', '📊', 'Absensi'],
     ...(isAdmin ? [['admin', 'Admin', '⚙', 'Admin']] : []),
   ]
@@ -66,14 +66,14 @@ function Shell() {
   let content
   if (loading) content = <div className="muted pad">Memuat data guild…</div>
   else if (page === 'event' && parts[1]) content = <EventDetail id={Number(parts[1])} initialTab={parts[2]} />
-  else if (page === 'roster') content = <Roster />
+  else if (page === 'me' || page === 'roster') content = <MyAccount />
   else if (page === 'groups') content = <Groups />
   else if (page === 'stats') content = <Stats />
   else if (page === 'schedule') content = <Schedule />
   else if (page === 'admin' && isAdmin) content = <Admin />
   else content = <Events />
 
-  const activeNav = page === 'event' ? 'events' : page
+  const activeNav = page === 'event' ? 'events' : page === 'roster' ? 'me' : page
 
   if (profile?.banned_at) return <Banned profile={profile} />
 
@@ -101,8 +101,24 @@ function Shell() {
           {profile?.avatar_url && <img src={profile.avatar_url} alt="" className="avatar" />}
           <LangSwitch />
           <span className="username notranslate-name" title={`Akun: ${profile?.display_name ?? ''}`}>
-            {ign ?? profile?.display_name ?? '…'}
-            {myMembers.length > 1 && <span className="small muted">+{myMembers.length - 1}</span>}
+            {myMembers.length > 1 ? (
+              <select
+                className="char-switch notranslate"
+                value={activeMember?.id ?? ''}
+                title="Ganti akun game yang sedang dipakai"
+                onChange={(e) => setActiveId(Number(e.target.value))}
+              >
+                {myMembers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <a href="#/me" className="notranslate">
+                {ign ?? profile?.display_name ?? '…'}
+              </a>
+            )}
             {isAdmin && <span className="pill pill-gold">{profile?.is_super ? 'Super Mod' : 'Sub Mod'}</span>}
           </span>
           <button className="btn btn-ghost btn-sm logout" onClick={() => supabase.auth.signOut()} title="Keluar">
@@ -114,14 +130,15 @@ function Shell() {
       <ServerClock />
 
       <FirstAdminBanner />
-      {!loading && myMembers.length === 0 && page !== 'roster' && (
+      {!loading && myMembers.length === 0 && page !== 'me' && page !== 'roster' && (
         <div className="banner">
-          Anda belum punya karakter. Buka <a href="#/roster">Roster</a> lalu klik <b>Klaim</b> pada karakter Anda
-          supaya bisa masuk party.
+          Anda belum mendaftarkan karakter. Buka <a href="#/me">Akun saya</a> lalu isi IGN, class, dan Gear Score Anda supaya
+          bisa masuk party.
         </div>
       )}
 
       <main className="main">{content}</main>
+      {!loading && <LoginCheckIn key={session.user.last_sign_in_at || 'x'} />}
     </div>
   )
 }

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { rpc } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
 import { ROLES, fmtNum, isOnline } from '../lib/util.js'
-import JobIcon from '../components/JobIcon.jsx'
+import JobIcon from './JobIcon.jsx'
 
 const SORTS = {
   gear_score: (a, b) => (b.gear_score || 0) - (a.gear_score || 0),
@@ -11,13 +11,14 @@ const SORTS = {
   class: (a, b) => (a.class || '').localeCompare(b.class || '') || (b.gear_score || 0) - (a.gear_score || 0),
 }
 
-export default function Roster() {
+/** Khusus moderator: daftar guild dari import, untuk mengecek siapa pemilik tiap karakter. */
+export default function GuildList() {
   const { members, user, isAdmin, reloadMembers } = useApp()
   const [run, busy] = useAction()
   const [search, setSearch] = useState('')
   const [cls, setCls] = useState('')
   const [role, setRole] = useState('')
-  const [view, setView] = useState('all') // all | mine | unclaimed | inactive
+  const [view, setView] = useState('all') // all | owned | unclaimed | notguild | inactive
   const [sort, setSort] = useState('gear_score')
 
   const classes = useMemo(() => [...new Set(members.map((m) => m.class).filter(Boolean))].sort(), [members])
@@ -26,8 +27,9 @@ export default function Roster() {
     const s = search.trim().toLowerCase()
     return members
       .filter((m) => (view === 'inactive' ? !m.active : m.active))
-      .filter((m) => view !== 'mine' || m.user_id === user.id)
+      .filter((m) => view !== 'owned' || m.user_id)
       .filter((m) => view !== 'unclaimed' || !m.user_id)
+      .filter((m) => view !== 'notguild' || !m.last_import_at)
       .filter((m) => !cls || m.class === cls)
       .filter((m) => !role || m.role === role)
       .filter((m) => !s || m.name.toLowerCase().includes(s) || (isAdmin && (m.owner?.display_name || '').toLowerCase().includes(s)))
@@ -39,17 +41,12 @@ export default function Roster() {
     return {
       total: act.length,
       claimed: act.filter((m) => m.user_id).length,
-      mine: act.filter((m) => m.user_id === user.id).length,
+      notguild: act.filter((m) => !m.last_import_at).length,
       inactive: members.length - act.length,
       roles: ROLES.map((r) => [r, act.filter((m) => m.role === r).length]),
     }
   }, [members, user.id])
 
-  const claim = (id) =>
-    run(async () => {
-      await rpc('claim_member', { p_member_id: id })
-      await reloadMembers()
-    }, 'Karakter diklaim — sekarang Anda bisa memasukkannya ke party')
   const unclaim = (id) =>
     run(async () => {
       await rpc('unclaim_member', { p_member_id: id })
@@ -70,10 +67,14 @@ export default function Roster() {
     })
 
   return (
-    <div>
-      <div className="page-head">
+    <div className="card">
+      <h3>Daftar guild &amp; pemilik akun</h3>
+      <div>
         <div>
-          <h1>Roster guild</h1>
+          <p className="muted small">
+            Data dari import file member game. Karakter didaftarkan sendiri oleh pemiliknya di <b>Akun saya</b>; kalau IGN-nya
+            sama, karakter di sini otomatis tersambung ke akunnya.
+          </p>
           <p className="muted">
             {counts.total} member aktif · {counts.claimed} sudah terhubung ke akun ·{' '}
             {counts.roles.map(([r, n]) => `${n} ${r}`).join(' · ')}
@@ -81,24 +82,13 @@ export default function Roster() {
         </div>
       </div>
 
-      {members.length === 0 && (
-        <div className="empty">
-          Roster masih kosong.{' '}
-          {isAdmin ? (
-            <>
-              Buka <a href="#/admin">Admin</a> lalu import file export member dari game.
-            </>
-          ) : (
-            'Tunggu admin meng-import data member.'
-          )}
-        </div>
-      )}
 
       <div className="tabs">
         {[
           ['all', `Semua (${counts.total})`],
-          ['mine', `Karakter saya (${counts.mine})`],
-          ['unclaimed', `Belum diklaim (${counts.total - counts.claimed})`],
+          ['owned', `Punya akun (${counts.claimed})`],
+          ['unclaimed', `Belum punya akun (${counts.total - counts.claimed})`],
+          ['notguild', `Tidak ada di daftar guild (${counts.notguild})`],
           ['inactive', `Tidak aktif (${counts.inactive})`],
         ].map(([k, l]) => (
           <button key={k} className={view === k ? 'active' : ''} onClick={() => setView(k)}>
@@ -129,7 +119,7 @@ export default function Roster() {
         </select>
       </div>
 
-      <div className="table-wrap card flush">
+      <div className="table-wrap">
         <table className="table table-cards">
           <thead>
             <tr>
@@ -140,7 +130,7 @@ export default function Roster() {
               <th className="num">Gear Score</th>
               <th className="num hide-sm">Kontribusi minggu ini</th>
               <th className="hide-sm">Jabatan</th>
-              <th>{isAdmin ? 'Akun login' : 'Status'}</th>
+              <th>Akun login</th>
               <th />
             </tr>
           </thead>
@@ -177,28 +167,17 @@ export default function Roster() {
                   <td className="num hide-sm" data-label="Kontribusi minggu ini">{fmtNum(m.weekly_contribution)}</td>
                   <td className="muted hide-sm notranslate">{m.position ?? '–'}</td>
                   <td>
-                    {!m.user_id ? (
-                      <span className="muted">belum diklaim</span>
-                    ) : isAdmin ? (
-                      m.owner?.display_name ?? 'diklaim'
-                    ) : mine ? (
-                      <span className="text-green">milik Anda</span>
-                    ) : (
-                      <span className="muted">diklaim</span>
-                    )}
+                    {!m.user_id ? <span className="muted">belum punya akun</span> : <span className="notranslate">{m.owner?.display_name ?? 'diklaim'}</span>}
+                    {!m.last_import_at && <span className="pill">tidak ada di daftar guild</span>}
+                    {m.prev_names?.length > 0 && <div className="muted small notranslate">{`↩ ${m.prev_names.join(', ')}`}</div>}
                   </td>
                   <td className="actions">
-                    {!m.user_id && m.active && (
-                      <button className="btn btn-sm" disabled={busy} onClick={() => claim(m.id)}>
-                        Klaim
-                      </button>
-                    )}
-                    {m.user_id && (mine || isAdmin) && (
+                    {m.user_id && (
                       <button
                         className="btn btn-ghost btn-sm"
                         disabled={busy}
                         onClick={() => {
-                          if (mine || confirm(`Lepas klaim ${m.name}${m.owner?.display_name ? ` dari akun ${m.owner.display_name}` : ''}?`)) unclaim(m.id)
+                          if (confirm(`Lepas ${m.name}${m.owner?.display_name ? ` dari akun ${m.owner.display_name}` : ''}?`)) unclaim(m.id)
                         }}
                       >
                         Lepas

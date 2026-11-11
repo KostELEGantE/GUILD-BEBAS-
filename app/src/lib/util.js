@@ -118,4 +118,11 @@ export function debounce(fn, ms = 150) {
   return d
 }
 export const DISCORD_URL = 'https://discord.gg/ex4R57YNw'
-export const APP_VERSION = '1.0'
+export const APP_VERSION = '2.00'
+// class yang bisa dipilih saat mendaftarkan karakter
+export const CLASSES = [
+  'Lord Knight', 'Paladin', 'High Wizard', 'Professor', 'Scholar', 'High Priest', 'Champion', 'Sniper',
+  'Clown', 'Gypsy', 'Whitesmith', 'Creator', 'Assassin Cross', 'Stalker', 'Night Watch', 'Alithea',
+]
+export const defaultRole = (c) =>
+  ['Lord Knight', 'Paladin'].includes(c) ? 'Tank' : c === 'High Priest' ? 'Healer' : ['Clown', 'Gypsy', 'Scholar'].includes(c) ? 'Support' : 'DPS'

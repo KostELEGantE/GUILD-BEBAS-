@@ -10,9 +10,10 @@ import JobIcon from './JobIcon.jsx'
  * dan bisa dimasukkan sekaligus (onPickGroup) lewat nama grup.
  */
 export default function MemberPicker({ title, excludeIds, onPick, onClose, priorityGroupIds, onPickGroup }) {
-  const { members, groupByMember } = useApp()
+  const { members, groupByMember, groups } = useApp()
   const [search, setSearch] = useState('')
   const [role, setRole] = useState('')
+  const [tab, setTab] = useState('players') // players | groups
 
   const list = useMemo(() => {
     const s = search.trim().toLowerCase()
@@ -34,6 +35,15 @@ export default function MemberPicker({ title, excludeIds, onPick, onClose, prior
     }
     return [...by.values()]
   }, [list, priorityGroupIds, groupByMember])
+  // semua party fix yang masih punya anggota belum masuk party
+  const groupBlocks = useMemo(() => {
+    const avail = new Map(members.filter((m) => m.active && !excludeIds.has(m.id)).map((m) => [m.id, m]))
+    return (groups || [])
+      .map((g) => ({ g, items: (g.group_members || []).map((x) => avail.get(x.member_id)).filter(Boolean), total: g.group_members?.length ?? 0 }))
+      .filter((b) => b.items.length)
+      .filter((b) => !search.trim() || b.g.name.toLowerCase().includes(search.trim().toLowerCase()) || b.items.some((m) => m.name.toLowerCase().includes(search.trim().toLowerCase())))
+      .sort((a, b) => (priorityGroupIds?.has(b.g.id) ? 1 : 0) - (priorityGroupIds?.has(a.g.id) ? 1 : 0) || b.items.length - a.items.length)
+  }, [groups, members, excludeIds, search, priorityGroupIds])
   const prioIds = new Set(prio.flatMap((b) => b.items.map((m) => m.id)))
   const rest = list.filter((m) => !prioIds.has(m.id))
 
@@ -71,6 +81,34 @@ export default function MemberPicker({ title, excludeIds, onPick, onClose, prior
             ))}
           </select>
         </div>
+        {onPickGroup && (
+          <div className="tabs picker-tabs">
+            <button className={tab === 'players' ? 'active' : ''} onClick={() => setTab('players')}>
+              Pemain
+            </button>
+            <button className={tab === 'groups' ? 'active' : ''} onClick={() => setTab('groups')}>
+              {`Party fix (${groupBlocks.length})`}
+            </button>
+          </div>
+        )}
+        {tab === 'groups' && onPickGroup ? (
+          <div className="picker-list">
+            {groupBlocks.length === 0 && <p className="muted small pad">Semua anggota party fix sudah masuk party.</p>}
+            {groupBlocks.map((b) => (
+              <div key={b.g.id} className="picker-prio picker-group">
+                <div className="picker-prio-head">
+                  <b className="notranslate">{b.g.name}</b>
+                  <span className="small muted">{`${b.items.length}/${b.total} belum masuk party`}</span>
+                  <div className="grow" />
+                  <button className="btn btn-sm btn-gold" onClick={() => onPickGroup(b.items.map((m) => m.id))}>
+                    {`+ Masukkan semua (${b.items.length})`}
+                  </button>
+                </div>
+                {b.items.map(item)}
+              </div>
+            ))}
+          </div>
+        ) : (
         <div className="picker-list">
           {list.length === 0 && <p className="muted small pad">Tidak ada member yang cocok (atau semua sudah masuk party).</p>}
           {prio.map((b) => (
@@ -90,6 +128,7 @@ export default function MemberPicker({ title, excludeIds, onPick, onClose, prior
           {prio.length > 0 && rest.length > 0 && <div className="picker-sep small muted">Lainnya</div>}
           {rest.map(item)}
         </div>
+        )}
       </div>
     </div>
   )

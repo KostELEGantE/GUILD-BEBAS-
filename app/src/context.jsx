@@ -94,6 +94,26 @@ export function AppProvider({ session, children }) {
 
   const myMembers = members.filter((m) => m.user_id === session.user.id && m.active)
 
+  // karakter yang sedang dipakai (satu login bisa punya beberapa akun game)
+  const activeKey = `activeChar:${session.user.id}`
+  const [activeId, setActiveIdState] = useState(() => {
+    try {
+      return Number(localStorage.getItem(activeKey)) || null
+    } catch {
+      return null
+    }
+  })
+  const setActiveId = useCallback(
+    (id) => {
+      setActiveIdState(id)
+      try {
+        localStorage.setItem(activeKey, String(id))
+      } catch {}
+    },
+    [activeKey],
+  )
+  const activeMember = myMembers.find((m) => m.id === activeId) || myMembers[0] || null
+
   const value = {
     session,
     user: session.user,
@@ -102,6 +122,8 @@ export function AppProvider({ session, children }) {
     isSuper: !!profile?.is_super,
     members,
     myMembers,
+    activeMember,
+    setActiveId,
     loading,
     toast,
     reloadMembers: loadMembers,

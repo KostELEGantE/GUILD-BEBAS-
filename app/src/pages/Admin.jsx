@@ -1,4 +1,5 @@
 import UsagePanel from '../components/UsagePanel.jsx'
+import GuildList from '../components/GuildList.jsx'
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, q, rpc } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
@@ -22,13 +23,14 @@ export default function Admin() {
       <div className="page-head">
         <div>
           <h1>Admin</h1>
-          <p className="muted">Import data member dari game dan atur siapa saja yang menjadi admin.</p>
+          <p className="muted">Lihat data akun tiap member, cek daftar guild hasil import, dan atur moderator.</p>
         </div>
       </div>
       {isSuper && <UsagePanel />}
       <ImportMembers />
       <ImportHistory />
       <AdminUsers />
+      <GuildList />
     </div>
   )
 }
@@ -483,8 +485,8 @@ function AdminUsers() {
         dan bisa mengangkat atau mencabut sesama Sub Moderator, tapi tidak bisa mengubah Super Moderator.
       </p>
       <p className="muted small">
-        Semua yang pernah login, beserta karakter yang mereka klaim. Akun yang mengklaim lebih dari 1 karakter ditandai{' '}
-        <span className="pill pill-gold">2+ karakter</span>; periksa apakah itu memang alt miliknya, atau lepas klaimnya.
+        Semua yang pernah login, beserta karakter yang mereka daftarkan sendiri (class, level, Gear Score, nama lama). Akun dengan lebih dari 1 karakter ditandai{' '}
+        <span className="pill pill-gold">2+ karakter</span>; periksa apakah itu memang alt miliknya, atau lepas karakternya.
       </p>
       <p className="muted small">
         <b>Blokir</b> membuat akun langsung keluar dan tidak bisa membuka website lagi. Super Moderator tidak bisa diblokir.
@@ -494,8 +496,8 @@ function AdminUsers() {
       <div className="tabs">
         {[
           ['all', `Semua (${profiles.length})`],
-          ['multi', `Klaim lebih dari 1 (${multi.length})`],
-          ['none', `Belum klaim (${none.length})`],
+          ['multi', `Lebih dari 1 karakter (${multi.length})`],
+          ['none', `Belum daftar karakter (${none.length})`],
           ['admin', `Moderator (${admins.length})`],
           ['banned', `Diblokir (${banned.length})`],
         ].map(([k, l]) => (
@@ -513,7 +515,7 @@ function AdminUsers() {
           <thead>
             <tr>
               <th>Akun login (Discord/Google)</th>
-              <th>IGN diklaim</th>
+              <th>Karakter terdaftar</th>
               <th>Bergabung</th>
               <th>Peran</th>
               <th />
@@ -562,14 +564,16 @@ function AdminUsers() {
                   </td>
                   <td className="wrap-cell">
                     {cs.length === 0 ? (
-                      <span className="muted small">belum klaim</span>
+                      <span className="muted small">belum daftar karakter</span>
                     ) : (
                       <div className="claim-list">
                         {cs.length > 1 && <span className="pill pill-gold">{cs.length} karakter</span>}
                         {cs.map((m) => (
                           <span key={m.id} className="claim-chip" title={`${m.class} · GS ${fmtNum(m.gear_score)}`}>
-                            {m.name}
-                            <span className="muted"> · {m.class}</span>
+                            <b className="notranslate">{m.name}</b>
+                            <span className="muted">{` · ${m.class || '–'} · ${m.role || '–'} · Lv ${m.level ?? '–'} · GS ${fmtNum(m.gear_score)}`}</span>
+                            {!m.last_import_at && <span className="pill">tidak ada di daftar guild</span>}
+                            {m.prev_names?.length > 0 && <span className="muted notranslate">{` ↩ ${m.prev_names.join(', ')}`}</span>}
                             {!m.active && <span className="muted"> (tidak aktif)</span>}
                             <button title="Lepas klaim" disabled={busy} onClick={() => unclaim(p, m)}>
                               ✕

@@ -61,7 +61,7 @@ export default function Groups() {
           {view === 'mine'
             ? myMembers.length
               ? 'Anda belum ada di party fix mana pun. Buat baru di atas.'
-              : 'Klaim karakter Anda dulu di Roster.'
+              : 'Daftarkan karakter Anda dulu di Akun saya.'
             : 'Belum ada party fix.'}
         </div>
       ) : (
@@ -205,7 +205,7 @@ function CreateGroup({ inGroup }) {
             ? 'Main bareng teman yang sama setiap war? Buat party fix supaya selalu masuk party bersama.'
             : myMembers.length
               ? 'Semua karakter Anda sudah ada di party fix.'
-              : 'Klaim karakter Anda di Roster untuk membuat party fix.'}
+              : 'Daftarkan karakter Anda di Akun saya untuk membuat party fix.'}
         </span>
         {(freeMine.length > 0 || isAdmin) && (
           <button className="btn btn-gold" onClick={start}>

@@ -1,3 +1,4 @@
+import { tr } from '../lib/i18n.js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, q, rpc } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
@@ -13,7 +14,7 @@ import ScreenshotFill from '../components/ScreenshotFill.jsx'
 import StrategyBoard from '../components/StrategyBoard.jsx'
 
 export default function EventDetail({ id, initialTab }) {
-  const { members, myMembers, isAdmin: isMod, toast, groupByMember, groups, user } = useApp()
+  const { members, myMembers, activeMember, setActiveId, isAdmin: isMod, toast, groupByMember, groups, user } = useApp()
   const [ev, setEv] = useState(null)
   const [parties, setParties] = useState([])
   const [signups, setSignups] = useState([])
@@ -22,6 +23,7 @@ export default function EventDetail({ id, initialTab }) {
   const [myChar, setMyChar] = useState(null)
   const [picked, setPicked] = useState(null) // member_id yang sedang dipindah
   const [pickedGroup, setPickedGroup] = useState(null) // party fix yang sedang dipindah (klik)
+  const [manageParty, setManageParty] = useState(null) // party yang sedang diatur (keluarkan pemain / kosongkan)
   const [pickedBench, setPickedBench] = useState(null) // {gid, ids}: anggota party fix di "Belum dapat party" yang dipindah bersama
   const [fillParty, setFillParty] = useState(null) // party yang baru diklaim leader -> jendela isi party
   const [leaderPick, setLeaderPick] = useState(null) // moderator menunjuk leader untuk party ini
@@ -102,8 +104,10 @@ export default function EventDetail({ id, initialTab }) {
   }, [id, loadSignups, loadParties])
 
   useEffect(() => {
-    if (!myChar && myMembers.length) setMyChar(myMembers[0].id)
-  }, [myMembers, myChar])
+    if (activeMember && myChar !== activeMember.id) setMyChar(activeMember.id)
+    else if (!myChar && myMembers.length) setMyChar(myMembers[0].id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myMembers, activeMember?.id])
 
   if (ev === null) return <div className="muted pad">Memuat…</div>
   if (ev === false)
@@ -343,7 +347,7 @@ export default function EventDetail({ id, initialTab }) {
     if (canManageParty(party_no)) return setPickerSlot({ party_no, slot_no })
     if (!isOpen) return toast('Party sudah dikunci oleh admin', 'err')
     if (leaderOf(party_no)) return toast(`${partyName(party_no)} dipimpin ${leaderOf(party_no).name}. Minta leader memasukkan Anda.`, 'err')
-    if (!myChar) return toast('Klaim karakter Anda dulu di halaman Roster', 'err')
+    if (!myChar) return toast('Daftarkan karakter Anda dulu di Akun saya', 'err')
     if (myGroup) return placeGroup(myGroup, party_no)
     return join(myChar, party_no, slot_no)
   }
@@ -512,6 +516,14 @@ export default function EventDetail({ id, initialTab }) {
           <span className="small muted">
             {ms.length + nRsv}/{size}
           </span>
+          {canManageParty(p) && ms.length > 0 && (
+            <button className="party-menu-btn" title="Atur party: keluarkan pemain / kosongkan" onClick={(e) => {
+              e.stopPropagation()
+              setManageParty(p)
+            }}>
+              ⋯
+            </button>
+          )}
         </div>
         <LeaderLine
           leader={leaderOf(p)}
@@ -622,11 +634,11 @@ export default function EventDetail({ id, initialTab }) {
         <div className="lock-icon">🔒</div>
         <h2>Guild League hanya untuk anggota guild</h2>
         <p className="muted">
-          Akun ini belum mengklaim karakter. Buka <a href="#/roster">Daftar Anggota</a>, cari karakter Anda, lalu klik <b>Klaim</b>.
+          Akun ini belum mendaftarkan karakter. Buka <a href="#/me">Akun saya</a> lalu isi data karakter Anda.
           Setelah itu papan Guild League, susunan party, dan strategi perang bisa dibuka.
         </p>
-        <a className="btn btn-gold" href="#/roster">
-          Klaim karakter saya
+        <a className="btn btn-gold" href="#/me">
+          Daftarkan karakter saya
         </a>
       </div>
     )
@@ -836,7 +848,10 @@ export default function EventDetail({ id, initialTab }) {
               <>
                 <label className="row gap-sm">
                   <span className="muted small">Karakter saya</span>
-                  <select value={myChar ?? ''} onChange={(e) => setMyChar(Number(e.target.value))}>
+                  <select value={myChar ?? ''} onChange={(e) => {
+                    setMyChar(Number(e.target.value))
+                    setActiveId(Number(e.target.value))
+                  }}>
                     {myMembers.map((m) => (
                       <option key={m.id} value={m.id}>
                         {m.name} · {m.class}
@@ -875,7 +890,7 @@ export default function EventDetail({ id, initialTab }) {
               </>
             ) : (
               <span className="small">
-                Anda belum punya karakter. <a href="#/roster">Klaim karakter di Roster</a>.
+                Anda belum punya karakter. <a href="#/me">Daftarkan di Akun saya</a>.
               </span>
             )}
           </div>
@@ -1049,6 +1064,34 @@ export default function EventDetail({ id, initialTab }) {
         />
       )}
 
+      {manageParty && (
+        <ManagePartyModal
+          title={partyName(manageParty)}
+          slots={Array.from({ length: size }, (_, j) => slotMap.get(`${manageParty}-${j + 1}`)).filter(Boolean)}
+          memberById={memberById}
+          busy={busy}
+          onClose={() => setManageParty(null)}
+          onAdd={() => {
+            const p = manageParty
+            const e = firstEmpty(p, p)
+            setManageParty(null)
+            if (e) setPickerSlot({ party_no: p, slot_no: e.s })
+            else toast(`${partyName(p)} sudah penuh`, 'err')
+          }}
+          onRemove={async (ids) => {
+            const p = manageParty
+            const ok = await run(async () => {
+              for (const x of ids) await rpc('leave_event', { p_event_id: id, p_member_id: x })
+              await loadSignups()
+              return ids.length
+            })
+            if (ok) {
+              toast(`${ok} pemain dikeluarkan dari ${partyName(p)}`)
+              setManageParty(null)
+            }
+          }}
+        />
+      )}
       {pickerSlot && (
         <MemberPicker
           title={`Isi ${partyName(pickerSlot.party_no)} – slot ${pickerSlot.slot_no}`}
@@ -1499,6 +1542,68 @@ function GroupChoiceModal({ ask, partyName, memberById, onePerAccount, onWhole, 
         <button className="btn btn-ghost" onClick={onClose}>
           Batal
         </button>
+      </div>
+    </div>
+  )
+}
+
+/** Atur satu party (ramah HP): pilih pemain lalu keluarkan, atau kosongkan seluruh party */
+function ManagePartyModal({ title, slots, memberById, busy, onClose, onRemove, onAdd }) {
+  const [sel, setSel] = useState(() => new Set())
+  const ids = slots.map((s) => s.member_id)
+  const all = sel.size === ids.length && ids.length > 0
+  const toggle = (x) =>
+    setSel((o) => {
+      const n = new Set(o)
+      n.has(x) ? n.delete(x) : n.add(x)
+      return n
+    })
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal manage-party" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3 className="notranslate">{title}</h3>
+          <button className="icon-btn" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+        <p className="muted small">Pilih pemain yang mau dikeluarkan, atau kosongkan seluruh party.</p>
+        <label className="mp-row mp-all">
+          <input type="checkbox" checked={all} onChange={() => setSel(all ? new Set() : new Set(ids))} />
+          <b>Pilih semua</b>
+        </label>
+        <div className="mp-list">
+          {slots.map((s) => {
+            const m = memberById.get(s.member_id)
+            return (
+              <label key={s.member_id} className={`mp-row ${sel.has(s.member_id) ? 'is-sel' : ''}`}>
+                <input type="checkbox" checked={sel.has(s.member_id)} onChange={() => toggle(s.member_id)} />
+                {m && <JobIcon m={m} />}
+                <span className="grow">
+                  <b className="notranslate">{m?.name ?? '?'}</b>
+                  <span className="small muted">{` · ${m?.class ?? ''} · slot ${s.slot_no}`}</span>
+                </span>
+              </label>
+            )
+          })}
+        </div>
+        <div className="mp-actions">
+          <button className="btn btn-danger" disabled={busy || sel.size === 0} onClick={() => onRemove([...sel])}>
+            {`Keluarkan yang dipilih (${sel.size})`}
+          </button>
+          <button
+            className="btn btn-ghost"
+            disabled={busy || ids.length === 0}
+            onClick={() => confirm(tr(`Kosongkan ${title}? Semua ${ids.length} pemain dikeluarkan.`)) && onRemove(ids)}
+          >
+            {`Kosongkan party (${ids.length})`}
+          </button>
+          {ids.length < 99 && (
+            <button className="btn" disabled={busy} onClick={onAdd}>
+              + Tambah pemain
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
