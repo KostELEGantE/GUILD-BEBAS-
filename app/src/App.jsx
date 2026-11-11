@@ -1,3 +1,4 @@
+import { APP_VERSION } from './lib/util.js'
 import { useEffect, useState } from 'react'
 import { supabase, rpc } from './lib/supabase.js'
 import { AppProvider, useApp, useAction } from './context.jsx'
@@ -82,7 +83,7 @@ function Shell() {
         <a className="brand notranslate" href="#/events">
           <img src={logo} alt="" className="brand-logo" />
           <span>
-            BEBAS <span className="brand-sub">Guild</span>
+            BEBAS <span className="brand-sub">Guild</span> <span className="brand-ver" title="Versi aplikasi">{`v${APP_VERSION}`}</span>
           </span>
         </a>
         <nav className="nav">

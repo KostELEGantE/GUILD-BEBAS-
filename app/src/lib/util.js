@@ -118,3 +118,4 @@ export function debounce(fn, ms = 150) {
   return d
 }
 export const DISCORD_URL = 'https://discord.gg/ex4R57YNw'
+export const APP_VERSION = '1.0'
