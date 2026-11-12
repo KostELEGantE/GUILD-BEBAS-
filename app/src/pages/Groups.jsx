@@ -145,7 +145,8 @@ export default function Groups() {
       {addTo && (
         <MemberPicker
           title={`Tambah anggota ke "${addTo.name}"`}
-          excludeIds={inGroup}
+          excludeIds={new Set((addTo.group_members || []).map((x) => x.member_id))}
+          forGroupId={addTo.id}
           onClose={() => setAddTo(null)}
           onPick={(mid) => {
             const g = addTo

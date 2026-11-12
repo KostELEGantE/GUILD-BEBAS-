@@ -1,5 +1,5 @@
 import { tr } from '../lib/i18n.js'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase, q, rpc } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
 import {
@@ -23,6 +23,7 @@ export default function EventDetail({ id, initialTab }) {
   const [myChar, setMyChar] = useState(null)
   const [picked, setPicked] = useState(null) // member_id yang sedang dipindah
   const [pickedGroup, setPickedGroup] = useState(null) // party fix yang sedang dipindah (klik)
+  const [addAsk, setAddAsk] = useState(null) // pemain dari daftar samping yang mau dimasukkan (popup pilihan)
   const [manageParty, setManageParty] = useState(null) // party yang sedang diatur (keluarkan pemain / kosongkan)
   const [pickedBench, setPickedBench] = useState(null) // {gid, ids}: anggota party fix di "Belum dapat party" yang dipindah bersama
   const [fillParty, setFillParty] = useState(null) // party yang baru diklaim leader -> jendela isi party
@@ -36,9 +37,85 @@ export default function EventDetail({ id, initialTab }) {
 
   const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members])
 
+  // ---------- riwayat perubahan (batalkan / undo) ----------
+  const signupsRef = useRef(signups)
+  signupsRef.current = signups
+  const recRef = useRef(null) // aksi yang sedang direkam: { label, before }
+  const undoKey = `undo:${id}`
+  const [undoStack, setUndoStack] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem(`undo:${id}`) || '[]')
+    } catch {
+      return []
+    }
+  })
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(undoKey, JSON.stringify(undoStack))
+    } catch {}
+  }, [undoKey, undoStack])
+  const snap = (rows) => Object.fromEntries(rows.map((r) => [r.member_id, r.party_no ? `${r.party_no}-${r.slot_no}` : 'bench']))
+  /** panggil sebelum aksi yang mengubah papan; perubahan dicatat setelah data dimuat ulang */
+  const beginUndo = (label) => {
+    recRef.current = { label, before: snap(signupsRef.current), at: Date.now() }
+  }
+
   const loadSignups = useCallback(async () => {
-    setSignups(await q(supabase.from('event_signups').select('*').eq('event_id', id)))
+    const rows = await q(supabase.from('event_signups').select('*').eq('event_id', id))
+    setSignups(rows)
+    const rec = recRef.current
+    if (rec) {
+      recRef.current = null
+      const after = snap(rows)
+      const ids = [...new Set([...Object.keys(rec.before), ...Object.keys(after)])].filter((k) => rec.before[k] !== after[k])
+      if (ids.length) {
+        const entry = { label: rec.label, at: rec.at, before: Object.fromEntries(ids.map((k) => [k, rec.before[k] ?? null])), after: Object.fromEntries(ids.map((k) => [k, after[k] ?? null])) }
+        setUndoStack((st) => [entry, ...st].slice(0, 15))
+      }
+    }
+    return rows
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  /** Kembalikan papan ke sebelum aksi; pemain yang sudah diubah orang lain sejak itu dilewati */
+  async function undoLast(idx = 0) {
+    const e = undoStack[idx]
+    if (!e) return
+    const cur = snap(signupsRef.current)
+    const ids = Object.keys(e.before).filter((k) => (cur[k] ?? null) === e.after[k])
+    const skipped = Object.keys(e.before).length - ids.length
+    let failed = 0
+    const ok = await run(async () => {
+      // 1) kosongkan dulu slot yang dipakai (supaya tukar posisi tidak bentrok)
+      for (const k of ids) if (e.after[k] && e.after[k] !== 'bench') await rpc('join_slot', { p_event_id: id, p_member_id: Number(k), p_party_no: null, p_slot_no: null })
+      // 2) kembalikan ke posisi semula
+      for (const k of ids) {
+        const b = e.before[k]
+        try {
+          if (!b) await rpc('leave_event', { p_event_id: id, p_member_id: Number(k) })
+          else if (b === 'bench') await rpc('join_slot', { p_event_id: id, p_member_id: Number(k), p_party_no: null, p_slot_no: null })
+          else {
+            const [p, sl] = b.split('-').map(Number)
+            await rpc('join_slot', { p_event_id: id, p_member_id: Number(k), p_party_no: p, p_slot_no: sl })
+          }
+        } catch {
+          failed++
+          if (b && b !== 'bench') await rpc('join_slot', { p_event_id: id, p_member_id: Number(k), p_party_no: null, p_slot_no: null }).catch(() => {})
+        }
+      }
+      recRef.current = null
+      await loadSignups()
+      return true
+    })
+    if (ok) {
+      setUndoStack((st) => st.filter((_, i) => i !== idx))
+      toast(
+        `Dibatalkan: ${e.label}` +
+          (skipped ? ` · ${skipped} pemain dilewati (sudah diubah orang lain)` : '') +
+          (failed ? ` · ${failed} pemain ke "Belum dapat party" (slotnya sudah terisi)` : ''),
+      )
+    }
+  }
 
   const loadParties = useCallback(async () => {
     setParties(await q(supabase.from('event_parties').select('*').eq('event_id', id)))
@@ -190,6 +267,7 @@ export default function EventDetail({ id, initialTab }) {
       toast(`Event ini 1 akun = 1 karakter: ${memberById.get(memberId)?.name} satu akun dengan ${other.name} yang sudah ikut`, 'err')
       return false
     }
+    beginUndo(`Pindah ${memberById.get(memberId)?.name ?? ''} ke ${party_no ? partyName(party_no) : 'daftar tunggu'}`)
     const ok = await run(async () => {
       await rpc('join_slot', { p_event_id: id, p_member_id: memberId, p_party_no: party_no, p_slot_no: slot_no })
       await loadSignups()
@@ -200,6 +278,7 @@ export default function EventDetail({ id, initialTab }) {
   }
 
   async function placeGroup(g, startParty) {
+    beginUndo(`Masukkan party fix ${g.name}`)
     const r = await run(async () => {
       const res = await rpc('place_group', { p_event_id: id, p_group_id: g.id, p_start_party: startParty ?? null })
       await loadSignups()
@@ -226,6 +305,7 @@ export default function EventDetail({ id, initialTab }) {
   }
 
   async function leave(memberId) {
+    beginUndo(`Keluarkan ${memberById.get(memberId)?.name ?? ''}`)
     await run(async () => {
       await rpc('leave_event', { p_event_id: id, p_member_id: memberId })
       await loadSignups()
@@ -278,6 +358,28 @@ export default function EventDetail({ id, initialTab }) {
     },
   })
 
+  /** Tukar posisi dua pemain (seret/klik pemain ke pemain lain) */
+  async function swapWith(dragged, target) {
+    if (!dragged || dragged === target) return
+    const a = signups.find((x) => x.member_id === dragged)
+    const b = signups.find((x) => x.member_id === target)
+    if (!b) return
+    beginUndo(`Tukar ${memberById.get(dragged)?.name ?? ''} ⇄ ${memberById.get(target)?.name ?? ''}`)
+    // dari daftar samping (belum ikut event): masukkan dulu ke daftar tunggu, lalu tukar
+    const ok = await run(async () => {
+      if (!a) await rpc('join_slot', { p_event_id: id, p_member_id: dragged, p_party_no: null, p_slot_no: null })
+      await rpc('swap_slots', { p_event_id: id, p_a: dragged, p_b: target })
+      await loadSignups()
+      return true
+    })
+    if (ok) {
+      setPicked(null)
+      const n1 = memberById.get(dragged)?.name
+      const n2 = memberById.get(target)?.name
+      toast(`${n1} ⇄ ${n2} ditukar`)
+    }
+  }
+
   /** Karakter (atau seluruh party fix) dijatuhkan ke party p (slot s, atau slot kosong pertama) */
   function dropInto(memberId, p, s, group, many) {
     if (many) return moveMany(many, p)
@@ -302,6 +404,7 @@ export default function EventDetail({ id, initialTab }) {
     }
     const todo = ids.filter((x) => canEdit(x))
     if (!free.length) return toast(`${partyName(p)} sudah penuh`, 'err')
+    beginUndo(`Masukkan ${todo.length} pemain ke ${partyName(p)}`)
     const ok = await run(async () => {
       let n = 0
       for (const mid of todo) {
@@ -615,6 +718,10 @@ export default function EventDetail({ id, initialTab }) {
                   picked={picked === s.member_id}
                   dragging={dragId === s.member_id}
                   drag={canEdit(s.member_id, p) ? dragProps(s.member_id) : null}
+                  drop={canEdit(s.member_id, p) ? dropProps(`${p}-${slotNo}`, (mid) => mid && swapWith(mid, s.member_id)) : null}
+                  over={over === `${p}-${slotNo}` && dragId && dragId !== s.member_id}
+                  swapTarget={!!picked && picked !== s.member_id && canEdit(s.member_id, p)}
+                  onSwap={() => swapWith(picked, s.member_id)}
                   editable={canEdit(s.member_id, p)}
                   onPick={() => setPicked(picked === s.member_id ? null : s.member_id)}
                   onRemove={() => leave(s.member_id)}
@@ -979,7 +1086,7 @@ export default function EventDetail({ id, initialTab }) {
               isAdmin={isAdmin}
               busy={busy}
               full={!firstEmpty(1, ev.party_count)}
-              onAdd={(mid) => autoJoin(mid)}
+              onAdd={(mid) => setAddAsk(mid)}
               onAddGroup={(g) => placeGroup(g, null)}
               canDrag={(m) => isAdmin || (isOpen && (myIds.has(m.id) || myPartyNos.size > 0))}
               dragProps={dragProps}
@@ -1039,6 +1146,7 @@ export default function EventDetail({ id, initialTab }) {
           signups={signups}
           leaderOf={(p) => parties.find((x) => x.party_no === p)?.leader_member_id ?? null}
           toast={toast}
+          onBeforeApply={() => beginUndo('Isi dari screenshot')}
           onDone={() => Promise.all([loadSignups(), loadParties()]).catch(() => {})}
           onClose={() => setShotOpen(false)}
         />
@@ -1064,6 +1172,53 @@ export default function EventDetail({ id, initialTab }) {
         />
       )}
 
+      {undoStack.length > 0 && <UndoBar stack={undoStack} busy={busy} onUndo={undoLast} onClear={() => setUndoStack([])} />}
+
+      {addAsk && memberById.get(addAsk) && (
+        <AddPlayerModal
+          m={memberById.get(addAsk)}
+          group={groupByMember.get(addAsk)}
+          members={members}
+          signups={signups}
+          memberById={memberById}
+          secs={secs}
+          partyName={partyName}
+          leaderOf={leaderOf}
+          freeOf={(p) => {
+            const rs = reservedOf(p)
+            let n = 0
+            for (let k = 1; k <= size; k++) if (!slotMap.has(`${p}-${k}`) && !rs[k]) n++
+            return n
+          }}
+          size={size}
+          canPut={(p) => isAdmin || canManageParty(p) || (isOpen && !leaderOf(p) && myIds.has(addAsk))}
+          busy={busy}
+          onClose={() => setAddAsk(null)}
+          onParty={(p) => {
+            const e = firstEmpty(p, p)
+            setAddAsk(null)
+            if (e) join(addAsk, p, e.s, `${memberById.get(addAsk)?.name} masuk ${partyName(p)}`)
+          }}
+          onAuto={() => {
+            setAddAsk(null)
+            autoJoin(addAsk)
+          }}
+          onBench={() => {
+            setAddAsk(null)
+            join(addAsk, null, null, `${memberById.get(addAsk)?.name} masuk daftar tunggu`)
+          }}
+          onGroup={(g) => {
+            setAddAsk(null)
+            placeGroup(g, null)
+          }}
+          onPickSlot={() => {
+            setPicked(addAsk)
+            setAddAsk(null)
+            toast('Klik slot kosong di party tujuan')
+          }}
+        />
+      )}
+
       {manageParty && (
         <ManagePartyModal
           title={partyName(manageParty)}
@@ -1080,6 +1235,7 @@ export default function EventDetail({ id, initialTab }) {
           }}
           onRemove={async (ids) => {
             const p = manageParty
+            beginUndo(`Keluarkan ${ids.length} pemain dari ${partyName(p)}`)
             const ok = await run(async () => {
               for (const x of ids) await rpc('leave_event', { p_event_id: id, p_member_id: x })
               await loadSignups()
@@ -1267,7 +1423,7 @@ function NotJoined({ list, isAdmin, busy, full, onAdd, onAddGroup, canDrag, drag
       className={`side-item ${canDrag(m) ? 'draggable' : ''} ${canAdd(m) ? 'clickable' : ''} ${dragging === m.id ? 'is-dragging' : ''}`}
       {...(canDrag(m) ? dragProps(m.id) : {})}
       onClick={canAdd(m) && !busy ? () => onAdd(m.id) : undefined}
-      title={canAdd(m) ? 'Klik untuk memasukkan pemain ini saja' : undefined}
+      title={canAdd(m) ? 'Klik untuk lihat detail & pilih party' : undefined}
     >
       <JobIcon m={m} />
       <div className="slot-info">
@@ -1288,7 +1444,7 @@ function NotJoined({ list, isAdmin, busy, full, onAdd, onAddGroup, canDrag, drag
             e.stopPropagation()
             onAdd(m.id)
           }}
-          title={full ? 'Semua party penuh: masuk daftar tunggu' : 'Masuk slot kosong pertama'}
+          title="Lihat detail & pilih party"
         >
           + Party
         </button>
@@ -1380,28 +1536,40 @@ function NotJoined({ list, isAdmin, busy, full, onAdd, onAddGroup, canDrag, drag
   )
 }
 
-function SlotFilled({ m, group, mine, picked, dragging, drag, editable, onPick, onRemove }) {
+function SlotFilled({ m, group, mine, picked, dragging, drag, drop, over, swapTarget, onSwap, editable, onPick, onRemove }) {
   if (!m) return <div className="slot">?</div>
   return (
     <div
-      className={`slot slot-filled ${mine ? 'slot-mine' : ''} ${picked ? 'slot-picked' : ''} ${group ? 'slot-group' : ''} ${drag ? 'draggable' : ''} ${dragging ? 'is-dragging' : ''}`}
+      className={`slot slot-filled ${mine ? 'slot-mine' : ''} ${picked ? 'slot-picked' : ''} ${group ? 'slot-group' : ''} ${drag ? 'draggable' : ''} ${dragging ? 'is-dragging' : ''} ${over ? 'slot-swap-over' : ''} ${swapTarget ? 'slot-swap-target' : ''}`}
       {...(drag || {})}
+      {...(drop || {})}
+      onClick={swapTarget ? (e) => {
+        e.stopPropagation()
+        onSwap()
+      } : undefined}
       style={group ? { '--g': groupColor(group.id) } : undefined}
       title={`${m.name} · ${m.class ?? '–'} · ${m.role ?? '–'} · GS ${fmtNum(m.gear_score)}${group ? ` · Party fix: ${group.name}` : ''}`}
     >
       <JobIcon m={m} />
       <div className="slot-info">
         <div className="slot-name notranslate">{m.name}</div>
+        {(over || swapTarget) && <div className="slot-swap-hint">⇄ Tukar</div>}
         <div className="slot-sub">
           {m.class ?? '–'} · {fmtNum(m.gear_score)}
         </div>
       </div>
       {editable && (
         <div className="slot-actions">
-          <button className="icon-btn" title="Pindahkan" onClick={onPick}>
+          <button className="icon-btn" title="Pindahkan / tukar" onClick={(e) => {
+            e.stopPropagation()
+            onPick()
+          }}>
             ⇄
           </button>
-          <button className="icon-btn" title="Keluarkan" onClick={onRemove}>
+          <button className="icon-btn" title="Keluarkan" onClick={(e) => {
+            e.stopPropagation()
+            onRemove()
+          }}>
             ✕
           </button>
         </div>
@@ -1603,6 +1771,126 @@ function ManagePartyModal({ title, slots, memberById, busy, onClose, onRemove, o
               + Tambah pemain
             </button>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Tombol batalkan + riwayat perubahan papan (tersimpan selama tab browser terbuka) */
+function UndoBar({ stack, busy, onUndo, onClear }) {
+  const [open, setOpen] = useState(false)
+  const t = (ms) => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return (
+    <div className="undo-bar">
+      {open && (
+        <div className="undo-list">
+          <div className="undo-list-head">
+            <b>Riwayat perubahan</b>
+            <button className="btn btn-ghost btn-sm" onClick={onClear}>
+              Hapus riwayat
+            </button>
+          </div>
+          {stack.map((e, i) => (
+            <div key={e.at + '-' + i} className="undo-item">
+              <span className="muted small">{t(e.at)}</span>
+              <span className="grow">{e.label}</span>
+              <span className="muted small">{`${Object.keys(e.before).length} pemain`}</span>
+              <button className="btn btn-sm" disabled={busy} onClick={() => onUndo(i)}>
+                ↶ Batalkan
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="undo-main">
+        <button className="btn btn-gold btn-sm" disabled={busy} onClick={() => onUndo(0)} title="Kembalikan papan ke sebelum perubahan terakhir">
+          ↶ Batalkan
+        </button>
+        <span className="undo-label">{stack[0].label}</span>
+        <button className="btn btn-ghost btn-sm" onClick={() => setOpen(!open)}>
+          {`Riwayat (${stack.length}) ${open ? '▾' : '▴'}`}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** Popup saat memilih pemain dari daftar "Belum ikut": detail pemain + pilih mau dimasukkan ke mana */
+function AddPlayerModal({ m, group, members, signups, memberById, secs, partyName, leaderOf, freeOf, size, canPut, busy, onClose, onParty, onAuto, onBench, onGroup, onPickSlot }) {
+  const signedIds = new Set(signups.map((x) => x.member_id))
+  const siblings = m.user_id ? members.filter((x) => x.user_id === m.user_id && x.id !== m.id && x.active) : []
+  const groupLeft = group ? (group.group_members || []).filter((gm) => !signedIds.has(gm.member_id)).length : 0
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal add-player" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <div className="ap-head">
+            <JobIcon m={m} size={44} />
+            <div>
+              <h3 className="notranslate">{m.name}</h3>
+              <div className="muted small">
+                {`${m.class ?? '–'} · ${m.role ?? '–'} · Lv ${m.level ?? '–'} · GS ${fmtNum(m.gear_score)}`}
+              </div>
+            </div>
+          </div>
+          <button className="icon-btn" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        <div className="ap-facts small">
+          <span className={isOnline(m.online_status) ? 'pill pill-green' : 'pill'}>{m.online_status || 'status tidak diketahui'}</span>
+          <span className="pill">{m.user_id ? `Akun: ${m.owner?.display_name ?? 'terdaftar'}` : 'Belum punya akun'}</span>
+          {group && <span className="pill pill-gold notranslate">{`Party fix: ${group.name}`}</span>}
+          {siblings.length > 0 && (
+            <span className="pill pill-blue">
+              {`👥 akun lain: ${siblings.map((x) => x.name + (signedIds.has(x.id) ? ' (sudah ikut)' : '')).join(', ')}`}
+            </span>
+          )}
+          {m.weekly_contribution != null && <span className="pill">{`Kontribusi minggu ini: ${fmtNum(m.weekly_contribution)}`}</span>}
+        </div>
+
+        <div className="ap-scroll">
+          {secs.map((sec) => (
+            <div key={sec.name} className="ap-sec">
+              <div className="ap-sec-name">{sec.name}</div>
+              <div className="ap-grid">
+                {Array.from({ length: sec.to - sec.from + 1 }, (_, i) => sec.from + i).map((p) => {
+                  const free = freeOf(p)
+                  const ok = free > 0 && canPut(p)
+                  const ld = leaderOf(p)
+                  return (
+                    <button key={p} className={`ap-party ${free === 0 ? 'is-full' : ''}`} disabled={busy || !ok} onClick={() => onParty(p)}>
+                      <b className="notranslate">{partyName(p)}</b>
+                      <span className="small muted">{free === 0 ? 'penuh' : `${size - free}/${size} · ${free} kosong`}</span>
+                      {ld && <span className="small muted notranslate">{`👑 ${ld.name}`}</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="ap-actions">
+          <button className="btn btn-gold" disabled={busy} onClick={onAuto}>
+            Otomatis (slot kosong pertama)
+          </button>
+          <button className="btn" disabled={busy} onClick={onPickSlot}>
+            Pilih slot di papan
+          </button>
+          <button className="btn" disabled={busy} onClick={onBench}>
+            Ke daftar tunggu
+          </button>
+          {group && groupLeft > 1 && (
+            <button className="btn" disabled={busy} onClick={() => onGroup(group)}>
+              {`+ Seluruh party fix (${groupLeft})`}
+            </button>
+          )}
+          <button className="btn btn-ghost" onClick={onClose}>
+            Batal
+          </button>
         </div>
       </div>
     </div>

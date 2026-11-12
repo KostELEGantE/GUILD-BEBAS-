@@ -308,7 +308,7 @@ export function makePlan({ teams, targets, signups, size, sec }) {
   return { places, removed: left, relocated }
 }
 
-export default function ScreenshotFill({ ev, secs, size, partyName, members, memberById, signups, leaderOf, onClose, onDone, toast }) {
+export default function ScreenshotFill({ ev, secs, size, partyName, members, memberById, signups, leaderOf, onClose, onDone, onBeforeApply, toast }) {
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
   const [status, setStatus] = useState(null)
@@ -402,6 +402,7 @@ export default function ScreenshotFill({ ev, secs, size, partyName, members, mem
   }
 
   async function apply() {
+    onBeforeApply?.()
     setBusy(true)
     let ok = 0
     const fails = []

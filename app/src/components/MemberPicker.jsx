@@ -9,7 +9,11 @@ import JobIcon from './JobIcon.jsx'
  * priorityGroupIds: party fix yang anggotanya sudah ada di party ini -> sisa anggotanya tampil paling atas,
  * dan bisa dimasukkan sekaligus (onPickGroup) lewat nama grup.
  */
-export default function MemberPicker({ title, excludeIds, onPick, onClose, priorityGroupIds, onPickGroup }) {
+/**
+ * forGroupId: dipakai di halaman Party fix. Semua pemain tampil (hanya nama + label party fix);
+ * yang sudah punya party fix lain ditandai dan tidak bisa dipilih.
+ */
+export default function MemberPicker({ title, excludeIds, onPick, onClose, priorityGroupIds, onPickGroup, forGroupId }) {
   const { members, groupByMember, groups } = useApp()
   const [search, setSearch] = useState('')
   const [role, setRole] = useState('')
@@ -21,8 +25,12 @@ export default function MemberPicker({ title, excludeIds, onPick, onClose, prior
       .filter((m) => m.active && !excludeIds.has(m.id))
       .filter((m) => !role || m.role === role)
       .filter((m) => !s || m.name.toLowerCase().includes(s) || (m.class || '').toLowerCase().includes(s))
-      .sort((a, b) => (b.gear_score || 0) - (a.gear_score || 0))
-  }, [members, excludeIds, search, role])
+      .sort((a, b) =>
+        forGroupId
+          ? Number(!!groupByMember.get(a.id)) - Number(!!groupByMember.get(b.id)) || (b.gear_score || 0) - (a.gear_score || 0)
+          : (b.gear_score || 0) - (a.gear_score || 0),
+      )
+  }, [members, excludeIds, search, role, forGroupId, groupByMember])
 
   // sisa anggota party fix yang sudah mulai mengisi party ini
   const prio = useMemo(() => {
@@ -47,7 +55,31 @@ export default function MemberPicker({ title, excludeIds, onPick, onClose, prior
   const prioIds = new Set(prio.flatMap((b) => b.items.map((m) => m.id)))
   const rest = list.filter((m) => !prioIds.has(m.id))
 
-  const item = (m) => (
+  // satu login bisa punya beberapa akun game: tandai supaya admin tahu
+  const byOwner = useMemo(() => {
+    const map = new Map()
+    for (const x of members) if (x.user_id && x.active) map.set(x.user_id, [...(map.get(x.user_id) || []), x])
+    return map
+  }, [members])
+  const siblings = (m) => (m.user_id ? (byOwner.get(m.user_id) || []).filter((x) => x.id !== m.id) : [])
+
+  const item = (m) => {
+    const sib = siblings(m)
+    const onBoard = sib.filter((x) => excludeIds.has(x.id))
+    const g = groupByMember.get(m.id)
+    if (forGroupId)
+      return (
+        <button key={m.id} className={`picker-item ${g ? 'is-taken' : ''}`} disabled={!!g} onClick={() => onPick(m.id)} title={g ? `Sudah di party fix "${g.name}"` : undefined}>
+          <JobIcon m={m} />
+          <span className="grow">
+            <b className="notranslate">{m.name}</b>
+          </span>
+          {g ? <GroupChip g={g} /> : <span className="pill pill-green">Belum punya party fix</span>}
+          <span className="small muted">GS {fmtNum(m.gear_score)}</span>
+          {isOnline(m.online_status) && <span className="online-dot" title="Online saat import terakhir" />}
+        </button>
+      )
+    return (
     <button key={m.id} className="picker-item" onClick={() => onPick(m.id)}>
       <JobIcon m={m} />
       <span className="grow">
@@ -57,11 +89,20 @@ export default function MemberPicker({ title, excludeIds, onPick, onClose, prior
           · {m.class} · {m.role}
         </span>
       </span>
+      {sib.length > 0 && (
+        <span
+          className={`multi-acct ${onBoard.length ? 'is-warn' : ''}`}
+          title={`Pemilik yang sama juga punya: ${sib.map((x) => x.name).join(', ')}${onBoard.length ? `\nSudah di papan ini: ${onBoard.map((x) => x.name).join(', ')}` : ''}`}
+        >
+          {onBoard.length ? `⚠ akun lain sudah masuk: ${onBoard.map((x) => x.name).join(', ')}` : `👥 ${sib.length + 1} akun: ${sib.map((x) => x.name).join(', ')}`}
+        </span>
+      )}
       <GroupChip g={groupByMember.get(m.id)} />
       <span className="small muted">GS {fmtNum(m.gear_score)}</span>
       {isOnline(m.online_status) && <span className="online-dot" title="Online saat import terakhir" />}
     </button>
-  )
+    )
+  }
 
   return (
     <div className="modal-backdrop" onClick={onClose}>

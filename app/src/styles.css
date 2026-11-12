@@ -1015,3 +1015,32 @@ a.server-time:hover { background: rgba(255,255,255,.05); }
 .mp-all { border-style: dashed; }
 .mp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .mp-actions .btn { flex: 1 1 auto; min-height: 40px; }
+.multi-acct { font-size: 11px; padding: 2px 7px; border-radius: 999px; border: 1px solid rgba(120,160,255,.45); color: #a9c1ff; background: rgba(120,160,255,.1); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.multi-acct.is-warn { border-color: rgba(239,107,107,.55); color: var(--red); background: rgba(239,107,107,.1); }
+/* tukar posisi pemain */
+.slot-swap-over, .slot-swap-target:hover { outline: 2px dashed var(--gold, #e3b45a); outline-offset: -2px; background: rgba(227,180,90,.10); }
+.slot-swap-target { cursor: pointer; }
+.slot-swap-hint { font-size: 11px; font-weight: 700; color: var(--gold, #e3b45a); }
+/* batalkan perubahan papan */
+.undo-bar { position: fixed; left: 16px; bottom: 16px; z-index: 60; display: flex; flex-direction: column; gap: 6px; max-width: min(520px, calc(100vw - 32px)); }
+.undo-main { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--panel, #1b1f2a); border: 1px solid var(--gold, #e3b45a); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.undo-label { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.undo-list { background: var(--panel, #1b1f2a); border: 1px solid var(--line); border-radius: 12px; padding: 8px; max-height: 50vh; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.undo-list-head { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 8px; }
+.undo-item { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-top: 1px solid var(--line); font-size: 13px; }
+@media (max-width: 860px) { .undo-bar { bottom: 76px; left: 8px; right: 8px; max-width: none; } }
+/* popup tambah pemain */
+.pill-blue { border-color: rgba(120,160,255,.45); color: #a9c1ff; background: rgba(120,160,255,.1); }
+.add-player { max-width: 640px; }
+.ap-head { display: flex; align-items: center; gap: 12px; }
+.ap-head h3 { margin: 0; }
+.ap-facts { display: flex; flex-wrap: wrap; gap: 6px; }
+.ap-scroll { overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.ap-sec-name { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 6px; }
+.ap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+.ap-party { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--text); cursor: pointer; text-align: left; min-height: 52px; }
+.ap-party:hover:not(:disabled) { border-color: var(--gold, #e3b45a); background: rgba(227,180,90,.08); }
+.ap-party:disabled { opacity: .45; cursor: not-allowed; }
+.ap-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ap-actions .btn { flex: 1 1 auto; min-height: 40px; }
+.picker-item.is-taken { opacity: .55; cursor: not-allowed; }
