@@ -1044,3 +1044,20 @@ a.server-time:hover { background: rgba(255,255,255,.05); }
 .ap-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .ap-actions .btn { flex: 1 1 auto; min-height: 40px; }
 .picker-item.is-taken { opacity: .55; cursor: not-allowed; }
+
+/* HP: daftar "Belum bergabung" jadi panel bawah dengan tombol tetap di pojok */
+.side-fab, .side-sheet-close, .side-sheet-backdrop { display: none; }
+@media (max-width: 860px) {
+  .side-fab { display: flex; align-items: center; justify-content: center; position: fixed; right: 14px; bottom: 80px; z-index: 70;
+    width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--gold, #e3b45a); background: var(--gold, #e3b45a); color: #1b1408;
+    font-size: 24px; box-shadow: 0 8px 22px rgba(0,0,0,.45); cursor: pointer; }
+  .side-fab.is-open { background: var(--panel, #1b1f2a); color: var(--text); }
+  .side-fab-count { position: absolute; top: -4px; right: -4px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px;
+    background: #ef6b6b; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .side-panel { position: fixed !important; left: 0; right: 0; bottom: 64px; z-index: 65; max-height: 72vh !important; margin: 0;
+    border-radius: 16px 16px 0 0; transform: translateY(110%); transition: transform .22s ease; visibility: hidden; }
+  .side-panel.sheet-open { transform: none; visibility: visible; }
+  .side-sheet-close { display: inline-flex; }
+  .side-sheet-backdrop { display: block; position: fixed; inset: 0; z-index: 64; background: rgba(0,0,0,.45); }
+  .undo-bar { right: 84px; }
+}

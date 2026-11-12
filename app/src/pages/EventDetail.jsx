@@ -1376,6 +1376,8 @@ function WarHistory({ board }) {
 /** Daftar member aktif yang belum masuk party mana pun */
 function NotJoined({ list, isAdmin, busy, full, onAdd, onAddGroup, canDrag, dragProps, dropProps, dropActive, dragging }) {
   const { toast, groupByMember, myMembers } = useApp()
+  // HP: daftar ini jadi panel geser dari bawah, dibuka/ditutup lewat tombol tetap di pojok
+  const [sheet, setSheet] = useState(false)
   const [search, setSearch] = useState('')
   const [role, setRole] = useState('')
   const [sort, setSort] = useState('gs')
@@ -1460,9 +1462,25 @@ function NotJoined({ list, isAdmin, busy, full, onAdd, onAddGroup, canDrag, drag
   }
 
   return (
-    <aside className={`card side-panel ${dropActive ? 'drop-over' : ''}`} {...dropProps}>
+    <>
+    <button className={`side-fab ${sheet ? 'is-open' : ''}`} onClick={() => setSheet(!sheet)} title="Tampilkan / sembunyikan daftar pemain">
+      {sheet ? '✕' : '👥'}
+      {!sheet && <span className="side-fab-count">{list.length}</span>}
+    </button>
+    {sheet && <div className="side-sheet-backdrop" onClick={() => setSheet(false)} />}
+    <aside
+      className={`card side-panel ${dropActive ? 'drop-over' : ''} ${sheet ? 'sheet-open' : ''}`}
+      {...dropProps}
+      onClickCapture={(e) => {
+        // pilih pemain di HP: tutup panel supaya popup & papan terlihat
+        if (sheet && e.target.closest('.side-item.clickable, .side-item button, .side-group-head button')) setTimeout(() => setSheet(false), 0)
+      }}
+    >
       <div className="row gap-sm">
         <h3 className="grow">Belum bergabung · {list.length}</h3>
+        <button className="btn btn-ghost btn-sm side-sheet-close" onClick={() => setSheet(false)}>
+          ✕
+        </button>
         <button className="btn btn-ghost btn-sm" onClick={copyNames} disabled={!shown.length}>
           Salin nama
         </button>
@@ -1533,6 +1551,7 @@ function NotJoined({ list, isAdmin, busy, full, onAdd, onAddGroup, canDrag, drag
         </ul>
       )}
     </aside>
+    </>
   )
 }
 
