@@ -1061,3 +1061,19 @@ a.server-time:hover { background: rgba(255,255,255,.05); }
   .side-sheet-backdrop { display: block; position: fixed; inset: 0; z-index: 64; background: rgba(0,0,0,.45); }
   .undo-bar { right: 84px; }
 }
+
+/* centang "sudah join party di game" */
+.join-check { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); background: transparent;
+  color: #0f1a12; font-weight: 900; font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.join-check:not(:disabled):hover { border-color: var(--green); }
+.join-check.is-on { background: var(--green); border-color: var(--green); }
+.join-check:disabled { cursor: default; opacity: .7; }
+.slot-joined { box-shadow: inset 3px 0 0 var(--green); }
+.join-count { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.join-count.is-all { color: var(--green); border-color: var(--green); }
+.stat-joined { position: relative; }
+.stat-reset { margin-top: 6px; }
+@media (max-width: 860px) { .join-check { width: 26px; height: 26px; } }
+.clear-board p { margin: 0; }
+.banner-warn { border-color: rgba(227,180,90,.5); background: rgba(227,180,90,.08); }
+.modal-backdrop { z-index: 100; }
