@@ -76,7 +76,7 @@ export function CharForm({ initial, submitLabel, onSubmit, onCancel, busy, cance
 }
 
 export default function MyAccount() {
-  const { myMembers, profile, reloadMembers, activeMember, setActiveId } = useApp()
+  const { myMembers, profile, reloadMembers, activeMember, setActiveId, isMonitor } = useApp()
   const [run, busy] = useAction()
   const [editing, setEditing] = useState(null)
   const [adding, setAdding] = useState(false)
@@ -122,7 +122,12 @@ export default function MyAccount() {
         </div>
       </div>
 
-      {mine.length === 0 && (
+      {isMonitor && (
+        <div className="banner">
+          Akun ini Moderator Monitoring: hanya untuk mengelola guild. Tidak punya karakter dan tidak bisa dimasukkan ke party.
+        </div>
+      )}
+      {!isMonitor && mine.length === 0 && (
         <div className="banner">Akun ini belum punya karakter. Isi form di bawah supaya bisa masuk party.</div>
       )}
 
@@ -178,7 +183,7 @@ export default function MyAccount() {
         </div>
       ))}
 
-      {showAdd ? (
+      {isMonitor ? null : showAdd ? (
         <div className="card">
           <h3>{mine.length ? 'Tambah akun game lain' : 'Daftarkan akun game Anda'}</h3>
           <CharForm busy={busy} initial={empty} submitLabel="Daftarkan" onSubmit={declare} onCancel={mine.length ? () => setAdding(false) : null} />
@@ -207,7 +212,7 @@ export default function MyAccount() {
  * Pemain dengan beberapa akun game bisa menambah akun lain dan memilih akun yang dipakai.
  */
 export function LoginCheckIn() {
-  const { myMembers, activeMember, setActiveId, reloadMembers, session } = useApp()
+  const { myMembers, activeMember, setActiveId, reloadMembers, session, isAdmin, isMonitor } = useApp()
   const [run, busy] = useAction()
   const key = `checkin:${session.user.id}:${session.user.last_sign_in_at || ''}`
   const [done, setDone] = useState(() => {
@@ -225,6 +230,9 @@ export function LoginCheckIn() {
     setDone(true)
   }
   const none = myMembers.length === 0
+  // Moderator tidak wajib punya karakter (mis. mengelola guild lain): boleh lewati
+  // Moderator tanpa karakter (hanya mengelola guild) tidak ditanya sama sekali
+  if (isMonitor || (none && isAdmin)) return null
   if (done && !none) return null
   if (location.hash.startsWith('#/me') && !none) return null
 
@@ -281,7 +289,8 @@ export function LoginCheckIn() {
             initial={empty}
             submitLabel="Simpan"
             onSubmit={declare}
-            onCancel={none ? null : () => setAdding(false)}
+            onCancel={none ? (isAdmin ? finish : null) : () => setAdding(false)}
+            cancelLabel={none && isAdmin ? 'Lewati (moderator)' : undefined}
           />
         ) : (
           <CharForm

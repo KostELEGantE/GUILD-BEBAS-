@@ -49,15 +49,32 @@ export const isIdle = (s) => ACT_KEYS.every((k) => !s[k])
 /** Batas AFK: di bawah 25% rata-rata guild di semua kategori (skor 0 = tidak melakukan apa-apa) */
 export const LOW_SCORE = 0.25
 
-/** Rata-rata guild kita per kolom, untuk satu peta */
-export function mapAverages(rows) {
+/** Job support penyembuh: dinilai HANYA dari Heal & Revive, dibanding sesama priest di peta yang sama */
+export const HEALER_JOBS = ['High Priest', 'Priest', 'Acolyte', 'Arch Bishop', 'Cardinal']
+export const HEALER_KEYS = ['heal', 'revives']
+export const isHealer = (job) => HEALER_JOBS.some((j) => (job || '').toLowerCase() === j.toLowerCase())
+
+const avgOf = (rows, keys) => {
   const avg = {}
-  for (const k of ACT_KEYS) avg[k] = rows.length ? rows.reduce((t, r) => t + (r[k] || 0), 0) / rows.length : 0
+  for (const k of keys) avg[k] = rows.length ? rows.reduce((t, r) => t + (r[k] || 0), 0) / rows.length : 0
   return avg
 }
-/** Skor = kategori terbaik pemain dibanding rata-rata guild (1 = sama dengan rata-rata). Healer dinilai dari heal, DPS dari damage, dst. */
+/** Rata-rata guild kita per kolom untuk satu peta, plus rata-rata khusus priest (heal & revive) */
+export function mapAverages(rows) {
+  const avg = avgOf(rows, ACT_KEYS)
+  avg.healer = avgOf(rows.filter((r) => isHealer(r.job)), HEALER_KEYS)
+  return avg
+}
+/**
+ * Skor = kategori terbaik pemain dibanding rata-rata (1 = sama dengan rata-rata).
+ * Priest: hanya Heal & Revive dibanding rata-rata sesama priest. Job lain: kategori terbaik dibanding rata-rata guild.
+ */
 export function activityScore(r, avg) {
   let best = 0
+  if (isHealer(r.job) && avg.healer && HEALER_KEYS.some((k) => avg.healer[k] > 0)) {
+    for (const k of HEALER_KEYS) if (avg.healer[k] > 0) best = Math.max(best, (r[k] || 0) / avg.healer[k])
+    return best
+  }
   for (const k of ACT_KEYS) if (avg[k] > 0) best = Math.max(best, (r[k] || 0) / avg[k])
   return best
 }

@@ -14,7 +14,7 @@ import ScreenshotFill from '../components/ScreenshotFill.jsx'
 import StrategyBoard from '../components/StrategyBoard.jsx'
 
 export default function EventDetail({ id, initialTab }) {
-  const { members, myMembers, activeMember, setActiveId, isAdmin: isMod, toast, groupByMember, groups, user } = useApp()
+  const { members, myMembers, activeMember, setActiveId, isAdmin: isMod, toast, groupByMember, groups, user, isMonitor } = useApp()
   const [ev, setEv] = useState(null)
   const [parties, setParties] = useState([])
   const [signups, setSignups] = useState([])
@@ -1064,7 +1064,13 @@ export default function EventDetail({ id, initialTab }) {
               </>
             ) : (
               <span className="small">
-                Anda belum punya karakter. <a href="#/me">Daftarkan di Akun saya</a>.
+                {isMonitor ? (
+                  'Moderator Monitoring: hanya mengelola, tidak ikut party.'
+                ) : (
+                  <>
+                    Anda belum punya karakter. <a href="#/me">Daftarkan di Akun saya</a>.
+                  </>
+                )}
               </span>
             )}
           </div>

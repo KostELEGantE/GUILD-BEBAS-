@@ -392,9 +392,10 @@ function ImportHistory() {
   )
 }
 
-const ROLE_LABEL = { member: 'Member biasa', sub: 'Sub Moderator', super: 'Super Moderator' }
+const ROLE_LABEL = { member: 'Member biasa', sub: 'Sub Moderator', monitor: 'Moderator Monitoring', super: 'Super Moderator' }
 const ROLE_HELP = {
   sub: 'Sub Moderator bisa import data, mengatur semua party dan event, konfirmasi war, serta mengangkat/mencabut sesama Sub Moderator.',
+  monitor: 'Moderator Monitoring punya hak Sub Moderator, tapi hanya untuk mengelola: tidak punya karakter dan tidak bisa dimasukkan ke party. Karakter yang sudah diklaim akun ini akan dilepas.',
   super: 'Super Moderator punya akses penuh, termasuk mengangkat dan mencabut Super Moderator lain.',
 }
 
@@ -440,13 +441,15 @@ function AdminUsers() {
     })
     .sort((a, b) => (claims.get(b.id)?.length ?? 0) - (claims.get(a.id)?.length ?? 0) || (a.display_name || '').localeCompare(b.display_name || ''))
 
-  const roleOf = (p) => (p.is_super ? 'super' : p.is_admin ? 'sub' : 'member')
+  const roleOf = (p) => (p.is_super ? 'super' : p.is_monitor ? 'monitor' : p.is_admin ? 'sub' : 'member')
   const setRole = (p, role) => {
     const label = ROLE_LABEL[role]
     if (role !== 'member' && !confirm(`Jadikan ${p.display_name} ${label}?\n\n${ROLE_HELP[role]}`)) return
     if (role === 'member' && !confirm(`Cabut peran moderator ${p.display_name}?`)) return
     run(async () => {
-      await q(supabase.from('profiles').update({ is_admin: role !== 'member', is_super: role === 'super' }).eq('id', p.id))
+      // Super Moderator yang sudah monitoring tetap monitoring
+      const monitor = role === 'monitor' || (role === 'super' && !!p.is_monitor)
+      await q(supabase.from('profiles').update({ is_admin: role !== 'member', is_super: role === 'super', is_monitor: monitor }).eq('id', p.id))
       await load()
     }, `${p.display_name} sekarang ${label}`)
   }
@@ -586,11 +589,12 @@ function AdminUsers() {
                   <td className="muted">{fmtDate(p.created_at, false)}</td>
                   <td>
                     {p.id === user.id || (p.is_super && !isSuper) ? (
-                      <span className={`pill ${p.is_super ? 'pill-gold' : p.is_admin ? 'pill-green' : ''}`}>{ROLE_LABEL[roleOf(p)]}</span>
+                      <span className={`pill ${p.is_super ? 'pill-gold' : p.is_admin ? 'pill-green' : ''}`}>{`${ROLE_LABEL[roleOf(p)]}${p.is_super && p.is_monitor ? ' · Monitoring' : ''}`}</span>
                     ) : (
                       <select className="select-sm" value={roleOf(p)} disabled={busy} onChange={(e) => setRole(p, e.target.value)}>
                         <option value="member">Member biasa</option>
                         <option value="sub">Sub Moderator</option>
+                        <option value="monitor">Moderator Monitoring</option>
                         {isSuper && <option value="super">Super Moderator</option>}
                       </select>
                     )}

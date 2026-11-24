@@ -122,7 +122,7 @@ function Shell() {
                 {ign ?? profile?.display_name ?? '…'}
               </a>
             )}
-            {isAdmin && <span className="pill pill-gold">{profile?.is_super ? 'Super Mod' : 'Sub Mod'}</span>}
+            {isAdmin && <span className="pill pill-gold">{`${profile?.is_super ? 'Super Mod' : 'Sub Mod'}${profile?.is_monitor ? ' · Monitor' : ''}`}</span>}
           </span>
           <button className="btn btn-ghost btn-sm logout" onClick={() => supabase.auth.signOut()} title="Keluar">
             <span className="logout-icon" aria-hidden="true">⎋</span>

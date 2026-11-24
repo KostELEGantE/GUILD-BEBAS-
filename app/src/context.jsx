@@ -120,6 +120,7 @@ export function AppProvider({ session, children }) {
     profile,
     isAdmin: !!profile?.is_admin,
     isSuper: !!profile?.is_super,
+    isMonitor: !!profile?.is_monitor,
     members,
     myMembers,
     activeMember,

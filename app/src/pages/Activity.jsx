@@ -643,7 +643,7 @@ export default function Activity() {
       <p className="muted small">
         {winSessions.length
           ? `${winSessions.length} war dihitung: ${dateFmt(winSessions[winSessions.length - 1].starts_at)} – ${dateFmt(winSessions[0].starts_at)}. ` +
-            'Tidak aktif = hadir < 50% atau absen 2 war terakhir. Aktif = hadir ≥ 75%. Skor = kategori terbaik dibanding rata-rata guild di peta yang sama (100% = rata-rata). Skor di bawah 25% = AFK. Absen war = tidak ada di hasil war (status sendiri, dihitung absen, bukan AFK). 1x AFK masih dimaklumi, baru "Perlu dicek" kalau 2x atau lebih. AFK tidak dihitung kalau musuh tidak ada.'
+            'Tidak aktif = hadir < 50% atau absen 2 war terakhir. Aktif = hadir ≥ 75%. Skor = kategori terbaik dibanding rata-rata guild di peta yang sama (100% = rata-rata). Priest dinilai dari Heal & Revive dibanding sesama priest. Skor di bawah 25% = AFK. Absen war = tidak ada di hasil war (status sendiri, dihitung absen, bukan AFK). 1x AFK masih dimaklumi, baru "Perlu dicek" kalau 2x atau lebih. AFK tidak dihitung kalau musuh tidak ada.'
           : loading
             ? 'Memuat…'
             : 'Belum ada war Guild League yang dikonfirmasi.'}
