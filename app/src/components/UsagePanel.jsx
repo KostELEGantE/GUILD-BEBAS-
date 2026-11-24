@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { rpc } from '../lib/supabase.js'
 import { fmtNum } from '../lib/util.js'
+import GUILD from '../guild.js'
 
 // Batas paket GRATIS (dicek Nov 2026):
 //   Supabase  : database 500 MB, file storage 1 GB, egress 5 GB/bulan, 50.000 MAU,
@@ -8,8 +9,8 @@ import { fmtNum } from '../lib/util.js'
 //   Cloudflare Pages: 500 build/bulan, 25 MiB per file, 20.000 file, bandwidth tidak dibatasi.
 const MB = 1024 * 1024
 const SUPA_USAGE_URL = 'https://supabase.com/dashboard/org/ftuecmsuadhfexdjbemb/usage'
-const CF_URL = 'https://dash.cloudflare.com/?to=/:account/pages/view/guild-bebas'
-const GH_REPO = 'KostELEGantE/GUILD-BEBAS-'
+const CF_URL = `https://dash.cloudflare.com/?to=/:account/pages/view/${GUILD.cfProject}`
+const GH_REPO = GUILD.repo
 const REFRESH_MS = 60_000
 
 function fmtBytes(b) {

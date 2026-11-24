@@ -11,7 +11,8 @@ import Activity from './pages/Activity.jsx'
 import Admin from './pages/Admin.jsx'
 import Groups from './pages/Groups.jsx'
 import Schedule from './pages/Schedule.jsx'
-import logo from './assets/logo.webp'
+import GUILD from './guild.js'
+const logo = GUILD.logo
 import LangSwitch from './components/LangSwitch.jsx'
 import ServerClock from './components/ServerClock.jsx'
 
@@ -85,7 +86,7 @@ function Shell() {
         <a className="brand notranslate" href="#/events">
           <img src={logo} alt="" className="brand-logo" />
           <span>
-            BEBAS <span className="brand-sub">Guild</span> <span className="brand-ver" title="Versi aplikasi">{`v${APP_VERSION}`}</span>
+            {GUILD.name} <span className="brand-sub">Guild</span> <span className="brand-ver" title="Versi aplikasi">{`v${APP_VERSION}`}</span>
           </span>
         </a>
         <nav className="nav">

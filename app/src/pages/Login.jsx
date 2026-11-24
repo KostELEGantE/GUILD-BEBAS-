@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase.js'
-import logo from '../assets/logo.webp'
+import GUILD from '../guild.js'
+const logo = GUILD.logo
 import LangSwitch from '../components/LangSwitch.jsx'
 
 // Saat dibuka sebagai file HTML lokal (file://), login yang butuh redirect (Discord / link email)
@@ -77,8 +78,8 @@ export default function Login() {
     <div className="login">
       <div className="login-card">
         <LangSwitch className="login-lang" />
-        <img src={logo} alt="BEBAS Guild" className="login-logo" />
-        <h1>BEBAS Guild</h1>
+        <img src={logo} alt={`${GUILD.name} Guild`} className="login-logo" />
+        <h1 className="notranslate">{`${GUILD.name} Guild`}</h1>
         <p className="muted">Party Manager · Guild League · Polarity Zone · Siege</p>
 
         {mode === 'discord' ? (

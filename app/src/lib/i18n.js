@@ -2,10 +2,11 @@
 // konfirmasi) berdasarkan kamus di i18n-dict.js, tanpa mengubah setiap komponen.
 // Nama karakter, angka, dan isi yang diketik pengguna tidak disentuh.
 import { DICT, PATTERNS, LANGS } from './i18n-dict.js'
+import GUILD from '../guild.js'
 
 export { LANGS }
 const IDX = { id: 0, ms: 1, en: 2, th: 3, fil: 4 }
-const KEY = 'bebas-lang'
+const KEY = `${GUILD.id}-lang`
 
 function detect() {
   try {

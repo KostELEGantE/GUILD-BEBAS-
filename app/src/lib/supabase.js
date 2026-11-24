@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
+import GUILD from '../guild.js'
 
 // Nilai bawaan = project Supabase "ragnarok-guild". Bisa ditimpa lewat file .env
 // (lihat .env.example). Publishable key memang aman berada di browser; data dilindungi RLS.
-const url = import.meta.env.VITE_SUPABASE_URL || 'https://fzjnccdbqzvrboplaqnn.supabase.co'
-const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_fm56O0K2V9EbreleyWCR_g_jNRko-Pv'
+const url = import.meta.env.VITE_SUPABASE_URL || GUILD.supabaseUrl
+const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || GUILD.supabaseKey
 
 if (!url || !key) {
   // Tampil di console bila file .env belum diisi
