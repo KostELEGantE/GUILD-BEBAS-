@@ -7,6 +7,7 @@ import Events from './pages/Events.jsx'
 import EventDetail from './pages/EventDetail.jsx'
 import MyAccount, { LoginCheckIn } from './pages/MyAccount.jsx'
 import Stats from './pages/Stats.jsx'
+import Activity from './pages/Activity.jsx'
 import Admin from './pages/Admin.jsx'
 import Groups from './pages/Groups.jsx'
 import Schedule from './pages/Schedule.jsx'
@@ -59,7 +60,7 @@ function Shell() {
     ['events', 'Event & Party', '⚔', 'Event'],
     ['groups', 'Party Fix', '🤝', 'Party Fix'],
     ['me', 'Akun saya', '👤', 'Akun'],
-    ['stats', 'Kehadiran', '📊', 'Absensi'],
+    ...(isAdmin ? [['activity', 'Aktivitas GL', '📈', 'Aktif GL']] : []),
     ...(isAdmin ? [['admin', 'Admin', '⚙', 'Admin']] : []),
   ]
 
@@ -68,7 +69,8 @@ function Shell() {
   else if (page === 'event' && parts[1]) content = <EventDetail id={Number(parts[1])} initialTab={parts[2]} />
   else if (page === 'me' || page === 'roster') content = <MyAccount />
   else if (page === 'groups') content = <Groups />
-  else if (page === 'stats') content = <Stats />
+  else if (page === 'stats') content = isAdmin ? <Activity /> : <Events />
+  else if (page === 'activity') content = isAdmin ? <Activity /> : <div className="card"><p className="muted">Halaman ini hanya untuk moderator.</p></div>
   else if (page === 'schedule') content = <Schedule />
   else if (page === 'admin' && isAdmin) content = <Admin />
   else content = <Events />
