@@ -66,6 +66,16 @@ const slotMin = (j) => {
   const g = GL_SCHEDULE[j] || GL_SCHEDULE[GL_SCHEDULE.length - 1]
   return ((g.dow + 6) % 7) * 1440 + g.h * 60 + g.m
 }
+/** Nama babak GL sesuai game: slot 1 Preliminaries, 2 Semifinals, 3 Finals */
+export const GL_STAGES = ['Preliminaries', 'Semifinals', 'Finals']
+export const stageOfSlot = (n) => (GL_STAGES[n - 1] ? `${GL_STAGES[n - 1]} / GL ${n}` : `GL ${n}`)
+/** Babak dari jam main: slot jadwal terdekat (Sel 21:30 / Sel 22:00 / Kam 22:00) */
+export const glStage = (d) => {
+  const mw = minOfWeek(d)
+  let best = 0
+  for (let j = 1; j < GL_PER_WEEK; j++) if (Math.abs(slotMin(j) - mw) < Math.abs(slotMin(best) - mw)) best = j
+  return stageOfSlot(best + 1)
+}
 /** Tiap minggu selalu 3 slot GL: sesi yang sudah ada diisi ke slot jadwal terdekat, sisanya slot kosong siap diinput */
 export function weekSlots(sessions, nWeeks = 4) {
   const now = new Date()
@@ -144,7 +154,7 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onCha
   const [moving, setMoving] = useState(false)
   const [moveAt, setMoveAt] = useState(() => toLocalInput(g.s.starts_at))
   const delGl = () => {
-    if (!window.confirm(tr(`Hapus GL ${glLabel(g.s.starts_at)}? Hasil war Main/Sub dan kehadirannya ikut terhapus. Tidak bisa dibatalkan.`))) return
+    if (!window.confirm(tr(`Hapus ${glStage(g.s.starts_at)} ${glLabel(g.s.starts_at)}? Hasil war Main/Sub dan kehadirannya ikut terhapus. Tidak bisa dibatalkan.`))) return
     run(async () => {
       await rpc('delete_gl_session', { p_event_id: g.s.id })
       onBack()
@@ -304,7 +314,7 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onCha
       <div className="act-gldetail-head">
         <div>
           <h2>
-            <span className="act-gl-no">{g.no}</span> {`GL ${glLabel(g.s.starts_at)}`}
+            <span className="act-gl-no">{g.no}</span> {`${glStage(g.s.starts_at)} · ${glLabel(g.s.starts_at)}`}
           </h2>
           <div className="small muted">
             {meta.length
@@ -651,17 +661,17 @@ export default function Activity() {
   }, [sessions, weeks])
   const winIds = useMemo(() => new Set(winSessions.map((s) => s.id)), [winSessions])
   const chrono = useMemo(() => [...winSessions].reverse(), [winSessions])
-  // nomor GL dalam periode (1 = paling lama) + info data apa yang ada
-  const glNo = useMemo(() => new Map(chrono.map((s, i) => [s.id, i + 1])), [chrono])
+  // nomor GL dalam periode (1 = terbaru) + info data apa yang ada
+  const glNo = useMemo(() => new Map(winSessions.map((s, i) => [s.id, i + 1])), [winSessions])
   const glInfo = useMemo(
     () =>
-      chrono.map((s) => {
+      winSessions.map((s) => {
         const mm = mapsMeta.filter((x) => x.event_id === s.id)
         const hasMap = (k) => mm.some((x) => x.map === k) || stats.some((x) => x.event_id === s.id && x.map === k)
         const maps = ['main', 'sub'].filter(hasMap)
         return { s, no: glNo.get(s.id), maps, enemy: mm[0]?.enemy_guild || '' }
       }),
-    [chrono, mapsMeta, stats, glNo],
+    [winSessions, mapsMeta, stats, glNo],
   )
 
   const rows = useMemo(() => {
@@ -925,7 +935,7 @@ export default function Activity() {
             >
               <span className="act-gl-no">{g.no}</span>
               <div>
-                <b>{glLabel(g.s.starts_at)}</b>
+                <b>{glStage(g.s.starts_at)}</b> <span className="small muted">{glLabel(g.s.starts_at)}</span>
                 <div className="small muted">
                   {g.maps.length ? (
                     <>
@@ -984,9 +994,9 @@ export default function Activity() {
                         type="button"
                         className={`act-war ${glView === h.s.id ? 'is-on' : ''} ${h.hasStats ? 'has-stats' : ''}`}
                         onClick={() => setGlView(glView === h.s.id ? null : h.s.id)}
-                        title={`${glLabel(h.s.starts_at)}${h.enemy ? ` · vs ${h.enemy}` : ''}`}
+                        title={`${glStage(h.s.starts_at)} · ${glLabel(h.s.starts_at)}${h.enemy ? ` · vs ${h.enemy}` : ''}`}
                       >
-                        <b>{`War ${h.n}`}</b>
+                        <b>{glStage(h.s.starts_at)}</b>
                         <span>{h.hasStats ? h.enemy || glLabel(h.s.starts_at) : glLabel(h.s.starts_at)}</span>
                       </button>
                     ))}
@@ -1028,7 +1038,7 @@ export default function Activity() {
               <SortTh k="name" sort={sort} setSort={setSort}>Karakter</SortTh>
               <SortTh k="status" sort={sort} setSort={setSort}>Status</SortTh>
               <SortTh k="pct" sort={sort} setSort={setSort}>Hadir</SortTh>
-              <th>{`Riwayat GL (1 → ${chrono.length || '…'})`}</th>
+              <th>{`Riwayat GL (1 terbaru → ${chrono.length || '…'} terlama)`}</th>
               <SortTh k="score" num sort={sort} setSort={setSort}>Skor</SortTh>
               <SortTh k="kills" num sort={sort} setSort={setSort}>Kill / Assist</SortTh>
               <SortTh k="dmg" num sort={sort} setSort={setSort}>Damage</SortTh>
@@ -1059,12 +1069,12 @@ export default function Activity() {
                   <td data-label="Hadir">{r.pct == null ? '–' : `${r.present}/${r.present + r.absent} · ${Math.round(r.pct * 100)}%`}</td>
                   <td data-label="Riwayat">
                     <div className="act-dots">
-                      {r.hist.map((h) => (
+                      {[...r.hist].reverse().map((h) => (
                         <span
                           key={h.s.id}
                           data-no={glNo.get(h.s.id)}
                           className={`act-dot ${h.missed || h.noshow ? 'is-miss' : h.a === 'present' ? (h.idle ? 'is-afk' : h.low ? 'is-low' : h.noEnemy ? 'is-ne' : 'is-p') : h.a === 'absent' ? 'is-a' : h.a === 'excused' ? 'is-e' : ''}`}
-                          title={`GL ${glNo.get(h.s.id)} · ${glLabel(h.s.starts_at)}: ${h.missed || h.noshow ? 'Absent (skor 0)' : h.a === 'present' ? (h.idle ? `hadir tapi AFK (skor terendah ${Math.round(h.st.score * 100)}%)` : h.noEnemy ? 'hadir, tidak ada musuh' : `hadir (skor ${h.st ? Math.round(h.st.score * 100) + '%' : '–'})`) : h.a === 'absent' ? 'absen' : h.a === 'excused' ? 'izin' : 'tidak terdaftar'}`}
+                          title={`${glNo.get(h.s.id)}. ${glStage(h.s.starts_at)} · ${glLabel(h.s.starts_at)}: ${h.missed || h.noshow ? 'Absent (skor 0)' : h.a === 'present' ? (h.idle ? `hadir tapi AFK (skor terendah ${Math.round(h.st.score * 100)}%)` : h.noEnemy ? 'hadir, tidak ada musuh' : `hadir (skor ${h.st ? Math.round(h.st.score * 100) + '%' : '–'})`) : h.a === 'absent' ? 'absen' : h.a === 'excused' ? 'izin' : 'tidak terdaftar'}`}
                         />
                       ))}
                     </div>
@@ -1248,7 +1258,7 @@ function ImportWar({ sessions, statSessions, onClose, onDone }) {
                         className={`act-pick-btn ${String(sid) === sl.key ? 'is-on' : ''} ${done ? 'is-done' : ''} ${sl.s ? '' : 'is-empty'}`}
                         onClick={() => setSid(sl.key)}
                       >
-                        <b>{`GL ${sl.n}`}</b>
+                        <b>{stageOfSlot(sl.n)}</b>
                         <span>{glLabel(sl.s ? sl.s.starts_at : atOf(sl))}</span>
                         <em>{done ? '✓ sudah diinput' : sl.s ? 'ada absen · belum ada hasil' : sl.future ? 'belum main' : '➕ belum diinput'}</em>
                       </button>
@@ -1260,12 +1270,12 @@ function ImportWar({ sessions, statSessions, onClose, onDone }) {
           </div>
           {isNew && slot && (
             <label className="field act-new-at">
-              <span>{`Tanggal & jam GL ${slot.n} (ubah kalau beda)`}</span>
+              <span>{`Tanggal & jam ${stageOfSlot(slot.n)} (ubah kalau beda)`}</span>
               <input type="datetime-local" value={atOf(slot)} onChange={(e) => setNewAt((x) => ({ ...x, [slot.key]: e.target.value }))} />
             </label>
           )}
           {picked && statSessions.has(picked.id) && (
-            <div className="banner small">{`GL ${glLabel(picked.starts_at)} sudah punya hasil war. Kalau disimpan lagi, data peta yang ditempel akan diganti.`}</div>
+            <div className="banner small">{`${glStage(picked.starts_at)} ${glLabel(picked.starts_at)} sudah punya hasil war. Kalau disimpan lagi, data peta yang ditempel akan diganti.`}</div>
           )}
         </div>
         <label className="field act-pick-all">

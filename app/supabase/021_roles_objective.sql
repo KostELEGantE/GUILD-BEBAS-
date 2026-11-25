@@ -32,7 +32,7 @@ begin
   select title into v_title from public.events where id = p_event_id;
   if not found then raise exception 'Sesi war tidak ditemukan'; end if;
   create temp table if not exists _keep_roles (name_key text primary key, role text) on commit drop;
-  delete from _keep_roles;
+  truncate _keep_roles; -- (DELETE tanpa WHERE ditolak oleh safeupdate)
   insert into _keep_roles select lower(name), role from public.war_stats
    where event_id = p_event_id and map = p_map and role is not null on conflict do nothing;
   delete from public.war_stats where event_id = p_event_id and map = p_map;
