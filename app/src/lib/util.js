@@ -118,7 +118,7 @@ export function debounce(fn, ms = 150) {
   return d
 }
 export const DISCORD_URL = 'https://discord.gg/ex4R57YNw'
-export const APP_VERSION = '2.14'
+export const APP_VERSION = '2.15'
 // class yang bisa dipilih saat mendaftarkan karakter
 export const CLASSES = [
   'Lord Knight', 'Paladin', 'High Wizard', 'Professor', 'Scholar', 'High Priest', 'Champion', 'Sniper',

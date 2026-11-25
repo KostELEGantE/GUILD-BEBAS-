@@ -1184,3 +1184,10 @@ tr.is-miss-row td { background: rgba(170,130,255,.05); }
 .act-tile.act-lastmiss b { color: #c3a6ff; }
 .act-tiles { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 @media (max-width: 900px) { .act-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+/* Peran otomatis */
+.role-tag { display: inline-block; padding: 1px 7px; border-radius: 6px; font: 700 10.5px/1.5 system-ui, sans-serif; white-space: nowrap; }
+.role-dps { color: #ffb37a; background: rgba(255,150,80,.14); }
+.role-tank { color: #9fd0ff; background: rgba(100,170,255,.14); }
+.role-support { color: #c9a8ff; background: rgba(170,130,255,.14); }
+.role-healer { color: #8fe3a8; background: rgba(90,210,130,.14); }
+.act-dot.is-noshow { background: transparent !important; border: 1.5px dashed #8a8f9c !important; }

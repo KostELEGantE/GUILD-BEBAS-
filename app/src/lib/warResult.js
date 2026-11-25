@@ -42,8 +42,8 @@ export function parseWarResult(text) {
   return { rows, guilds, hasBuilding: rows.some((r) => r.building_dmg > 0) }
 }
 
-// Kolom yang dihitung sebagai aktivitas (Endure & Deaths tidak)
-export const ACT_KEYS = ['kills', 'assists', 'player_dmg', 'building_dmg', 'heal', 'revives', 'boss_dmg', 'monsters', 'flag_repair']
+// Kolom yang dihitung sebagai aktivitas (Endure = damage diterima, untuk tank/job yang tidak memukul; Deaths tidak)
+export const ACT_KEYS = ['kills', 'assists', 'player_dmg', 'building_dmg', 'heal', 'endure', 'revives', 'boss_dmg', 'monsters', 'flag_repair']
 /** Aktivitas nol (masuk peta tapi tidak melakukan apa-apa) */
 export const isIdle = (s) => ACT_KEYS.every((k) => !s[k])
 /** Batas AFK: di bawah 25% rata-rata guild di semua kategori (skor 0 = tidak melakukan apa-apa) */
@@ -59,23 +59,82 @@ const avgOf = (rows, keys) => {
   for (const k of keys) avg[k] = rows.length ? rows.reduce((t, r) => t + (r[k] || 0), 0) / rows.length : 0
   return avg
 }
-/** Rata-rata guild kita per kolom untuk satu peta, plus rata-rata khusus priest (heal & revive) */
-export function mapAverages(rows) {
-  const avg = avgOf(rows, ACT_KEYS)
-  avg.healer = avgOf(rows.filter((r) => isHealer(r.job)), HEALER_KEYS)
+/**
+ * Peran ditentukan OTOMATIS dari angka hasil war tiap pemain (bukan dari job),
+ * karena Creator/Whitesmith dsb. bisa DPS atau support tergantung build.
+ * - Priest (job penyembuh) selalu Healer.
+ * - Lainnya: peran = profil yang paling menonjol dibanding rata-rata pemain di peta itu.
+ */
+export const ROLE_DETECT = { dps: ['kills', 'player_dmg', 'building_dmg'], tank: ['endure'], support: ['assists', 'boss_dmg', 'monsters', 'flag_repair'] }
+/** Kategori yang dinilai untuk tiap peran, dibanding sesama peran di peta yang sama */
+export const ROLE_KEYS = {
+  dps: ['kills', 'player_dmg', 'building_dmg'],
+  tank: ['endure', 'assists'],
+  support: ['assists', 'boss_dmg', 'monsters', 'flag_repair'],
+  healer: ['heal', 'revives'],
+}
+export const ROLE_LABEL = { dps: 'DPS', tank: 'Tank', support: 'Support', healer: 'Healer' }
+/** Peran perlu minimal sekian pemain di peta itu supaya dibanding sesamanya; kalau kurang, dibanding semua pemain */
+const MIN_PEERS = 3
+const keyName = (r) => (r.name || '').toLowerCase()
+
+/** Rata-rata hanya dari pemain yang angkanya > 0 (supaya kategori jarang seperti Boss Damage tidak melonjak) */
+const activeAvgOf = (rows, keys) => {
+  const avg = {}
+  for (const k of keys) {
+    const xs = rows.map((r) => r[k] || 0).filter((x) => x > 0)
+    avg[k] = xs.length ? xs.reduce((t, x) => t + x, 0) / xs.length : 0
+  }
   return avg
 }
+
+export function detectRole(r, activeAvg) {
+  if (isHealer(r.job)) return 'healer'
+  let best = null
+  let bestV = 0
+  for (const [role, keys] of Object.entries(ROLE_DETECT))
+    for (const k of keys) {
+      const v = activeAvg[k] > 0 ? (r[k] || 0) / activeAvg[k] : 0
+      if (v > bestV) [best, bestV] = [role, v]
+    }
+  return best || 'dps' // semua 0 (AFK): peran tidak penting, skornya tetap 0
+}
+
+/** Rata-rata satu peta: rata-rata semua pemain + peran otomatis tiap pemain + rata-rata per peran */
+export function mapAverages(rows) {
+  const overall = avgOf(rows, ACT_KEYS)
+  const activeAvg = activeAvgOf(rows, ACT_KEYS)
+  const roleOf = new Map()
+  const groups = { dps: [], tank: [], support: [], healer: [] }
+  for (const r of rows) {
+    const role = detectRole(r, activeAvg)
+    roleOf.set(keyName(r), role)
+    groups[role].push(r)
+  }
+  const roleAvg = {}
+  const roleSize = {}
+  for (const [role, g] of Object.entries(groups)) {
+    roleAvg[role] = avgOf(g, ROLE_KEYS[role])
+    roleSize[role] = g.length
+  }
+  return { ...overall, overall, activeAvg, roleOf, roleAvg, roleSize }
+}
+/** Peran pemain di peta itu (hasil deteksi otomatis) */
+export const playerRole = (r, avg) => avg.roleOf?.get(keyName(r)) || detectRole(r, avg.activeAvg || avg)
 /**
- * Skor = kategori terbaik pemain dibanding rata-rata (1 = sama dengan rata-rata).
- * Priest: hanya Heal & Revive dibanding rata-rata sesama priest. Job lain: kategori terbaik dibanding rata-rata guild.
+ * Skor = kategori terbaik pemain di antara kategori perannya, dibanding rata-rata sesama perannya di peta itu
+ * (100% = rata-rata peran itu). Peran yang pemainnya kurang dari 3 dibanding rata-rata semua pemain di peta itu.
  */
 export function activityScore(r, avg) {
+  const role = playerRole(r, avg)
+  const keys = ROLE_KEYS[role]
+  const overall = avg.overall || avg
+  const base = avg.roleSize && avg.roleSize[role] >= MIN_PEERS ? avg.roleAvg[role] : overall
   let best = 0
-  if (isHealer(r.job) && avg.healer && HEALER_KEYS.some((k) => avg.healer[k] > 0)) {
-    for (const k of HEALER_KEYS) if (avg.healer[k] > 0) best = Math.max(best, (r[k] || 0) / avg.healer[k])
-    return best
+  for (const k of keys) {
+    const b = base[k] > 0 ? base[k] : overall[k]
+    if (b > 0) best = Math.max(best, (r[k] || 0) / b)
   }
-  for (const k of ACT_KEYS) if (avg[k] > 0) best = Math.max(best, (r[k] || 0) / avg[k])
   return best
 }
 /** Ringkasan musuh di satu peta: guild lain dengan pemain terbanyak */

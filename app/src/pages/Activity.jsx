@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, q, rpc } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
-import { parseWarResult, isIdle, mapAverages, activityScore, enemySummary, detectMap, LOW_SCORE } from '../lib/warResult.js'
+import { parseWarResult, isIdle, mapAverages, activityScore, playerRole, ROLE_LABEL, enemySummary, detectMap, LOW_SCORE } from '../lib/warResult.js'
 import JobIcon from '../components/JobIcon.jsx'
 
 // Cek pemain aktif / tidak aktif di Guild League dari kehadiran war dan statistik hasil war di game.
@@ -125,6 +125,7 @@ function SortTh({ k, num, sort, setSort, children, title }) {
 function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
   const [map, setMap] = useState('all')
   const [filter, setFilter] = useState('')
+  const [roleF, setRoleF] = useState('')
   const [sort, setSort] = useState({ k: 'score', dir: -1 })
   const byId = useMemo(() => new Map(members.map((m) => [m.id, m])), [members])
 
@@ -134,19 +135,16 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
     const metaOf = Object.fromEntries(meta.map((x) => [x.map, x]))
     const out = new Map()
     const keyOf = (x) => (x.member_id ? `m${x.member_id}` : `n${x.name.toLowerCase()}`)
+    const seen = new Set() // pemain yang ada di hasil war (peta mana pun)
+    // satu baris per pemain per peta: Main dan Sub tidak digabung, skor dibanding pemain di peta itu saja
     for (const x of stats) {
       if (!maps.includes(x.map)) continue
       const k = keyOf(x)
+      seen.add(k)
       const score = activityScore(x, avg[x.map])
       const noEnemy = metaOf[x.map] ? metaOf[x.map].enemy_active === 0 : false
-      const cur = out.get(k)
-      if (!cur) out.set(k, { key: k, m: byId.get(x.member_id), name: x.name, job: x.job, st: { ...x }, maps: [x.map], score, noEnemy })
-      else {
-        for (const f of ['kills', 'assists', 'player_dmg', 'building_dmg', 'heal', 'deaths', 'revives', 'boss_dmg', 'monsters', 'flag_repair']) cur.st[f] += x[f]
-        cur.maps.push(x.map)
-        cur.score = Math.max(cur.score, score)
-        cur.noEnemy = cur.noEnemy && noEnemy
-      }
+      const role = playerRole(x, avg[x.map])
+      out.set(`${k}-${x.map}`, { key: `${k}-${x.map}`, m: byId.get(x.member_id), name: x.name, job: x.job, st: { ...x }, maps: [x.map], score, noEnemy, role })
     }
     for (const r of out.values()) {
       const a = r.m ? att.find((x) => x.member_id === r.m.id)?.status : null
@@ -157,17 +155,22 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
     // yang tidak ada di hasil war: absen / izin / hadir tanpa hasil (hanya saat lihat semua peta)
     if (map === 'all' && stats.length)
       for (const m of members) {
-        if (!m.active || out.has(`m${m.id}`)) continue
+        if (!m.active || seen.has(`m${m.id}`)) continue
         const a = att.find((x) => x.member_id === m.id)?.status
-        out.set(`m${m.id}`, { key: `m${m.id}`, m, name: m.name, job: m.class, st: null, maps: [], score: null, status: a === 'excused' ? 'excused' : 'missed' })
+        out.set(`m${m.id}`, { key: `m${m.id}`, m, name: m.name, job: m.class, st: null, maps: [], score: null, status: a === 'excused' ? 'excused' : 'missed', score: a === 'excused' ? null : 0 })
+      }
+    if (map === 'all' && !stats.length && att.length)
+      for (const m of members) {
+        if (!m.active || att.some((x) => x.member_id === m.id)) continue
+        out.set(`m${m.id}`, { key: `m${m.id}`, m, name: m.name, job: m.class, st: null, maps: [], score: 0, status: 'missed' })
       }
     if (map === 'all')
       for (const a of att) {
         const k = `m${a.member_id}`
-        if (out.has(k)) continue
+        if (seen.has(k) || out.has(k)) continue
         const m = byId.get(a.member_id)
         if (!m) continue
-        out.set(k, { key: k, m, name: m.name, job: m.class, st: null, maps: [], score: null, status: a.status === 'present' ? 'present' : a.status })
+        out.set(k, { key: k, m, name: m.name, job: m.class, st: null, maps: [], score: a.status === 'absent' ? 0 : null, status: a.status === 'present' ? 'present' : a.status === 'absent' ? 'missed' : a.status })
       }
     return [...out.values()]
   }, [map, stats, meta, att, byId, members])
@@ -175,10 +178,11 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
   const ST = {
     present: ['Hadir', 'pill-green'],
     afk: ['AFK', 'pill-red'],
-    missed: ['Absen war', 'pill-miss'],
+    missed: ['Absent', 'pill-miss'],
     absent: ['Absen', 'pill-muted'],
     excused: ['Izin', 'pill-blue'],
     unknown: ['Tidak di roster', 'pill-orange'],
+    noshow: ['Tidak hadir (tidak tercatat)', 'pill-muted'],
   }
   const counts = useMemo(() => {
     const c = {}
@@ -187,17 +191,20 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
   }, [rows])
   const val = {
     name: (r) => r.name.toLowerCase(),
-    status: (r) => ['afk', 'missed', 'present', 'excused', 'absent', 'unknown'].indexOf(r.status),
+    status: (r) => ['afk', 'missed', 'noshow', 'present', 'excused', 'absent', 'unknown'].indexOf(r.status),
     map: (r) => r.maps.join('+') || 'z',
+    role: (r) => r.role || 'z',
     score: (r) => r.score,
     kills: (r) => r.st?.kills, assists: (r) => r.st?.assists, deaths: (r) => r.st?.deaths,
-    player_dmg: (r) => r.st?.player_dmg, building_dmg: (r) => r.st?.building_dmg, heal: (r) => r.st?.heal,
+    player_dmg: (r) => r.st?.player_dmg, endure: (r) => r.st?.endure, building_dmg: (r) => r.st?.building_dmg, heal: (r) => r.st?.heal,
     afkweek: (r) => (r.m ? weekAfk.get(r.m.id)?.afk || 0 : null),
     revives: (r) => r.st?.revives, boss_dmg: (r) => r.st?.boss_dmg, flag_repair: (r) => r.st?.flag_repair,
   }
   const term = search.trim().toLowerCase()
   const shown = rows
     .filter((r) => !filter || r.status === filter)
+    // Absent tidak punya peran: filter peran tidak berlaku saat melihat daftar Absent
+    .filter((r) => !roleF || filter === 'missed' || r.role === roleF)
     .filter((r) => !term || r.name.toLowerCase().includes(term) || (r.job || '').toLowerCase().includes(term))
     .sort((a, b) => {
       const f = val[sort.k] || val.score
@@ -208,7 +215,7 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
   const total = (k) => rows.reduce((t, r) => t + (r.st?.[k] || 0), 0)
   const mapsAvail = ['main', 'sub'].filter((k) => stats.some((x) => x.map === k))
   const cols = [
-    ['kills', 'Kill'], ['assists', 'Assist'], ['deaths', 'Mati'], ['player_dmg', 'Damage'], ['building_dmg', 'Bangunan'],
+    ['kills', 'Kill'], ['assists', 'Assist'], ['deaths', 'Mati'], ['player_dmg', 'Damage'], ['endure', 'Dmg diterima'], ['building_dmg', 'Bangunan'],
     ['heal', 'Heal'], ['revives', 'Revive'], ['boss_dmg', 'Boss'], ['flag_repair', 'Flag'],
   ]
 
@@ -251,11 +258,28 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
           {Object.keys(ST)
             .filter((k) => counts[k])
             .map((k) => (
-              <button key={k} className={filter === k ? 'is-on' : ''} onClick={() => setFilter(filter === k ? '' : k)}>
+              <button
+                key={k}
+                className={filter === k ? 'is-on' : ''}
+                onClick={() => {
+                  setFilter(filter === k ? '' : k)
+                  if (k === 'missed') setRoleF('')
+                }}
+              >
                 {`${ST[k][0]} ${counts[k]}`}
               </button>
             ))}
         </div>
+        {stats.length > 0 && (
+          <div className="act-gldetail-chips">
+            <button className={!roleF ? 'is-on' : ''} onClick={() => setRoleF('')}>Semua peran</button>
+            {['dps', 'tank', 'support', 'healer'].map((k) => (
+              <button key={k} className={roleF === k ? 'is-on' : ''} onClick={() => setRoleF(roleF === k ? '' : k)}>
+                <span className={`role-tag role-${k}`}>{ROLE_LABEL[k]}</span> {rows.filter((r) => r.role === k).length}
+              </button>
+            ))}
+          </div>
+        )}
         {stats.length > 0 && (
           <div className="small muted notranslate">{`Total: K ${total('kills')} · A ${total('assists')} · Dmg ${short(total('player_dmg'))} · Bld ${short(total('building_dmg'))} · Heal ${short(total('heal'))}`}</div>
         )}
@@ -269,7 +293,8 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
               <SortTh k="name" sort={sort} setSort={setSort}>Karakter</SortTh>
               <SortTh k="status" sort={sort} setSort={setSort}>Status</SortTh>
               <SortTh k="map" sort={sort} setSort={setSort}>Peta</SortTh>
-              <SortTh k="score" num sort={sort} setSort={setSort} title="Kategori terbaik dibanding rata-rata guild di peta yang sama">Skor</SortTh>
+              <SortTh k="role" sort={sort} setSort={setSort} title="Ditentukan otomatis dari angka hasil war (bukan dari job)">Peran</SortTh>
+              <SortTh k="score" num sort={sort} setSort={setSort} title="Kategori terbaik dibanding rata-rata pemain di peta yang sama (Main dan Sub terpisah)">Skor</SortTh>
               <SortTh k="afkweek" num sort={sort} setSort={setSort} title={`AFK dalam minggu ${weekLabel(weekStart(g.s.starts_at).getTime())}`}>AFK minggu ini</SortTh>
               {cols.map(([k, l]) => (
                 <SortTh key={k} k={k} num sort={sort} setSort={setSort}>{l}</SortTh>
@@ -293,23 +318,24 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
                   <span className={`pill ${ST[r.status][1]}`}>{ST[r.status][0]}</span>
                 </td>
                 <td data-label="Peta">{r.maps.length ? <MapTags maps={r.maps} /> : '–'}</td>
+                <td data-label="Peran">{r.role ? <span className={`role-tag role-${r.role}`}>{ROLE_LABEL[r.role]}</span> : '–'}</td>
                 <td data-label="Skor" className={`num ${r.score != null && r.score < LOW_SCORE ? 'text-red' : ''}`}>
                   {r.score == null ? '–' : `${Math.round(r.score * 100)}%`}
                 </td>
                 <td data-label="AFK minggu ini" className={`num ${(weekAfk.get(r.m?.id)?.afk || 0) >= 2 ? 'text-red' : ''}`}>
                   {r.m && weekAfk.get(r.m.id) ? `${weekAfk.get(r.m.id).afk}/${weekAfk.get(r.m.id).gl}` : '–'}
-                  {r.m && weekAfk.get(r.m.id)?.miss ? <div className="small act-miss-txt">{`✗ ${weekAfk.get(r.m.id).miss} absen war`}</div> : null}
+                  {r.m && weekAfk.get(r.m.id)?.miss ? <div className="small act-miss-txt">{`✗ ${weekAfk.get(r.m.id).miss} absent`}</div> : null}
                 </td>
                 {cols.map(([k, l]) => (
                   <td key={k} data-label={l} className="num">
-                    {r.st ? (['player_dmg', 'building_dmg', 'heal', 'boss_dmg'].includes(k) ? short(r.st[k]) : r.st[k]) : '–'}
+                    {r.st ? (['player_dmg', 'endure', 'building_dmg', 'heal', 'boss_dmg'].includes(k) ? short(r.st[k]) : r.st[k]) : '–'}
                   </td>
                 ))}
               </tr>
             ))}
             {!shown.length && (
               <tr>
-                <td colSpan={6 + cols.length} className="muted small">
+                <td colSpan={7 + cols.length} className="muted small">
                   Tidak ada data.
                 </td>
               </tr>
@@ -426,18 +452,24 @@ export default function Activity() {
       const key = `${s.event_id}-${s.map}`
       const meta = metaOf.get(key)
       const noEnemy = meta ? meta.enemy_active === 0 : false
+      // skor dihitung per peta (Main dan Sub tidak digabung): dibanding rata-rata pemain BEBAS di peta itu saja
       const score = activityScore(s, avgOf.get(key))
+      const pm = { score, noEnemy, weak: isIdle(s) || score < LOW_SCORE }
       const m = get(s.member_id)
       const cur = m.stats.get(s.event_id)
-      if (!cur) m.stats.set(s.event_id, { ...s, maps: [s.map], score, noEnemy, enemy: meta?.enemy_guild })
+      if (!cur) m.stats.set(s.event_id, { ...s, maps: [s.map], per: { [s.map]: pm }, score, noEnemy, enemy: meta?.enemy_guild })
       else {
-        for (const k of ['kills', 'assists', 'player_dmg', 'building_dmg', 'heal', 'deaths', 'revives', 'boss_dmg', 'monsters', 'flag_repair']) cur[k] += s[k]
+        for (const k of ['kills', 'assists', 'player_dmg', 'building_dmg', 'heal', 'endure', 'deaths', 'revives', 'boss_dmg', 'monsters', 'flag_repair']) cur[k] += s[k]
         cur.maps.push(s.map)
-        cur.score = Math.max(cur.score, score)
+        cur.per[s.map] = pm
+        // untuk tampilan ringkas: skor terendah (AFK di salah satu peta tidak tertutup peta lain)
+        cur.score = Math.min(cur.score, score)
         cur.noEnemy = cur.noEnemy && noEnemy
       }
     }
     const withStatsSessions = new Set(stats.filter((s) => winIds.has(s.event_id)).map((s) => s.event_id))
+    // GL yang punya catatan kehadiran (tanpa hasil war): pemain aktif yang tidak tercatat = tidak hadir
+    const withAttSessions = new Set(att.filter((a) => winIds.has(a.event_id)).map((a) => a.event_id))
     return members
       .filter((m) => m.active)
       .map((m) => {
@@ -446,23 +478,35 @@ export default function Activity() {
           const st = d.stats.get(s.id)
           // GL yang punya hasil war: tidak ada di hasil = tidak ikut war (status sendiri, bukan AFK; kecuali izin)
           const missed = !st && withStatsSessions.has(s.id) && d.att.get(s.id) !== 'excused'
-          const a = missed ? 'absent' : d.att.get(s.id) || (st ? 'present' : null)
+          const noshow = !st && !missed && !d.att.get(s.id) && withAttSessions.has(s.id)
+          // tidak tercatat: ditampilkan, tapi tidak dihitung absen (catatan GL tanpa hasil war berasal dari papan party, bisa tidak lengkap)
+          // tidak ada di hasil war / tidak tercatat = Absent (skor 0), kecuali izin
+          const a = missed || noshow ? 'absent' : d.att.get(s.id) || (st ? 'present' : null)
           // AFK = skor di bawah 25% rata-rata guild (termasuk 0), hanya kalau musuh ada
-          const weak = st ? isIdle(st) || st.score < LOW_SCORE : false
-          const noEnemy = st ? weak && st.noEnemy : false
-          const idle = st ? weak && !st.noEnemy : false
+          // AFK dinilai per peta: AFK kalau di salah satu peta yang dia mainkan skornya < 25% dan musuh ada
+          const pms = st ? Object.values(st.per) : []
+          const idle = pms.some((p) => p.weak && !p.noEnemy)
+          const noEnemy = !idle && pms.some((p) => p.weak && p.noEnemy)
           const low = false
-          return { s, a, st, idle, noEnemy, low, missed }
+          return { s, a, st, idle, noEnemy, low, missed, noshow }
         })
         const counted = hist.filter((h) => h.a)
         const present = counted.filter((h) => h.a === 'present').length
         const absent = counted.filter((h) => h.a === 'absent').length
         const excused = counted.filter((h) => h.a === 'excused').length
         const afk = hist.filter((h) => h.a === 'present' && h.idle).length
-        const missedN = hist.filter((h) => h.missed).length
+        const missedN = hist.filter((h) => h.missed || h.noshow).length
         const lowWars = hist.filter((h) => h.a === 'present' && h.low).length
-        const scored = hist.filter((h) => h.st && !h.noEnemy)
-        const avgScore = scored.length ? scored.reduce((t, h) => t + h.st.score, 0) / scored.length : null
+        // rata-rata skor per peta (Main dan Sub terpisah); peta tanpa musuh aktif tidak dihitung
+        const mapScores = { main: [], sub: [] }
+        for (const h of hist) if (h.st) for (const [k, p] of Object.entries(h.st.per)) if (!p.noEnemy) mapScores[k].push(p.score)
+        const mean = (xs) => (xs.length ? xs.reduce((t, x) => t + x, 0) / xs.length : null)
+        const avgByMap = { main: mean(mapScores.main), sub: mean(mapScores.sub) }
+        // GL yang absen dihitung skor 0 di rata-rata keseluruhan
+        const absentZeros = hist.filter((h) => h.missed || h.noshow).map(() => 0)
+        const allScores = [...mapScores.main, ...mapScores.sub, ...absentZeros]
+        const scored = allScores
+        const avgScore = mean(allScores)
         // war dengan data hasil game yang tidak memuat pemain ini (tidak masuk peta)
         const withStats = hist.filter((h) => h.st)
         const sum = (k) => withStats.reduce((t, h) => t + (h.st[k] || 0), 0)
@@ -485,7 +529,7 @@ export default function Activity() {
           const w = weekAfk.get(wk) || { afk: 0, gl: 0 }
           if (h.st || h.a) w.gl++
           if (h.a === 'present' && h.idle) w.afk++
-          if (h.missed) w.miss = (w.miss || 0) + 1
+          if (h.missed || h.noshow) w.miss = (w.miss || 0) + 1
           weekAfk.set(wk, w)
         }
         let maxWeek = null
@@ -493,9 +537,9 @@ export default function Activity() {
         const lastSeen = [...hist].reverse().find((h) => h.a === 'present')?.s.starts_at
         // AFK di war terakhir yang punya data hasil (1x dimaklumi, tapi tetap ditampilkan)
         const lastWithStats = [...hist].reverse().find((h) => h.st)
-        const lastGl = [...hist].reverse().find((h) => h.st || h.missed)
+        const lastGl = [...hist].reverse().find((h) => h.st || h.missed || h.noshow)
         const lastAfk = !!(lastGl && lastGl.a === 'present' && lastGl.idle)
-        const lastMissed = !!lastGl?.missed
+        const lastMissed = !!(lastGl?.missed || lastGl?.noshow)
         return {
           m,
           hist,
@@ -505,13 +549,14 @@ export default function Activity() {
           afk,
           lowWars,
           avgScore,
+          avgByMap,
           lastAfk,
           weekAfk,
           maxWeek,
           lastScore: lastWithStats?.st?.score ?? null,
           lastMissed,
           missedN,
-          glWithStats: withStatsSessions.size,
+          glWithStats: new Set([...withStatsSessions, ...withAttSessions]).size,
           pct,
           st,
           lastSeen,
@@ -583,7 +628,7 @@ export default function Activity() {
         {['active', 'low', 'afk', 'inactive', 'nodata', 'lastafk', 'lastmiss'].map((k) => (
           <button key={k} className={`act-tile ${status === k ? 'is-on' : ''} act-${k}`} onClick={() => setStatus(status === k ? '' : k)}>
             <b>{counts[k]}</b>
-            <span>{k === 'lastafk' ? 'AFK di war terakhir' : k === 'lastmiss' ? 'Absen war terakhir' : STATUS[k].label}</span>
+            <span>{k === 'lastafk' ? 'AFK di war terakhir' : k === 'lastmiss' ? 'Absent di GL terakhir' : STATUS[k].label}</span>
           </button>
         ))}
       </div>
@@ -612,7 +657,7 @@ export default function Activity() {
                   {g.maps.length ? (
                     <>
                       {afkPerGl.get(g.s.id) ? <span className="text-red">{`⚠ ${afkPerGl.get(g.s.id)} AFK`}</span> : null}
-                      {missPerGl.get(g.s.id) ? <span className="act-miss-txt">{`✗ ${missPerGl.get(g.s.id)} absen war`}</span> : null}
+                      {missPerGl.get(g.s.id) ? <span className="act-miss-txt">{`✗ ${missPerGl.get(g.s.id)} absent`}</span> : null}
                       <MapTags maps={g.maps} />
                       {g.enemy ? <span>{`vs ${g.enemy}`}</span> : null}
                     </>
@@ -643,7 +688,7 @@ export default function Activity() {
       <p className="muted small">
         {winSessions.length
           ? `${winSessions.length} war dihitung: ${dateFmt(winSessions[winSessions.length - 1].starts_at)} – ${dateFmt(winSessions[0].starts_at)}. ` +
-            'Tidak aktif = hadir < 50% atau absen 2 war terakhir. Aktif = hadir ≥ 75%. Skor = kategori terbaik dibanding rata-rata guild di peta yang sama (100% = rata-rata). Priest dinilai dari Heal & Revive dibanding sesama priest. Skor di bawah 25% = AFK. Absen war = tidak ada di hasil war (status sendiri, dihitung absen, bukan AFK). 1x AFK masih dimaklumi, baru "Perlu dicek" kalau 2x atau lebih. AFK tidak dihitung kalau musuh tidak ada.'
+            'Tidak aktif = hadir < 50% atau absen 2 war terakhir. Aktif = hadir ≥ 75%. Peran (DPS/Tank/Support/Healer) ditentukan otomatis dari angka hasil war. Skor = kategori terbaik perannya dibanding rata-rata sesama peran di peta itu; Main dan Sub dihitung terpisah (100% = rata-rata). Priest selalu Healer: Heal & Revive. Skor di bawah 25% = AFK. Absent = tidak ada di hasil war atau tidak tercatat (status sendiri, skor 0, bukan AFK). 1x AFK masih dimaklumi, baru "Perlu dicek" kalau 2x atau lebih. AFK tidak dihitung kalau musuh tidak ada.'
           : loading
             ? 'Memuat…'
             : 'Belum ada war Guild League yang dikonfirmasi.'}
@@ -661,7 +706,7 @@ export default function Activity() {
               <SortTh k="kills" num sort={sort} setSort={setSort}>Kill / Assist</SortTh>
               <SortTh k="dmg" num sort={sort} setSort={setSort}>Damage</SortTh>
               <SortTh k="heal" num sort={sort} setSort={setSort}>Heal</SortTh>
-              <SortTh k="missed" num sort={sort} setSort={setSort} title="Berapa kali absen war (tidak ada di hasil war) dari GL yang punya hasil">Absen war</SortTh>
+              <SortTh k="missed" num sort={sort} setSort={setSort} title="Berapa kali Absent (tidak ada di hasil war atau tidak tercatat) dari GL yang tercatat">Absent</SortTh>
               <SortTh k="afkweek" num sort={sort} setSort={setSort} title="AFK terbanyak dalam 1 minggu (Senin–Minggu) di periode ini">AFK / minggu</SortTh>
               <SortTh k="last" sort={sort} setSort={setSort}>Terakhir hadir</SortTh>
             </tr>
@@ -682,7 +727,7 @@ export default function Activity() {
                   <td data-label="Status">
                     <span className={`pill ${STATUS[r.st].cls}`}>{STATUS[r.st].label}</span>
                     {r.lastAfk && <span className="pill pill-orange act-lastafk">{`AFK terakhir · skor ${Math.round((r.lastScore || 0) * 100)}%`}</span>}
-                    {r.lastMissed && <span className="pill pill-miss act-lastafk">Absen war terakhir</span>}
+                    {r.lastMissed && <span className="pill pill-miss act-lastafk">Absent di GL terakhir</span>}
                   </td>
                   <td data-label="Hadir">{r.pct == null ? '–' : `${r.present}/${r.present + r.absent} · ${Math.round(r.pct * 100)}%`}</td>
                   <td data-label="Riwayat">
@@ -691,14 +736,26 @@ export default function Activity() {
                         <span
                           key={h.s.id}
                           data-no={glNo.get(h.s.id)}
-                          className={`act-dot ${h.missed ? 'is-miss' : h.a === 'present' ? (h.idle ? 'is-afk' : h.low ? 'is-low' : h.noEnemy ? 'is-ne' : 'is-p') : h.a === 'absent' ? 'is-a' : h.a === 'excused' ? 'is-e' : ''}`}
-                          title={`GL ${glNo.get(h.s.id)} · ${glLabel(h.s.starts_at)}: ${h.missed ? 'absen war' : h.a === 'present' ? (h.idle ? `hadir tapi AFK (skor ${Math.round(h.st.score * 100)}%)` : h.noEnemy ? 'hadir, tidak ada musuh' : `hadir (skor ${h.st ? Math.round(h.st.score * 100) + '%' : '–'})`) : h.a === 'absent' ? 'absen' : h.a === 'excused' ? 'izin' : 'tidak terdaftar'}`}
+                          className={`act-dot ${h.missed || h.noshow ? 'is-miss' : h.a === 'present' ? (h.idle ? 'is-afk' : h.low ? 'is-low' : h.noEnemy ? 'is-ne' : 'is-p') : h.a === 'absent' ? 'is-a' : h.a === 'excused' ? 'is-e' : ''}`}
+                          title={`GL ${glNo.get(h.s.id)} · ${glLabel(h.s.starts_at)}: ${h.missed || h.noshow ? 'Absent (skor 0)' : h.a === 'present' ? (h.idle ? `hadir tapi AFK (skor terendah ${Math.round(h.st.score * 100)}%)` : h.noEnemy ? 'hadir, tidak ada musuh' : `hadir (skor ${h.st ? Math.round(h.st.score * 100) + '%' : '–'})`) : h.a === 'absent' ? 'absen' : h.a === 'excused' ? 'izin' : 'tidak terdaftar'}`}
                         />
                       ))}
                     </div>
                   </td>
                   <td data-label="Skor" className={`num ${r.avgScore != null && r.avgScore < LOW_SCORE ? 'text-red' : ''}`}>
-                    {r.avgScore == null ? '–' : `${Math.round(r.avgScore * 100)}%`}
+                    {r.avgScore == null ? (
+                      '–'
+                    ) : (
+                      <div className="act-mapscores">
+                        {['main', 'sub']
+                          .filter((k) => r.avgByMap[k] != null)
+                          .map((k) => (
+                            <span key={k} className={r.avgByMap[k] < LOW_SCORE ? 'text-red' : ''}>
+                              <MapTag k={k} /> {`${Math.round(r.avgByMap[k] * 100)}%`}
+                            </span>
+                          ))}
+                      </div>
+                    )}
                   </td>
                   <td data-label="Kill / Assist" className="num">
                     {r.warsWithStats ? `${r.avg.kills.toFixed(1)} / ${r.avg.assists.toFixed(1)}` : '–'}
@@ -709,7 +766,7 @@ export default function Activity() {
                   <td data-label="Heal" className="num">
                     {r.warsWithStats ? short(Math.round(r.avg.heal)) : '–'}
                   </td>
-                  <td data-label="Absen war" className="num">
+                  <td data-label="Absent" className="num">
                     {r.glWithStats ? <span className={r.missedN ? 'act-miss-txt' : 'muted'}>{`${r.missedN}× / ${r.glWithStats}`}</span> : '–'}
                   </td>
                   <td data-label="AFK / minggu" className={`num ${r.maxWeek?.afk >= 2 ? 'text-red' : ''}`}>
@@ -731,12 +788,18 @@ export default function Activity() {
                                 <b>{glLabel(h.s.starts_at)}</b>
                               </div>
                               <div>
-                                <b>{h.missed ? 'Absen war' : h.a === 'present' ? (h.idle ? 'Hadir · AFK' : h.noEnemy ? 'Hadir · tidak ada musuh' : 'Hadir') : h.a === 'absent' ? 'Absen' : h.a === 'excused' ? 'Izin' : '–'}</b>
+                                <b>{h.missed || h.noshow ? 'Absent · skor 0' : h.a === 'present' ? (h.idle ? 'Hadir · AFK' : h.noEnemy ? 'Hadir · tidak ada musuh' : 'Hadir') : h.a === 'absent' ? 'Absen' : h.a === 'excused' ? 'Izin' : '–'}</b>
                                 {h.st && (
                                   <span className="small muted">
                                     {' '}
-                                    <MapTags maps={h.st.maps} />
-                                    {`${h.st.enemy ? ` vs ${h.st.enemy}` : ''} · skor ${Math.round(h.st.score * 100)}%`}
+                                    {['main', 'sub']
+                                      .filter((k) => h.st.per[k])
+                                      .map((k) => (
+                                        <span key={k} className={h.st.per[k].weak && !h.st.per[k].noEnemy ? 'text-red' : ''}>
+                                          <MapTag k={k} /> {`${Math.round(h.st.per[k].score * 100)}% `}
+                                        </span>
+                                      ))}
+                                    {h.st.enemy ? `vs ${h.st.enemy}` : ''}
                                   </span>
                                 )}
                               </div>
