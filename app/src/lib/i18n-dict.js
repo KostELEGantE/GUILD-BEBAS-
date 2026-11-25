@@ -341,6 +341,12 @@ export const DICT = {
   'Tutup': ['', 'Tutup', 'Close', 'ปิด', 'Isara'],
   'Ada hasil war': ['', 'Ada keputusan perang', 'Has war result', 'มีผลวอร์', 'May resulta ng war'],
   'Pilih GL…': ['', 'Pilih GL…', 'Pick a GL…', 'เลือก GL…', 'Pumili ng GL…'],
+  'AFK/mgg': ['', 'AFK/mgg', 'AFK/wk', 'AFK/สัปดาห์', 'AFK/linggo'],
+  'Objective tidak masuk skor. Hanya status khusus untuk pemain yang mengerjakan Building, Monster, MVP (boss), atau Flag.': ['', 'Objective tidak masuk skor. Hanya status khas untuk pemain yang buat Building, Monster, MVP (boss) atau Flag.', 'Objective is not part of the score. It is only a special status for players who did Building, Monster, MVP (boss) or Flag.', 'Objective ไม่นับในคะแนน เป็นแค่สถานะพิเศษสำหรับคนที่ทำ Building, Monster, MVP (บอส) หรือ Flag', 'Hindi kasama sa score ang Objective. Espesyal na status lang para sa gumawa ng Building, Monster, MVP (boss) o Flag.'],
+  'Total guild:': ['', 'Jumlah guild:', 'Guild total:', 'รวมกิลด์:', 'Kabuuan ng guild:'],
+  'MVP': ['', 'MVP', 'MVP', 'MVP', 'MVP'],
+  'Building': ['', 'Building', 'Building', 'Building', 'Building'],
+  'Monster': ['', 'Monster', 'Monster', 'Monster', 'Monster'],
   'AFK di war terakhir': ['', 'AFK dalam perang terakhir', 'AFK in the last war', 'AFK ในวอร์ล่าสุด', 'AFK sa huling war'],
   'Belum dapat party': ['', 'Belum dapat parti', 'No party yet', 'ยังไม่มีปาร์ตี้', 'Wala pang party'],
   'Belum dapat party ·': ['', 'Belum dapat parti ·', 'No party yet ·', 'ยังไม่มีปาร์ตี้ ·', 'Wala pang party ·'],
@@ -753,6 +759,9 @@ export const DICT = {
 // Teks dinamis (berisi nama/angka). $1, $2 … = bagian yang diisi.
 // Format: [regex, [Indonesia, Melayu, English, ไทย, Filipino]]
 export const PATTERNS = [
+  [/^(DPS|Tank|Healer) dinilai dari (.+)\. Skor = nilai terbaik pemain ÷ rata-rata sesama (?:DPS|Tank|Healer) di peta yang sama \(100% = rata-rata\)\. Di bawah 25% = AFK\.$/, ['', '$1 dinilai daripada $2. Skor = nilai terbaik pemain ÷ purata $1 lain di peta yang sama (100% = purata). Bawah 25% = AFK.', '$1 is scored on $2. Score = the player\'s best value ÷ the average of other $1s on the same map (100% = average). Under 25% = AFK.', '$1 วัดจาก $2 คะแนน = ค่าที่ดีที่สุด ÷ ค่าเฉลี่ยของ $1 คนอื่นในแผนที่เดียวกัน (100% = ค่าเฉลี่ย) ต่ำกว่า 25% = AFK', 'Ang $1 ay sinusukat sa $2. Score = pinakamagandang value ÷ average ng ibang $1 sa parehong mapa (100% = average). < 25% = AFK.']],
+  [/^Rata-rata (\d+) (DPS|Tank|Healer):$/, ['', 'Purata $1 $2:', 'Average of $1 $2s:', 'ค่าเฉลี่ย $2 $1 คน:', 'Average ng $1 $2:']],
+  [/^Hanya (\d+) (DPS|Tank|Healer), dibanding rata-rata semua pemain:$/, ['', 'Hanya $1 $2, berbanding purata semua pemain:', 'Only $1 $2, compared with all players:', 'มี $2 แค่ $1 คน เทียบค่าเฉลี่ยผู้เล่นทั้งหมด:', '$1 $2 lang, kumpara sa lahat ng player:']],
   [/^((?:Min|Sen|Sel|Rab|Kam|Jum|Sab) .+) · absen saja$/, ['', '$1 · kehadiran sahaja', '$1 · attendance only', '$1 · เช็คชื่อเท่านั้น', '$1 · attendance lang']],
   [/^Semua GL \((\d+)\)$/, ['', 'Semua GL ($1)', 'All GL ($1)', 'GL ทั้งหมด ($1)', 'Lahat ng GL ($1)']],
   [/^GL (\d) · (Min|Sen|Sel|Rab|Kam|Jum|Sab) (.+)$/, ['', 'GL $1 · $2 $3', 'GL $1 · $2 $3', 'GL $1 · $2 $3', 'GL $1 · $2 $3']],

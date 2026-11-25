@@ -1216,3 +1216,8 @@ tr.is-miss-row td { background: rgba(170,130,255,.05); }
 .act-hist-item:hover, .act-hist-item.is-on { border-color: #e3b45a; background: rgba(227,180,90,.12); }
 .act-histbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 8px; }
 .act-histbar select { padding: 4px 8px; border-radius: 8px; font-size: 13px; max-width: 280px; }
+/* Penjelasan cara hitung per peran */
+.act-explain { flex-basis: 100%; display: grid; gap: 4px; padding: 8px 12px; border-radius: 10px; background: rgba(227,180,90,.07); border: 1px solid rgba(227,180,90,.3); font-size: 12.5px; }
+.act-explain-line { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+th.is-focus { color: #e3b45a; background: rgba(227,180,90,.08); }
+td.is-focus { background: rgba(227,180,90,.05); font-weight: 600; }

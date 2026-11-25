@@ -2,7 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, q, rpc } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
 import { tr } from '../lib/i18n.js'
-import { parseWarResult, isIdle, mapAverages, activityScore, playerRole, autoRole, objectivesOf, ROLES, ROLE_LABEL, enemySummary, detectMap, LOW_SCORE } from '../lib/warResult.js'
+import { parseWarResult, isIdle, mapAverages, activityScore, playerRole, autoRole, objectivesOf, ROLES, ROLE_LABEL, ROLE_KEYS, OBJECTIVE_KEYS, enemySummary, detectMap, LOW_SCORE } from '../lib/warResult.js'
 import JobIcon from '../components/JobIcon.jsx'
 
 // Cek pemain aktif / tidak aktif di Guild League dari kehadiran war dan statistik hasil war di game.
@@ -125,12 +125,12 @@ const SUM_SORT = {
 }
 const TEXT_KEYS = new Set(['name', 'map', 'status'])
 /** Header tabel yang bisa diklik untuk urutkan (klik lagi = balik arah, klik ketiga = urutan bawaan) */
-function SortTh({ k, num, sort, setSort, children, title }) {
+function SortTh({ k, num, sort, setSort, children, title, focus }) {
   const on = sort.k === k
   const first = TEXT_KEYS.has(k) ? 1 : -1 // angka: besar dulu; teks: A→Z dulu
   const click = () => setSort(!on ? { k, dir: first } : sort.dir === first ? { k, dir: -first } : { k: '', dir: 1 })
   return (
-    <th className={`sortable ${num ? 'num' : ''} ${on ? 'is-sorted' : ''}`} onClick={click} title={title || 'Klik untuk urutkan'}>
+    <th className={`sortable ${num ? 'num' : ''} ${on ? 'is-sorted' : ''} ${focus ? 'is-focus' : ''}`} onClick={click} title={title || 'Klik untuk urutkan'}>
       {children}
       <span className="sort-ind">{on ? (sort.dir === 1 ? ' ▲' : ' ▼') : ' ↕'}</span>
     </th>
@@ -239,6 +239,7 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onCha
     kills: (r) => r.st?.kills, assists: (r) => r.st?.assists, deaths: (r) => r.st?.deaths,
     player_dmg: (r) => r.st?.player_dmg, endure: (r) => r.st?.endure, building_dmg: (r) => r.st?.building_dmg, heal: (r) => r.st?.heal,
     afkweek: (r) => (r.m ? weekAfk.get(r.m.id)?.afk || 0 : null),
+    monsters: (r) => r.st?.monsters, boss_dmg: (r) => r.st?.boss_dmg, flag_repair: (r) => r.st?.flag_repair,
     revives: (r) => r.st?.revives, boss_dmg: (r) => r.st?.boss_dmg, flag_repair: (r) => r.st?.flag_repair,
   }
   const term = search.trim().toLowerCase()
@@ -255,10 +256,46 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onCha
     })
   const total = (k) => rows.reduce((t, r) => t + (r.st?.[k] || 0), 0)
   const mapsAvail = ['main', 'sub'].filter((k) => stats.some((x) => x.map === k))
-  const cols = [
-    ['kills', 'Kill'], ['assists', 'Assist'], ['deaths', 'Mati'], ['player_dmg', 'Damage'], ['endure', 'Dmg diterima'],
-    ['heal', 'Heal'], ['revives', 'Revive'],
-  ]
+  const COL_LABEL = { kills: 'Kill', assists: 'Assist', deaths: 'Mati', player_dmg: 'Damage', endure: 'Dmg diterima', heal: 'Heal', revives: 'Revive', building_dmg: 'Building', monsters: 'Monster', boss_dmg: 'MVP', flag_repair: 'Flag' }
+  const baseCols = ['kills', 'assists', 'deaths', 'player_dmg', 'endure', 'heal', 'revives']
+  // Filter peran dipilih: kolom yang dinilai untuk peran itu dipindah ke depan (dan disorot)
+  const focus = ROLES.includes(roleF) ? ROLE_KEYS[roleF] : roleF === 'obj' ? OBJECTIVE_KEYS.map(([k]) => k) : []
+  const cols = [...focus, ...baseCols.filter((k) => !focus.includes(k))].map((k) => [k, COL_LABEL[k]])
+  // Rata-rata per peta untuk penjelasan cara hitung
+  const mapAvgs = useMemo(
+    () => Object.fromEntries(['main', 'sub'].filter((k) => stats.some((x) => x.map === k)).map((k) => [k, mapAverages(stats.filter((x) => x.map === k))])),
+    [stats],
+  )
+  const fmtAvg = (k, v) => (['player_dmg', 'endure', 'heal', 'building_dmg', 'boss_dmg'].includes(k) ? short(Math.round(v)) : (Math.round(v * 10) / 10).toLocaleString('id-ID'))
+  const explain = (() => {
+    if (!roleF) return null
+    const maps = Object.keys(mapAvgs).filter((k) => map === 'all' || k === map)
+    if (roleF === 'obj') {
+      return {
+        head: 'Objective tidak masuk skor. Hanya status khusus untuk pemain yang mengerjakan Building, Monster, MVP (boss), atau Flag.',
+        lines: maps.map((mk) => ({
+          mk,
+          text: OBJECTIVE_KEYS.map(([k, label]) => `${label} ${fmtAvg(k, stats.filter((x) => x.map === mk).reduce((t, x) => t + (x[k] || 0), 0))}`).join(' · '),
+          pre: 'Total guild:',
+        })),
+      }
+    }
+    const keys = ROLE_KEYS[roleF]
+    return {
+      head: `${ROLE_LABEL[roleF]} dinilai dari ${keys.map((k) => COL_LABEL[k]).join(', ')}. Skor = nilai terbaik pemain ÷ rata-rata sesama ${ROLE_LABEL[roleF]} di peta yang sama (100% = rata-rata). Di bawah 25% = AFK.`,
+      lines: maps.map((mk) => {
+        const a = mapAvgs[mk]
+        const n = a.roleSize?.[roleF] || 0
+        const peer = n >= 3
+        const base = peer ? a.roleAvg[roleF] : a.overall
+        return {
+          mk,
+          pre: peer ? `Rata-rata ${n} ${ROLE_LABEL[roleF]}:` : `Hanya ${n} ${ROLE_LABEL[roleF]}, dibanding rata-rata semua pemain:`,
+          text: keys.map((k) => `${COL_LABEL[k]} ${fmtAvg(k, base[k] || 0)}`).join(' · '),
+        }
+      }),
+    }
+  })()
 
   return (
     <div className="card act-gldetail">
@@ -348,6 +385,16 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onCha
             </button>
           </div>
         )}
+        {explain && (
+          <div className="act-explain">
+            <div>{explain.head}</div>
+            {explain.lines.map((l) => (
+              <div key={l.mk} className="act-explain-line">
+                <MapTag k={l.mk} /> <span className="muted">{l.pre}</span> <b className="notranslate">{l.text}</b>
+              </div>
+            ))}
+          </div>
+        )}
         {stats.length > 0 && (
           <div className="small muted notranslate">{`Total: K ${total('kills')} · A ${total('assists')} · Dmg ${short(total('player_dmg'))} · Bld ${short(total('building_dmg'))} · Heal ${short(total('heal'))}`}</div>
         )}
@@ -364,9 +411,9 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onCha
               <SortTh k="role" sort={sort} setSort={setSort} title="Ditentukan otomatis dari angka hasil war (bukan dari job)">Peran</SortTh>
               <SortTh k="score" num sort={sort} setSort={setSort} title="Kategori terbaik dibanding rata-rata pemain di peta yang sama (Main dan Sub terpisah)">Skor</SortTh>
               <SortTh k="obj" sort={sort} setSort={setSort} title="Aktivitas tambahan (Building, Monster, MVP, Flag). Tidak dihitung ke skor.">Objective</SortTh>
-              <SortTh k="afkweek" num sort={sort} setSort={setSort} title={`AFK dalam minggu ${weekLabel(weekStart(g.s.starts_at).getTime())}`}>AFK minggu ini</SortTh>
+              <SortTh k="afkweek" num sort={sort} setSort={setSort} title={`AFK dalam minggu ${weekLabel(weekStart(g.s.starts_at).getTime())}`}>AFK/mgg</SortTh>
               {cols.map(([k, l]) => (
-                <SortTh key={k} k={k} num sort={sort} setSort={setSort}>{l}</SortTh>
+                <SortTh key={k} k={k} num sort={sort} setSort={setSort} focus={focus.includes(k)}>{l}</SortTh>
               ))}
             </tr>
           </thead>
@@ -423,12 +470,12 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onCha
                     '–'
                   )}
                 </td>
-                <td data-label="AFK minggu ini" className={`num ${(weekAfk.get(r.m?.id)?.afk || 0) >= 2 ? 'text-red' : ''}`}>
+                <td data-label="AFK/mgg" className={`num ${(weekAfk.get(r.m?.id)?.afk || 0) >= 2 ? 'text-red' : ''}`}>
                   {r.m && weekAfk.get(r.m.id) ? `${weekAfk.get(r.m.id).afk}/${weekAfk.get(r.m.id).gl}` : '–'}
                   {r.m && weekAfk.get(r.m.id)?.miss ? <div className="small act-miss-txt">{`✗ ${weekAfk.get(r.m.id).miss} absent`}</div> : null}
                 </td>
                 {cols.map(([k, l]) => (
-                  <td key={k} data-label={l} className="num">
+                  <td key={k} data-label={l} className={`num ${focus.includes(k) ? 'is-focus' : ''}`}>
                     {r.st ? (['player_dmg', 'endure', 'building_dmg', 'heal', 'boss_dmg'].includes(k) ? short(r.st[k]) : r.st[k]) : '–'}
                   </td>
                 ))}
