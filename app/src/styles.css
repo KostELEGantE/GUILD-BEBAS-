@@ -1207,3 +1207,10 @@ tr.is-miss-row td { background: rgba(170,130,255,.05); }
 .import-kind { font-size: 12px; }
 .import-war { color: #ffd36b; }
 .import-attendance { color: #9fd0ff; }
+/* Riwayat GL */
+.act-gl-hist .act-gl-no { background: #7b5cc4; color: #fff; }
+.act-hist { padding: 14px; display: grid; gap: 10px; }
+.act-hist-week { display: grid; gap: 6px; }
+.act-hist-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.act-hist-item { display: grid; gap: 2px; text-align: left; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line, #2c2f3a); background: rgba(255,255,255,.03); color: inherit; cursor: pointer; min-width: 190px; }
+.act-hist-item:hover, .act-hist-item.is-on { border-color: #e3b45a; background: rgba(227,180,90,.12); }

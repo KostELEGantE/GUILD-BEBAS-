@@ -1,3 +1,4 @@
+import GUILD from '../guild.js'
 import { getLocale } from './i18n.js'
 export const MODES = {
   guild_league: { label: 'Guild League', short: 'GL', color: 'var(--gl)' },
@@ -117,8 +118,9 @@ export function debounce(fn, ms = 150) {
   d.cancel = () => clearTimeout(t)
   return d
 }
-export const DISCORD_URL = 'https://discord.gg/ex4R57YNw'
-export const APP_VERSION = '2.16'
+// Link Discord guild (BEBAS / SYNDICATE), dari guild.js
+export const DISCORD_URL = GUILD.discord
+export const APP_VERSION = '2.17'
 // class yang bisa dipilih saat mendaftarkan karakter
 export const CLASSES = [
   'Lord Knight', 'Paladin', 'High Wizard', 'Professor', 'Scholar', 'High Priest', 'Champion', 'Sniper',

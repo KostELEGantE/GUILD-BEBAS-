@@ -11,6 +11,7 @@ const GUILDS = {
     logo: bebasLogo,
     cfProject: 'guild-bebas',
     repo: 'KostELEGantE/GUILD-BEBAS-',
+    discord: 'https://discord.gg/ex4R57YNw',
   },
   syndicate: {
     id: 'syndicate',
@@ -20,6 +21,7 @@ const GUILDS = {
     logo: syndicateLogo,
     cfProject: 'guild-syndicate',
     repo: 'KostELEGantE/GUILD-SYNDICATE',
+    discord: 'https://discord.gg/A53fbWUMNJ',
   },
 }
 
