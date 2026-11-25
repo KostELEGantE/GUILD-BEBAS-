@@ -1123,7 +1123,7 @@ a.server-time:hover { background: rgba(255,255,255,.05); }
 .act-war-head .act-gl-no { width: 18px; height: 18px; font-size: 11px; }
 .act-dot { position: relative; width: 20px !important; height: 20px !important; display: inline-grid !important; place-items: center; }
 .act-dot::after { content: attr(data-no); font: 700 10px/1 system-ui, sans-serif; color: rgba(0,0,0,.75); }
-.act-dot:not(.is-p):not(.is-afk):not(.is-low):not(.is-ne):not(.is-a):not(.is-e)::after { color: var(--muted, #8a8f9c); }
+.act-dot:not(.is-p):not(.is-afk):not(.is-low):not(.is-ne):not(.is-a):not(.is-e):not(.is-miss)::after { color: var(--muted, #8a8f9c); }
 /* Pilih GL saat import: per minggu, tombol GL 1/2/3 */
 .act-pick { display: grid; gap: 10px; margin-top: 4px; }
 .act-pick-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }

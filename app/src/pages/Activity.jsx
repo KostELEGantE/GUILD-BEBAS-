@@ -1149,7 +1149,7 @@ export default function Activity() {
               <SortTh k="name" sort={sort} setSort={setSort}>Karakter</SortTh>
               <SortTh k="status" sort={sort} setSort={setSort}>Status</SortTh>
               <SortTh k="pct" sort={sort} setSort={setSort}>Hadir</SortTh>
-              <SortTh k="hist" num sort={sort} setSort={setSort} title="Urutkan: paling sering hadir (tanpa AFK) dulu">{`Riwayat GL (1 terbaru → ${chrono.length || '…'} terlama)`}</SortTh>
+              <SortTh k="hist" num sort={sort} setSort={setSort} title="Urutkan: paling sering hadir (tanpa AFK) dulu">{`Riwayat GL (1 terbaru → ${Math.min(chrono.length, 5) || '…'} terlama)`}</SortTh>
               <SortTh k="score" num sort={sort} setSort={setSort}>Skor</SortTh>
               <SortTh k="kills" num sort={sort} setSort={setSort}>Kill / Assist</SortTh>
               <SortTh k="dmg" num sort={sort} setSort={setSort}>Damage</SortTh>
@@ -1180,7 +1180,7 @@ export default function Activity() {
                   <td data-label="Hadir">{r.pct == null ? '–' : `${r.present}/${r.present + r.absent} · ${Math.round(r.pct * 100)}%`}</td>
                   <td data-label="Riwayat">
                     <div className="act-dots">
-                      {[...r.hist].reverse().map((h) => (
+                      {[...r.hist].reverse().slice(0, 5).map((h) => (
                         <span
                           key={h.s.id}
                           data-no={glNo.get(h.s.id)}
