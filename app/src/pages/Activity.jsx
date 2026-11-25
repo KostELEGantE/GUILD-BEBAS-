@@ -132,7 +132,32 @@ const SUM_SORT = {
   afkweek: (r) => (r.maxWeek ? r.maxWeek.afk : 0),
   missed: (r) => r.missedN,
   status: (r) => STATUS[r.st].rank,
+  // riwayat: paling sering hadir (tanpa AFK) dulu
+  hist: (r) => r.present - r.afk + (r.hist.length - r.missedN) / 1000,
 }
+/** Kolom tabel ringkasan yang bisa disorot / dipilih (nomor = urutan kolom) */
+const SUM_COLS = [
+  { n: 3, label: 'Hadir' },
+  { n: 4, label: 'Riwayat GL' },
+  { n: 5, label: 'Skor' },
+  { n: 6, label: 'Kill / Assist' },
+  { n: 7, label: 'Damage' },
+  { n: 8, label: 'Heal' },
+  { n: 9, label: 'Absent' },
+  { n: 10, label: 'AFK / minggu' },
+  { n: 11, label: 'Terakhir hadir' },
+]
+const loadCols = () => {
+  try {
+    const v = JSON.parse(localStorage.getItem('act:hlcols') || 'null')
+    return v && Array.isArray(v.cols) ? v : { cols: [], only: false }
+  } catch {
+    return { cols: [], only: false }
+  }
+}
+/** Status satu member di satu GL (untuk filter) */
+const histKey = (h) => (h.missed || h.noshow ? 'absent' : h.a === 'present' ? (h.idle ? 'afk' : 'present') : h.a === 'excused' ? 'excused' : h.a === 'absent' ? 'absent' : 'none')
+const SCORE_BANDS = { hi: (x) => x != null && x >= 0.75, mid: (x) => x != null && x >= LOW_SCORE && x < 0.75, lo: (x) => x != null && x < LOW_SCORE, none: (x) => x == null }
 const TEXT_KEYS = new Set(['name', 'map', 'status'])
 /** Header tabel yang bisa diklik untuk urutkan (klik lagi = balik arah, klik ketiga = urutan bawaan) */
 function SortTh({ k, num, sort, setSort, children, title, focus }) {
@@ -619,6 +644,21 @@ export default function Activity() {
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState('')
   const [search, setSearch] = useState('')
+  const [fClass, setFClass] = useState('') // filter job
+  const [fMap, setFMap] = useState('') // filter peta yang dimainkan
+  const [fGl, setFGl] = useState('') // filter GL tertentu ('' = GL mana saja di periode)
+  const [fGlSt, setFGlSt] = useState('') // status di GL itu
+  const [fScore, setFScore] = useState('') // rentang skor
+  const [hl, setHl] = useState(loadCols) // kolom yang disorot { cols: [n], only: tampilkan hanya kolom itu }
+  const saveHl = (v) => {
+    setHl(v)
+    try { localStorage.setItem('act:hlcols', JSON.stringify(v)) } catch {}
+  }
+  const toggleCol = (n) => saveHl({ ...hl, cols: hl.cols.includes(n) ? hl.cols.filter((x) => x !== n) : [...hl.cols, n] })
+  const hlCss = hl.cols.length
+    ? hl.cols.map((n) => `.act-sumtbl tr:not(.act-detail) > :nth-child(${n}){background:rgba(227,180,90,.10);font-weight:600}.act-sumtbl thead th:nth-child(${n}){color:#e3b45a;background:#2f2a1f}`).join('') +
+      (hl.only ? SUM_COLS.filter((c) => !hl.cols.includes(c.n)).map((c) => `.act-sumtbl tr:not(.act-detail) > :nth-child(${c.n}){display:none}`).join('') : '')
+    : ''
   const [open, setOpen] = useState(null)
   const [importOpen, setImportOpen] = useState(false)
   const [glView, setGlView] = useState(null) // id sesi GL yang sedang dilihat (null = semua)
@@ -811,6 +851,9 @@ export default function Activity() {
       })
   }, [members, att, stats, mapsMeta, winIds, chrono])
 
+  const classes = useMemo(() => [...new Set(rows.map((r) => r.m.class).filter(Boolean))].sort(), [rows])
+  const anyFilter = !!(search || fClass || fMap || fGlSt || fScore || status)
+  const resetFilters = () => { setSearch(''); setFClass(''); setFMap(''); setFGl(''); setFGlSt(''); setFScore(''); setStatus('') }
   const counts = useMemo(() => {
     const c = { active: 0, low: 0, afk: 0, inactive: 0, nodata: 0, lastafk: 0, lastmiss: 0 }
     for (const r of rows) c[r.st]++
@@ -822,6 +865,10 @@ export default function Activity() {
   const shown = rows
     .filter((r) => !status || (status === 'lastafk' ? r.lastAfk : status === 'lastmiss' ? r.lastMissed : r.st === status))
     .filter((r) => !search.trim() || r.m.name.toLowerCase().includes(search.trim().toLowerCase()) || (r.m.class || '').toLowerCase().includes(search.trim().toLowerCase()))
+    .filter((r) => !fClass || r.m.class === fClass)
+    .filter((r) => !fMap || r.hist.some((h) => h.st?.maps.includes(fMap)))
+    .filter((r) => !fGlSt || r.hist.some((h) => (!fGl || String(h.s.id) === fGl) && histKey(h) === fGlSt))
+    .filter((r) => !fScore || SCORE_BANDS[fScore](r.avgScore))
     .sort((a, b) => {
       if (sort.k) {
         const v = SUM_SORT[sort.k]
@@ -905,6 +952,48 @@ export default function Activity() {
           ))}
         </select>
         <input placeholder="Cari nama / class…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <select value={fClass} onChange={(e) => setFClass(e.target.value)} title="Filter job">
+          <option value="">Semua job</option>
+          {classes.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <select value={fMap} onChange={(e) => setFMap(e.target.value)} title="Filter peta yang dimainkan">
+          <option value="">Semua peta</option>
+          <option value="main">Main</option>
+          <option value="sub">Sub</option>
+        </select>
+        <select value={fScore} onChange={(e) => setFScore(e.target.value)} title="Filter rata-rata skor">
+          <option value="">Semua skor</option>
+          <option value="hi">Skor ≥ 75%</option>
+          <option value="mid">Skor 25–75%</option>
+          <option value="lo">Skor &lt; 25% (AFK)</option>
+          <option value="none">Belum ada skor</option>
+        </select>
+        <select value={fGlSt} onChange={(e) => setFGlSt(e.target.value)} title="Filter status di GL">
+          <option value="">Status di GL: semua</option>
+          <option value="present">Hadir</option>
+          <option value="afk">AFK</option>
+          <option value="absent">Absent</option>
+          <option value="excused">Izin</option>
+        </select>
+        {fGlSt && (
+          <select value={fGl} onChange={(e) => setFGl(e.target.value)} title="Di GL yang mana">
+            <option value="">di GL mana saja</option>
+            {glInfo.map((g) => (
+              <option key={g.s.id} value={String(g.s.id)}>
+                {`${g.no}. ${glStage(g.s.starts_at)} · ${glLabel(g.s.starts_at)}`}
+              </option>
+            ))}
+          </select>
+        )}
+        {anyFilter && (
+          <button type="button" className="btn btn-ghost" onClick={resetFilters}>
+            ✕ Reset filter
+          </button>
+        )}
       </div>
 
       <div className="act-tiles">
@@ -1031,14 +1120,33 @@ export default function Activity() {
             : 'Belum ada war Guild League yang dikonfirmasi.'}
       </p>
 
+      <div className="act-hlcols">
+        <span className="small muted">Sorot kolom:</span>
+        {SUM_COLS.map((c) => (
+          <button key={c.n} type="button" className={hl.cols.includes(c.n) ? 'is-on' : ''} onClick={() => toggleCol(c.n)}>
+            {c.label}
+          </button>
+        ))}
+        {hl.cols.length > 0 && (
+          <>
+            <label className="act-hlonly small">
+              <input type="checkbox" checked={hl.only} onChange={(e) => saveHl({ ...hl, only: e.target.checked })} /> Tampilkan hanya kolom ini
+            </label>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => saveHl({ cols: [], only: false })}>
+              ✕ Hapus sorotan
+            </button>
+          </>
+        )}
+      </div>
+      {hlCss && <style>{hlCss}</style>}
       <div className="table-wrap card flush act-scroll">
-        <table className="table table-cards act-table">
+        <table className="table table-cards act-table act-sumtbl">
           <thead>
             <tr>
               <SortTh k="name" sort={sort} setSort={setSort}>Karakter</SortTh>
               <SortTh k="status" sort={sort} setSort={setSort}>Status</SortTh>
               <SortTh k="pct" sort={sort} setSort={setSort}>Hadir</SortTh>
-              <th>{`Riwayat GL (1 terbaru → ${chrono.length || '…'} terlama)`}</th>
+              <SortTh k="hist" num sort={sort} setSort={setSort} title="Urutkan: paling sering hadir (tanpa AFK) dulu">{`Riwayat GL (1 terbaru → ${chrono.length || '…'} terlama)`}</SortTh>
               <SortTh k="score" num sort={sort} setSort={setSort}>Skor</SortTh>
               <SortTh k="kills" num sort={sort} setSort={setSort}>Kill / Assist</SortTh>
               <SortTh k="dmg" num sort={sort} setSort={setSort}>Damage</SortTh>

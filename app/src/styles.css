@@ -1252,3 +1252,9 @@ td.is-focus { background: rgba(227,180,90,.05); font-weight: 600; }
 .role-preview-cmp b { font-size: 18px; }
 .role-preview-arrow { font-size: 20px; color: #e3b45a; }
 .role-preview-table tr.is-best td { color: #e3b45a; }
+/* filter tambahan & sorot kolom di tabel ringkasan aktivitas */
+.act-filters select { flex: 0 1 auto; max-width: 260px; }
+.act-hlcols { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 8px; }
+.act-hlcols > button:not(.btn) { border: 1px solid var(--line, #333); background: transparent; color: inherit; border-radius: 999px; padding: 3px 11px; font-size: 12.5px; cursor: pointer; }
+.act-hlcols > button.is-on { border-color: #e3b45a; background: rgba(227,180,90,.16); color: #e3b45a; font-weight: 600; }
+.act-hlonly { display: inline-flex; align-items: center; gap: 5px; margin-left: 6px; cursor: pointer; }
