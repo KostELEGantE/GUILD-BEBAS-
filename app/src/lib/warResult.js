@@ -61,24 +61,33 @@ const avgOf = (rows, keys) => {
 }
 /**
  * Peran ditentukan OTOMATIS dari angka hasil war tiap pemain (bukan dari job),
- * karena Creator/Whitesmith dsb. bisa DPS atau support tergantung build.
+ * karena Creator/Whitesmith dsb. bisa DPS atau tank tergantung build. Moderator bisa mengoreksi (kolom role).
  * - Priest (job penyembuh) selalu Healer.
- * - Lainnya: peran = profil yang paling menonjol dibanding rata-rata pemain di peta itu.
+ * - Lainnya: DPS atau Tank, mana yang paling menonjol dibanding rata-rata pemain aktif di peta itu.
+ * Objective (Building, Monster, MVP/Boss, Flag Repair) TIDAK masuk skor: hanya ditampilkan sebagai status khusus.
  */
-export const ROLE_DETECT = { dps: ['kills', 'player_dmg', 'building_dmg'], tank: ['endure'], support: ['assists', 'boss_dmg', 'monsters', 'flag_repair'] }
+export const ROLES = ['dps', 'tank', 'healer']
+export const ROLE_DETECT = { dps: ['kills', 'assists', 'player_dmg'], tank: ['endure'] }
 /** Kategori yang dinilai untuk tiap peran, dibanding sesama peran di peta yang sama */
 export const ROLE_KEYS = {
-  dps: ['kills', 'player_dmg', 'building_dmg'],
+  dps: ['kills', 'assists', 'player_dmg'],
   tank: ['endure', 'assists'],
-  support: ['assists', 'boss_dmg', 'monsters', 'flag_repair'],
   healer: ['heal', 'revives'],
 }
-export const ROLE_LABEL = { dps: 'DPS', tank: 'Tank', support: 'Support', healer: 'Healer' }
+export const ROLE_LABEL = { dps: 'DPS', tank: 'Tank', healer: 'Healer' }
+/** Objective: aktivitas tambahan, ditampilkan sebagai status khusus, tidak dihitung ke skor */
+export const OBJECTIVE_KEYS = [
+  ['building_dmg', 'Building', '🏰'],
+  ['monsters', 'Monster', '👹'],
+  ['boss_dmg', 'MVP', '🐉'],
+  ['flag_repair', 'Flag', '🚩'],
+]
+export const objectivesOf = (r) => OBJECTIVE_KEYS.filter(([k]) => (r[k] || 0) > 0).map(([k, label, icon]) => ({ k, label, icon, v: r[k] }))
 /** Peran perlu minimal sekian pemain di peta itu supaya dibanding sesamanya; kalau kurang, dibanding semua pemain */
 const MIN_PEERS = 3
 const keyName = (r) => (r.name || '').toLowerCase()
 
-/** Rata-rata hanya dari pemain yang angkanya > 0 (supaya kategori jarang seperti Boss Damage tidak melonjak) */
+/** Rata-rata hanya dari pemain yang angkanya > 0 (supaya kategori jarang tidak melonjak) */
 const activeAvgOf = (rows, keys) => {
   const avg = {}
   for (const k of keys) {
@@ -88,6 +97,7 @@ const activeAvgOf = (rows, keys) => {
   return avg
 }
 
+/** Peran otomatis (tanpa koreksi moderator) */
 export function detectRole(r, activeAvg) {
   if (isHealer(r.job)) return 'healer'
   let best = null
@@ -100,14 +110,17 @@ export function detectRole(r, activeAvg) {
   return best || 'dps' // semua 0 (AFK): peran tidak penting, skornya tetap 0
 }
 
-/** Rata-rata satu peta: rata-rata semua pemain + peran otomatis tiap pemain + rata-rata per peran */
+/** Rata-rata satu peta: rata-rata semua pemain + peran tiap pemain (koreksi moderator dulu, lalu otomatis) + rata-rata per peran */
 export function mapAverages(rows) {
   const overall = avgOf(rows, ACT_KEYS)
   const activeAvg = activeAvgOf(rows, ACT_KEYS)
   const roleOf = new Map()
-  const groups = { dps: [], tank: [], support: [], healer: [] }
+  const autoOf = new Map()
+  const groups = { dps: [], tank: [], healer: [] }
   for (const r of rows) {
-    const role = detectRole(r, activeAvg)
+    const auto = detectRole(r, activeAvg)
+    const role = ROLES.includes(r.role) ? r.role : auto
+    autoOf.set(keyName(r), auto)
     roleOf.set(keyName(r), role)
     groups[role].push(r)
   }
@@ -117,13 +130,17 @@ export function mapAverages(rows) {
     roleAvg[role] = avgOf(g, ROLE_KEYS[role])
     roleSize[role] = g.length
   }
-  return { ...overall, overall, activeAvg, roleOf, roleAvg, roleSize }
+  return { ...overall, overall, activeAvg, roleOf, autoOf, roleAvg, roleSize }
 }
-/** Peran pemain di peta itu (hasil deteksi otomatis) */
-export const playerRole = (r, avg) => avg.roleOf?.get(keyName(r)) || detectRole(r, avg.activeAvg || avg)
+/** Peran pemain di peta itu (koreksi moderator kalau ada, kalau tidak otomatis) */
+export const playerRole = (r, avg) =>
+  (ROLES.includes(r.role) && r.role) || avg.roleOf?.get(keyName(r)) || detectRole(r, avg.activeAvg || avg)
+/** Peran hasil deteksi otomatis saja (untuk ditampilkan di samping koreksi) */
+export const autoRole = (r, avg) => avg.autoOf?.get(keyName(r)) || detectRole(r, avg.activeAvg || avg)
 /**
  * Skor = kategori terbaik pemain di antara kategori perannya, dibanding rata-rata sesama perannya di peta itu
  * (100% = rata-rata peran itu). Peran yang pemainnya kurang dari 3 dibanding rata-rata semua pemain di peta itu.
+ * Objective tidak dihitung.
  */
 export function activityScore(r, avg) {
   const role = playerRole(r, avg)

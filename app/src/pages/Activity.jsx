@@ -1,7 +1,8 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, q, rpc } from '../lib/supabase.js'
 import { useApp, useAction } from '../context.jsx'
-import { parseWarResult, isIdle, mapAverages, activityScore, playerRole, ROLE_LABEL, enemySummary, detectMap, LOW_SCORE } from '../lib/warResult.js'
+import { tr } from '../lib/i18n.js'
+import { parseWarResult, isIdle, mapAverages, activityScore, playerRole, autoRole, objectivesOf, ROLES, ROLE_LABEL, enemySummary, detectMap, LOW_SCORE } from '../lib/warResult.js'
 import JobIcon from '../components/JobIcon.jsx'
 
 // Cek pemain aktif / tidak aktif di Guild League dari kehadiran war dan statistik hasil war di game.
@@ -12,6 +13,8 @@ const STATUS = {
   inactive: { label: 'Tidak aktif', cls: 'pill-red', rank: 0 },
   nodata: { label: 'Belum ada data', cls: '', rank: 3 },
 }
+/** Musuh aktif sebanyak ini atau kurang di satu peta = dianggap tidak ada musuh (AFK tidak dihitung) */
+const NO_ENEMY_MAX = 4
 const short = (n) => (n >= 1e9 ? `${(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : String(n))
 const HARI = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
 const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
@@ -42,15 +45,28 @@ export function groupByWeek(sessions) {
     return { ...w, label: `${w.start.getDate()} ${BULAN[w.start.getMonth()]} – ${end.getDate()} ${BULAN[end.getMonth()]}` }
   })
 }
-/** Hari default GL kalau sesinya belum ada (Sel, Kam, Sab · 21:30) — bisa diubah saat input */
-const GL_DAYS = [2, 4, 6]
-const GL_PER_WEEK = 3
+/** Jadwal GL tiap minggu: GL 1 Selasa 21:30, GL 2 Selasa 22:00, GL 3 Kamis 22:00 (bisa diubah saat input) */
+const GL_SCHEDULE = [
+  { dow: 2, h: 21, m: 30 },
+  { dow: 2, h: 22, m: 0 },
+  { dow: 4, h: 22, m: 0 },
+]
+const GL_PER_WEEK = GL_SCHEDULE.length
 const toLocalInput = (d) => {
   const t = new Date(d)
   const p = (n) => String(n).padStart(2, '0')
   return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}T${p(t.getHours())}:${p(t.getMinutes())}`
 }
-/** Tiap minggu selalu 3 slot GL: sesi yang sudah ada diisi berurutan, sisanya slot kosong siap diinput */
+/** Menit sejak Senin 00:00 */
+const minOfWeek = (d) => {
+  const t = new Date(d)
+  return ((t.getDay() + 6) % 7) * 1440 + t.getHours() * 60 + t.getMinutes()
+}
+const slotMin = (j) => {
+  const g = GL_SCHEDULE[j] || GL_SCHEDULE[GL_SCHEDULE.length - 1]
+  return ((g.dow + 6) % 7) * 1440 + g.h * 60 + g.m
+}
+/** Tiap minggu selalu 3 slot GL: sesi yang sudah ada diisi ke slot jadwal terdekat, sisanya slot kosong siap diinput */
 export function weekSlots(sessions, nWeeks = 4) {
   const now = new Date()
   const out = []
@@ -62,16 +78,15 @@ export function weekSlots(sessions, nWeeks = 4) {
     const list = sessions
       .filter((s) => { const t = new Date(s.starts_at); return t >= start && t < end })
       .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at))
-    // taruh sesi yang ada di slot dengan hari default terdekat (Sel→GL1, Kam→GL2, Sab→GL3), tetap berurutan
+    // taruh sesi yang ada di slot jadwal terdekat (hari + jam), tetap berurutan
     const total = Math.max(GL_PER_WEEK, list.length)
     const at = new Array(total).fill(null)
     let next = 0
     list.forEach((s, i) => {
-      const dow = (new Date(s.starts_at).getDay() + 6) % 7
+      const mw = minOfWeek(s.starts_at)
       let best = next
       for (let j = next; j <= total - (list.length - i); j++) {
-        const dj = ((GL_DAYS[j] ?? 6) + 6) % 7
-        if (Math.abs(dj - dow) < Math.abs((((GL_DAYS[best] ?? 6) + 6) % 7) - dow)) best = j
+        if (Math.abs(slotMin(j) - mw) < Math.abs(slotMin(best) - mw)) best = j
       }
       at[best] = s
       next = best + 1
@@ -81,11 +96,12 @@ export function weekSlots(sessions, nWeeks = 4) {
       const s = at[n - 1]
       if (s) { slots.push({ n, s, key: String(s.id) }); continue }
       const prev = slots[slots.length - 1]
+      const g = GL_SCHEDULE[n - 1] || GL_SCHEDULE[GL_SCHEDULE.length - 1]
       const d = new Date(start)
-      d.setDate(d.getDate() + ((GL_DAYS[n - 1] ?? 6) + 6) % 7)
-      d.setHours(21, 30, 0, 0)
+      d.setDate(d.getDate() + ((g.dow + 6) % 7))
+      d.setHours(g.h, g.m, 0, 0)
       const prevT = prev ? new Date(prev.s ? prev.s.starts_at : prev.at) : null
-      if (prevT && d <= prevT) { d.setTime(prevT.getTime()); d.setDate(d.getDate() + 1); d.setHours(21, 30, 0, 0) }
+      if (prevT && d <= prevT) { d.setTime(prevT.getTime() + 30 * 60000) }
       slots.push({ n, s: null, at: toLocalInput(d), key: `new:${start.getTime()}:${n}`, future: d > now })
     }
     const last = new Date(end)
@@ -122,7 +138,30 @@ function SortTh({ k, num, sort, setSort, children, title }) {
 }
 
 /** Detail satu GL: semua pemain di GL itu, bisa difilter per peta & status, dan diurutkan per kolom */
-function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
+function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onChanged }) {
+  const { isAdmin } = useApp()
+  const [run, busy] = useAction()
+  const [moving, setMoving] = useState(false)
+  const [moveAt, setMoveAt] = useState(() => toLocalInput(g.s.starts_at))
+  const delGl = () => {
+    if (!window.confirm(tr(`Hapus GL ${glLabel(g.s.starts_at)}? Hasil war Main/Sub dan kehadirannya ikut terhapus. Tidak bisa dibatalkan.`))) return
+    run(async () => {
+      await rpc('delete_gl_session', { p_event_id: g.s.id })
+      onBack()
+      await onChanged()
+    }, 'GL dihapus')
+  }
+  const moveGl = () =>
+    run(async () => {
+      await rpc('move_gl_session', { p_event_id: g.s.id, p_played_at: new Date(moveAt).toISOString() })
+      setMoving(false)
+      await onChanged()
+    }, 'Jadwal GL dipindah')
+  const setRole = (r, role) =>
+    run(async () => {
+      await rpc('set_war_role', { p_event_id: g.s.id, p_map: r.maps[0], p_name: r.name, p_role: role || null })
+      await onChanged()
+    })
   const [map, setMap] = useState('all')
   const [filter, setFilter] = useState('')
   const [roleF, setRoleF] = useState('')
@@ -142,9 +181,10 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
       const k = keyOf(x)
       seen.add(k)
       const score = activityScore(x, avg[x.map])
-      const noEnemy = metaOf[x.map] ? metaOf[x.map].enemy_active === 0 : false
+      const noEnemy = metaOf[x.map] ? metaOf[x.map].enemy_active <= NO_ENEMY_MAX : false
       const role = playerRole(x, avg[x.map])
-      out.set(`${k}-${x.map}`, { key: `${k}-${x.map}`, m: byId.get(x.member_id), name: x.name, job: x.job, st: { ...x }, maps: [x.map], score, noEnemy, role })
+      const auto = autoRole(x, avg[x.map])
+      out.set(`${k}-${x.map}`, { key: `${k}-${x.map}`, m: byId.get(x.member_id), name: x.name, job: x.job, st: { ...x }, maps: [x.map], score, noEnemy, role, auto, fixed: !!x.role, obj: objectivesOf(x) })
     }
     for (const r of out.values()) {
       const a = r.m ? att.find((x) => x.member_id === r.m.id)?.status : null
@@ -194,6 +234,7 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
     status: (r) => ['afk', 'missed', 'noshow', 'present', 'excused', 'absent', 'unknown'].indexOf(r.status),
     map: (r) => r.maps.join('+') || 'z',
     role: (r) => r.role || 'z',
+    obj: (r) => (r.obj ? r.obj.length : null),
     score: (r) => r.score,
     kills: (r) => r.st?.kills, assists: (r) => r.st?.assists, deaths: (r) => r.st?.deaths,
     player_dmg: (r) => r.st?.player_dmg, endure: (r) => r.st?.endure, building_dmg: (r) => r.st?.building_dmg, heal: (r) => r.st?.heal,
@@ -204,7 +245,7 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
   const shown = rows
     .filter((r) => !filter || r.status === filter)
     // Absent tidak punya peran: filter peran tidak berlaku saat melihat daftar Absent
-    .filter((r) => !roleF || filter === 'missed' || r.role === roleF)
+    .filter((r) => !roleF || filter === 'missed' || (roleF === 'obj' ? r.obj && r.obj.length : r.role === roleF))
     .filter((r) => !term || r.name.toLowerCase().includes(term) || (r.job || '').toLowerCase().includes(term))
     .sort((a, b) => {
       const f = val[sort.k] || val.score
@@ -215,8 +256,8 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
   const total = (k) => rows.reduce((t, r) => t + (r.st?.[k] || 0), 0)
   const mapsAvail = ['main', 'sub'].filter((k) => stats.some((x) => x.map === k))
   const cols = [
-    ['kills', 'Kill'], ['assists', 'Assist'], ['deaths', 'Mati'], ['player_dmg', 'Damage'], ['endure', 'Dmg diterima'], ['building_dmg', 'Bangunan'],
-    ['heal', 'Heal'], ['revives', 'Revive'], ['boss_dmg', 'Boss'], ['flag_repair', 'Flag'],
+    ['kills', 'Kill'], ['assists', 'Assist'], ['deaths', 'Mati'], ['player_dmg', 'Damage'], ['endure', 'Dmg diterima'],
+    ['heal', 'Heal'], ['revives', 'Revive'],
   ]
 
   return (
@@ -238,10 +279,34 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
                 : 'Belum ada hasil war untuk GL ini — hanya data absen.'}
           </div>
         </div>
-        <button className="btn btn-ghost" onClick={onBack}>
-          ← Semua GL
-        </button>
+        <div className="act-gldetail-actions">
+          {isAdmin && (
+            <>
+              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setMoving((v) => !v)}>
+                📅 Pindah jadwal
+              </button>
+              <button className="btn btn-danger btn-sm" disabled={busy} onClick={delGl}>
+                🗑 Hapus GL
+              </button>
+            </>
+          )}
+          <button className="btn btn-ghost" onClick={onBack}>
+            ← Semua GL
+          </button>
+        </div>
       </div>
+      {moving && (
+        <div className="act-move">
+          <span className="small">Pindahkan GL ini ke tanggal & jam:</span>
+          <input type="datetime-local" value={moveAt} onChange={(e) => setMoveAt(e.target.value)} />
+          <button className="btn btn-gold btn-sm" disabled={busy || !moveAt} onClick={moveGl}>
+            Simpan
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setMoving(false)}>
+            Batal
+          </button>
+        </div>
+      )}
 
       <div className="act-gldetail-bar">
         {mapsAvail.length > 0 && (
@@ -273,11 +338,14 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
         {stats.length > 0 && (
           <div className="act-gldetail-chips">
             <button className={!roleF ? 'is-on' : ''} onClick={() => setRoleF('')}>Semua peran</button>
-            {['dps', 'tank', 'support', 'healer'].map((k) => (
+            {ROLES.map((k) => (
               <button key={k} className={roleF === k ? 'is-on' : ''} onClick={() => setRoleF(roleF === k ? '' : k)}>
                 <span className={`role-tag role-${k}`}>{ROLE_LABEL[k]}</span> {rows.filter((r) => r.role === k).length}
               </button>
             ))}
+            <button className={roleF === 'obj' ? 'is-on' : ''} onClick={() => setRoleF(roleF === 'obj' ? '' : 'obj')}>
+              <span className="role-tag role-obj">Objective</span> {rows.filter((r) => r.obj && r.obj.length).length}
+            </button>
           </div>
         )}
         {stats.length > 0 && (
@@ -295,6 +363,7 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
               <SortTh k="map" sort={sort} setSort={setSort}>Peta</SortTh>
               <SortTh k="role" sort={sort} setSort={setSort} title="Ditentukan otomatis dari angka hasil war (bukan dari job)">Peran</SortTh>
               <SortTh k="score" num sort={sort} setSort={setSort} title="Kategori terbaik dibanding rata-rata pemain di peta yang sama (Main dan Sub terpisah)">Skor</SortTh>
+              <SortTh k="obj" sort={sort} setSort={setSort} title="Aktivitas tambahan (Building, Monster, MVP, Flag). Tidak dihitung ke skor.">Objective</SortTh>
               <SortTh k="afkweek" num sort={sort} setSort={setSort} title={`AFK dalam minggu ${weekLabel(weekStart(g.s.starts_at).getTime())}`}>AFK minggu ini</SortTh>
               {cols.map(([k, l]) => (
                 <SortTh key={k} k={k} num sort={sort} setSort={setSort}>{l}</SortTh>
@@ -318,9 +387,41 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
                   <span className={`pill ${ST[r.status][1]}`}>{ST[r.status][0]}</span>
                 </td>
                 <td data-label="Peta">{r.maps.length ? <MapTags maps={r.maps} /> : '–'}</td>
-                <td data-label="Peran">{r.role ? <span className={`role-tag role-${r.role}`}>{ROLE_LABEL[r.role]}</span> : '–'}</td>
+                <td data-label="Peran">
+                  {!r.role ? (
+                    '–'
+                  ) : isAdmin ? (
+                    <select
+                      className={`role-select role-${r.role} ${r.fixed ? 'is-fixed' : ''}`}
+                      value={r.fixed ? r.role : ''}
+                      disabled={busy}
+                      onChange={(e) => setRole(r, e.target.value)}
+                      title={r.fixed ? `Dikoreksi moderator (otomatis: ${ROLE_LABEL[r.auto]})` : 'Otomatis dari hasil war — pilih untuk mengoreksi'}
+                    >
+                      <option value="">{`Auto · ${ROLE_LABEL[r.auto]}`}</option>
+                      {ROLES.map((k) => (
+                        <option key={k} value={k}>
+                          {ROLE_LABEL[k]}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className={`role-tag role-${r.role}`}>{ROLE_LABEL[r.role]}</span>
+                  )}
+                </td>
                 <td data-label="Skor" className={`num ${r.score != null && r.score < LOW_SCORE ? 'text-red' : ''}`}>
                   {r.score == null ? '–' : `${Math.round(r.score * 100)}%`}
+                </td>
+                <td data-label="Objective">
+                  {r.obj && r.obj.length ? (
+                    <div className="obj-tags">
+                      {r.obj.map((o) => (
+                        <span key={o.k} className="obj-tag notranslate" title={o.label}>{`${o.icon} ${o.label} ${short(o.v)}`}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    '–'
+                  )}
                 </td>
                 <td data-label="AFK minggu ini" className={`num ${(weekAfk.get(r.m?.id)?.afk || 0) >= 2 ? 'text-red' : ''}`}>
                   {r.m && weekAfk.get(r.m.id) ? `${weekAfk.get(r.m.id).afk}/${weekAfk.get(r.m.id).gl}` : '–'}
@@ -335,7 +436,7 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack }) {
             ))}
             {!shown.length && (
               <tr>
-                <td colSpan={7 + cols.length} className="muted small">
+                <td colSpan={8 + cols.length} className="muted small">
                   Tidak ada data.
                 </td>
               </tr>
@@ -451,7 +552,7 @@ export default function Activity() {
       if (!winIds.has(s.event_id) || !s.member_id) continue
       const key = `${s.event_id}-${s.map}`
       const meta = metaOf.get(key)
-      const noEnemy = meta ? meta.enemy_active === 0 : false
+      const noEnemy = meta ? meta.enemy_active <= NO_ENEMY_MAX : false
       // skor dihitung per peta (Main dan Sub tidak digabung): dibanding rata-rata pemain BEBAS di peta itu saja
       const score = activityScore(s, avgOf.get(key))
       const pm = { score, noEnemy, weak: isIdle(s) || score < LOW_SCORE }
@@ -681,6 +782,7 @@ export default function Activity() {
           search={search}
           weekAfk={new Map(rows.map((r) => [r.m.id, r.weekAfk.get(weekStart(glSel.s.starts_at).getTime())]))}
           onBack={() => setGlView(null)}
+          onChanged={load}
         />
       )}
 
@@ -688,7 +790,7 @@ export default function Activity() {
       <p className="muted small">
         {winSessions.length
           ? `${winSessions.length} war dihitung: ${dateFmt(winSessions[winSessions.length - 1].starts_at)} – ${dateFmt(winSessions[0].starts_at)}. ` +
-            'Tidak aktif = hadir < 50% atau absen 2 war terakhir. Aktif = hadir ≥ 75%. Peran (DPS/Tank/Support/Healer) ditentukan otomatis dari angka hasil war. Skor = kategori terbaik perannya dibanding rata-rata sesama peran di peta itu; Main dan Sub dihitung terpisah (100% = rata-rata). Priest selalu Healer: Heal & Revive. Skor di bawah 25% = AFK. Absent = tidak ada di hasil war atau tidak tercatat (status sendiri, skor 0, bukan AFK). 1x AFK masih dimaklumi, baru "Perlu dicek" kalau 2x atau lebih. AFK tidak dihitung kalau musuh tidak ada.'
+            'Tidak aktif = hadir < 50% atau absen 2 war terakhir. Aktif = hadir ≥ 75%. Peran (DPS/Tank/Healer) ditentukan otomatis dari angka hasil war dan bisa dikoreksi moderator. Skor = kategori terbaik perannya dibanding rata-rata sesama peran di peta itu; Main dan Sub dihitung terpisah (100% = rata-rata). Objective (Building, Monster, MVP, Flag) hanya status khusus, tidak masuk skor. Skor di bawah 25% = AFK. Absent = tidak ada di hasil war atau tidak tercatat (status sendiri, skor 0, bukan AFK). 1x AFK masih dimaklumi, baru "Perlu dicek" kalau 2x atau lebih. AFK tidak dihitung kalau musuh tidak ada.'
           : loading
             ? 'Memuat…'
             : 'Belum ada war Guild League yang dikonfirmasi.'}

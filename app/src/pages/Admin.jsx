@@ -314,28 +314,66 @@ function ImportHistory() {
   const { members } = useApp()
   const [rows, setRows] = useState([])
   const [open, setOpen] = useState(null)
+  const [kind, setKind] = useState('')
+  const [sort, setSort] = useState({ k: 'time', dir: -1 })
   useEffect(() => {
-    q(supabase.from('imports').select('*, by:profiles(display_name)').order('created_at', { ascending: false }).limit(10))
+    q(supabase.from('imports').select('*, by:profiles(display_name)').order('created_at', { ascending: false }).limit(100))
       .then(setRows)
       .catch(() => {})
   }, [members])
   if (!rows.length) return null
+  const KIND = { members: 'Data member', attendance: 'Kehadiran', war: 'Hasil war' }
+  const counts = rows.reduce((c, r) => ({ ...c, [r.kind]: (c[r.kind] || 0) + 1 }), {})
+  const val = {
+    time: (r) => new Date(r.created_at).getTime(),
+    kind: (r) => KIND[r.kind] || r.kind,
+    file: (r) => (r.filename || '').toLowerCase(),
+    rows: (r) => r.row_count ?? 0,
+    by: (r) => (r.by?.display_name || '').toLowerCase(),
+  }
+  const shown = rows
+    .filter((r) => !kind || r.kind === kind)
+    .sort((a, b) => {
+      const x = val[sort.k](a), y = val[sort.k](b)
+      return x === y ? 0 : (x < y ? -1 : 1) * sort.dir
+    })
+  const Th = ({ k, num, children }) => (
+    <th
+      className={`sortable ${num ? 'num' : ''} ${sort.k === k ? 'is-sorted' : ''}`}
+      onClick={() => setSort(sort.k === k ? { k, dir: -sort.dir } : { k, dir: k === 'time' || k === 'rows' ? -1 : 1 })}
+    >
+      {children}
+      <span className="sort-ind">{sort.k === k ? (sort.dir === 1 ? ' ▲' : ' ▼') : ' ↕'}</span>
+    </th>
+  )
   return (
     <div className="card">
       <h3>Riwayat import</h3>
+      <div className="act-gldetail-chips import-filter">
+        <button className={!kind ? 'is-on' : ''} onClick={() => setKind('')}>{`Semua ${rows.length}`}</button>
+        {Object.keys(KIND)
+          .filter((k) => counts[k])
+          .map((k) => (
+            <button key={k} className={kind === k ? 'is-on' : ''} onClick={() => setKind(kind === k ? '' : k)}>
+              {`${KIND[k]} ${counts[k]}`}
+            </button>
+          ))}
+      </div>
       <div className="table-wrap">
         <table className="table compact">
           <thead>
             <tr>
-              <th>Waktu</th>
-              <th>Jenis</th>
-              <th>File</th>
-              <th className="num">Baris</th>
-              <th>Oleh</th>
+              <Th k="time">Waktu</Th>
+              <Th k="kind">Jenis</Th>
+              <Th k="file">File</Th>
+              <Th k="rows" num>
+                Baris
+              </Th>
+              <Th k="by">Oleh</Th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => {
+            {shown.map((r) => {
               const c = r.changes
               const nNew = c?.new?.length ?? 0
               const nLeft = c?.left?.length ?? 0
@@ -345,7 +383,9 @@ function ImportHistory() {
                 <Fragment key={r.id}>
                   <tr className={has ? 'import-row clickable' : 'import-row'} onClick={() => has && setOpen(open === r.id ? null : r.id)}>
                     <td>{fmtDate(r.created_at)}</td>
-                    <td>{r.kind === 'members' ? 'Data member' : 'Kehadiran'}</td>
+                    <td>
+                      <span className={`import-kind import-${r.kind}`}>{KIND[r.kind] || r.kind}</span>
+                    </td>
                     <td className="muted">{r.filename}</td>
                     <td className="num">{r.row_count}</td>
                     <td>
