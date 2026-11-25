@@ -1214,3 +1214,5 @@ tr.is-miss-row td { background: rgba(170,130,255,.05); }
 .act-hist-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .act-hist-item { display: grid; gap: 2px; text-align: left; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line, #2c2f3a); background: rgba(255,255,255,.03); color: inherit; cursor: pointer; min-width: 190px; }
 .act-hist-item:hover, .act-hist-item.is-on { border-color: #e3b45a; background: rgba(227,180,90,.12); }
+.act-histbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 8px; }
+.act-histbar select { padding: 4px 8px; border-radius: 8px; font-size: 13px; max-width: 280px; }

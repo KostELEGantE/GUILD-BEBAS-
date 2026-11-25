@@ -480,7 +480,7 @@ export default function Activity() {
   const [open, setOpen] = useState(null)
   const [importOpen, setImportOpen] = useState(false)
   const [glView, setGlView] = useState(null) // id sesi GL yang sedang dilihat (null = semua)
-  const [histOpen, setHistOpen] = useState(false) // daftar semua GL (termasuk di luar periode)
+  const [histMonth, setHistMonth] = useState('') // bulan yang dipilih di dropdown Riwayat GL (YYYY-MM)
   const [sort, setSort] = useState({ k: '', dir: 1 })
 
   const load = useCallback(async () => {
@@ -698,13 +698,21 @@ export default function Activity() {
     const maps = ['main', 'sub'].filter((k) => mm.some((x) => x.map === k) || stats.some((x) => x.event_id === s.id && x.map === k))
     return { s, no: '•', maps, enemy: mm[0]?.enemy_guild || '' }
   }, [glInfo, glView, sessions, mapsMeta, stats])
+  // Riwayat GL per bulan (terbaru dulu), untuk dropdown
   const history = useMemo(() => {
-    const info = (s) => {
-      const mm = mapsMeta.filter((x) => x.event_id === s.id)
-      return { s, enemy: mm[0]?.enemy_guild || '', hasStats: stats.some((x) => x.event_id === s.id) }
+    const months = new Map()
+    for (const s of sessions) {
+      const t = new Date(s.starts_at)
+      const k = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`
+      if (!months.has(k)) months.set(k, { k, label: `${BULAN[t.getMonth()]} ${t.getFullYear()}`, list: [] })
+      const mm = mapsMeta.find((x) => x.event_id === s.id)
+      months.get(k).list.push({ s, enemy: mm?.enemy_guild || '', hasStats: stats.some((x) => x.event_id === s.id) })
     }
-    return groupByWeek(sessions).map((w) => ({ ...w, list: w.list.map(({ s, n }) => ({ ...info(s), n })) }))
+    return [...months.values()]
+      .sort((a, b) => b.k.localeCompare(a.k))
+      .map((m) => ({ ...m, list: m.list.sort((a, b) => new Date(b.s.starts_at) - new Date(a.s.starts_at)) }))
   }, [sessions, mapsMeta, stats])
+  const histSel = history.find((m) => m.k === histMonth) || history[0]
   const afkPerGl = useMemo(() => {
     const c = new Map()
     for (const r of rows) for (const h of r.hist) if (h.a === 'present' && h.idle) c.set(h.s.id, (c.get(h.s.id) || 0) + 1)
@@ -753,13 +761,6 @@ export default function Activity() {
 
       {glInfo.length > 0 && (
         <div className="act-gls">
-          <button type="button" className={`act-gl act-gl-hist ${histOpen ? 'is-on' : ''}`} onClick={() => setHistOpen((v) => !v)}>
-            <span className="act-gl-no">📜</span>
-            <div>
-              <b>Riwayat GL</b>
-              <div className="small muted">{`Semua GL (${sessions.length})`}</div>
-            </div>
-          </button>
           <button type="button" className={`act-gl act-gl-all ${glView == null ? 'is-on' : ''}`} onClick={() => setGlView(null)}>
             <span className="act-gl-no">Σ</span>
             <div>
@@ -796,35 +797,27 @@ export default function Activity() {
         </div>
       )}
 
-      {histOpen && (
-        <div className="card act-hist">
-          <div className="act-gldetail-head">
-            <h3 style={{ margin: 0 }}>Riwayat GL</h3>
-            <button className="btn btn-ghost btn-sm" onClick={() => setHistOpen(false)}>
-              Tutup
-            </button>
-          </div>
-          {history.map((w) => (
-            <div key={w.start.getTime()} className="act-hist-week">
-              <div className="small muted">{`Minggu ${w.label}`}</div>
-              <div className="act-hist-row">
-                {w.list.map((h) => (
-                  <button
-                    key={h.s.id}
-                    type="button"
-                    className={`act-hist-item ${glView === h.s.id ? 'is-on' : ''}`}
-                    onClick={() => {
-                      setGlView(h.s.id)
-                      setHistOpen(false)
-                    }}
-                  >
-                    <b>{`GL ${h.n} · ${glLabel(h.s.starts_at)}`}</b>
-                    <span className="small muted">{h.hasStats ? (h.enemy ? `vs ${h.enemy}` : 'Ada hasil war') : 'Absen saja (belum ada hasil war)'}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+      {history.length > 0 && (
+        <div className="act-histbar">
+          <span className="small muted">Riwayat GL</span>
+          <select value={histSel?.k || ''} onChange={(e) => setHistMonth(e.target.value)}>
+            {history.map((m) => (
+              <option key={m.k} value={m.k}>
+                {`${m.label} (${m.list.length})`}
+              </option>
+            ))}
+          </select>
+          <select
+            value={histSel?.list.some((h) => h.s.id === glView) ? String(glView) : ''}
+            onChange={(e) => setGlView(e.target.value ? Number(e.target.value) : null)}
+          >
+            <option value="">Pilih GL…</option>
+            {(histSel?.list || []).map((h) => (
+              <option key={h.s.id} value={h.s.id}>
+                {`${glLabel(h.s.starts_at)}${h.hasStats ? (h.enemy ? ` · vs ${h.enemy}` : '') : ' · absen saja'}`}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 

@@ -340,6 +340,7 @@ export const DICT = {
   'Riwayat GL': ['', 'Sejarah GL', 'GL history', 'ประวัติ GL', 'Kasaysayan ng GL'],
   'Tutup': ['', 'Tutup', 'Close', 'ปิด', 'Isara'],
   'Ada hasil war': ['', 'Ada keputusan perang', 'Has war result', 'มีผลวอร์', 'May resulta ng war'],
+  'Pilih GL…': ['', 'Pilih GL…', 'Pick a GL…', 'เลือก GL…', 'Pumili ng GL…'],
   'AFK di war terakhir': ['', 'AFK dalam perang terakhir', 'AFK in the last war', 'AFK ในวอร์ล่าสุด', 'AFK sa huling war'],
   'Belum dapat party': ['', 'Belum dapat parti', 'No party yet', 'ยังไม่มีปาร์ตี้', 'Wala pang party'],
   'Belum dapat party ·': ['', 'Belum dapat parti ·', 'No party yet ·', 'ยังไม่มีปาร์ตี้ ·', 'Wala pang party ·'],
@@ -752,6 +753,7 @@ export const DICT = {
 // Teks dinamis (berisi nama/angka). $1, $2 … = bagian yang diisi.
 // Format: [regex, [Indonesia, Melayu, English, ไทย, Filipino]]
 export const PATTERNS = [
+  [/^((?:Min|Sen|Sel|Rab|Kam|Jum|Sab) .+) · absen saja$/, ['', '$1 · kehadiran sahaja', '$1 · attendance only', '$1 · เช็คชื่อเท่านั้น', '$1 · attendance lang']],
   [/^Semua GL \((\d+)\)$/, ['', 'Semua GL ($1)', 'All GL ($1)', 'GL ทั้งหมด ($1)', 'Lahat ng GL ($1)']],
   [/^GL (\d) · (Min|Sen|Sel|Rab|Kam|Jum|Sab) (.+)$/, ['', 'GL $1 · $2 $3', 'GL $1 · $2 $3', 'GL $1 · $2 $3', 'GL $1 · $2 $3']],
   [/^Hapus GL (.+)\? Hasil war Main\/Sub dan kehadirannya ikut terhapus\. Tidak bisa dibatalkan\.$/, ['', 'Padam GL $1? Keputusan perang Main/Sub dan kehadirannya turut dipadam. Tidak boleh dibatalkan.', 'Delete GL $1? Its Main/Sub war results and attendance are deleted too. This cannot be undone.', 'ลบ GL $1? ผลวอร์ Main/Sub และการเช็คชื่อจะถูกลบด้วย ย้อนกลับไม่ได้', 'Burahin ang GL $1? Kasama ang resulta ng Main/Sub at attendance. Hindi na maibabalik.']],
