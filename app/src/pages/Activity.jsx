@@ -400,7 +400,7 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onCha
         )}
       </div>
 
-      <div className="table-wrap">
+      <div className="table-wrap act-scroll">
         <table className="table table-cards act-table act-gltable">
           <thead>
             <tr>
@@ -936,7 +936,7 @@ export default function Activity() {
             : 'Belum ada war Guild League yang dikonfirmasi.'}
       </p>
 
-      <div className="table-wrap card flush">
+      <div className="table-wrap card flush act-scroll">
         <table className="table table-cards act-table">
           <thead>
             <tr>

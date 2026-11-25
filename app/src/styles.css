@@ -1238,3 +1238,8 @@ td.is-focus { background: rgba(227,180,90,.05); font-weight: 600; }
 .act-war span { color: var(--muted, #8a8f9c); font-size: 11px; }
 .act-war.has-stats { border-color: rgba(227,180,90,.45); }
 .act-war.is-on { border-color: #e3b45a; background: rgba(227,180,90,.16); }
+/* Tabel aktivitas: judul kolom ikut turun saat di-scroll */
+.table-wrap.act-scroll { max-height: 78vh; overflow: auto; }
+.act-scroll thead th { position: sticky; top: 0; z-index: 3; background: var(--panel-2); box-shadow: 0 1px 0 var(--line, #2c2f3a); }
+.act-scroll thead th.is-focus { background: #2a2a2a; background: color-mix(in srgb, var(--panel-2) 88%, #e3b45a); }
+@media (max-width: 700px) { .table-wrap.act-scroll { max-height: none; overflow: visible; } }
