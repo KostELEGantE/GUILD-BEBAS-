@@ -120,7 +120,7 @@ export function debounce(fn, ms = 150) {
 }
 // Link Discord guild (BEBAS / SYNDICATE), dari guild.js
 export const DISCORD_URL = GUILD.discord
-export const APP_VERSION = '2.21'
+export const APP_VERSION = '2.22'
 // class yang bisa dipilih saat mendaftarkan karakter
 export const CLASSES = [
   'Lord Knight', 'Paladin', 'High Wizard', 'Professor', 'Scholar', 'High Priest', 'Champion', 'Sniper',

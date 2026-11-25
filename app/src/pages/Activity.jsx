@@ -157,11 +157,13 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onCha
       setMoving(false)
       await onChanged()
     }, 'Jadwal GL dipindah')
+  const [pendingRole, setPendingRole] = useState(null) // { r, role } menunggu konfirmasi
   const setRole = (r, role) =>
     run(async () => {
       await rpc('set_war_role', { p_event_id: g.s.id, p_map: r.maps[0], p_name: r.name, p_role: role || null })
+      setPendingRole(null)
       await onChanged()
-    })
+    }, 'Peran disimpan')
   const [map, setMap] = useState('all')
   const [filter, setFilter] = useState('')
   const [roleF, setRoleF] = useState('')
@@ -442,7 +444,7 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onCha
                       className={`role-select role-${r.role} ${r.fixed ? 'is-fixed' : ''}`}
                       value={r.fixed ? r.role : ''}
                       disabled={busy}
-                      onChange={(e) => setRole(r, e.target.value)}
+                      onChange={(e) => setPendingRole({ r, role: e.target.value })}
                       title={r.fixed ? `Dikoreksi moderator (otomatis: ${ROLE_LABEL[r.auto]})` : 'Otomatis dari hasil war — pilih untuk mengoreksi'}
                     >
                       <option value="">{`Auto · ${ROLE_LABEL[r.auto]}`}</option>
@@ -490,6 +492,89 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onCha
             )}
           </tbody>
         </table>
+      </div>
+      {pendingRole && (
+        <RolePreview
+          p={pendingRole}
+          mapAvg={mapAvgs[pendingRole.r.maps[0]]}
+          busy={busy}
+          onCancel={() => setPendingRole(null)}
+          onSave={() => setRole(pendingRole.r, pendingRole.role)}
+        />
+      )}
+    </div>
+  )
+}
+
+/** Perkiraan dampak sebelum peran dikoreksi: skor sekarang vs skor dengan peran baru */
+function RolePreview({ p, mapAvg, busy, onCancel, onSave }) {
+  const { r, role } = p
+  const target = role || r.auto
+  const label = { kills: 'Kill', assists: 'Assist', player_dmg: 'Damage', endure: 'Endure', heal: 'Heal', revives: 'Revive' }
+  const fmt = (k, v) => (['player_dmg', 'endure', 'heal'].includes(k) ? short(Math.round(v)) : (Math.round(v * 10) / 10).toLocaleString('id-ID'))
+  const n = mapAvg?.roleSize?.[target] || 0
+  const peer = n >= 3
+  const base = mapAvg ? (peer ? mapAvg.roleAvg[target] : mapAvg.overall) : {}
+  const parts = ROLE_KEYS[target].map((k) => {
+    const v = r.st?.[k] || 0
+    const b = base[k] > 0 ? base[k] : mapAvg?.overall?.[k] || 0
+    return { k, v, b, pct: b > 0 ? v / b : 0 }
+  })
+  const newScore = Math.max(0, ...parts.map((x) => x.pct))
+  const best = parts.reduce((a, x) => (x.pct > a.pct ? x : a), parts[0])
+  const afkNow = r.score < LOW_SCORE
+  const afkNew = newScore < LOW_SCORE
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal role-preview" onClick={(e) => e.stopPropagation()}>
+        <h3>{`Ganti peran ${r.name}?`}</h3>
+        <div className="role-preview-cmp">
+          <div>
+            <div className="small muted">Sekarang</div>
+            <span className={`role-tag role-${r.role}`}>{ROLE_LABEL[r.role]}</span>
+            <b className={afkNow ? 'text-red' : ''}>{`${Math.round(r.score * 100)}%`}</b>
+            {afkNow && <span className="pill pill-red">AFK</span>}
+          </div>
+          <div className="role-preview-arrow">→</div>
+          <div>
+            <div className="small muted">{role ? 'Jadi' : 'Kembali ke otomatis'}</div>
+            <span className={`role-tag role-${target}`}>{ROLE_LABEL[target]}</span>
+            <b className={afkNew ? 'text-red' : ''}>{`${Math.round(newScore * 100)}%`}</b>
+            {afkNew && <span className="pill pill-red">AFK</span>}
+          </div>
+        </div>
+        <div className="small">
+          {`${ROLE_LABEL[target]} dinilai dari ${ROLE_KEYS[target].map((k) => label[k]).join(', ')}, ${peer ? `dibanding rata-rata ${n} ${ROLE_LABEL[target]} di peta ini` : `dibanding rata-rata semua pemain (hanya ${n} ${ROLE_LABEL[target]} di peta ini)`}:`}
+        </div>
+        <table className="table compact role-preview-table">
+          <tbody>
+            {parts.map((x) => (
+              <tr key={x.k} className={x === best ? 'is-best' : ''}>
+                <td>{label[x.k]}</td>
+                <td className="num notranslate">{fmt(x.k, x.v)}</td>
+                <td className="num muted notranslate">{`÷ ${fmt(x.k, x.b)}`}</td>
+                <td className="num">
+                  <b>{`${Math.round(x.pct * 100)}%`}</b>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="small muted">
+          {afkNow && !afkNew
+            ? 'Setelah diganti, pemain ini tidak lagi dihitung AFK.'
+            : !afkNow && afkNew
+              ? 'Hati-hati: dengan peran ini pemain ini jadi dihitung AFK.'
+              : 'Perkiraan; rata-rata peran bisa sedikit berubah setelah disimpan.'}
+        </div>
+        <div className="modal-actions">
+          <button className="btn btn-ghost" onClick={onCancel}>
+            Batal
+          </button>
+          <button className="btn btn-gold" disabled={busy} onClick={onSave}>
+            Simpan peran
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -1243,3 +1243,12 @@ td.is-focus { background: rgba(227,180,90,.05); font-weight: 600; }
 .act-scroll thead th { position: sticky; top: 0; z-index: 3; background: var(--panel-2); box-shadow: 0 1px 0 var(--line, #2c2f3a); }
 .act-scroll thead th.is-focus { background: #2a2a2a; background: color-mix(in srgb, var(--panel-2) 88%, #e3b45a); }
 @media (max-width: 700px) { .table-wrap.act-scroll { max-height: none; overflow: visible; } }
+/* Pratinjau ganti peran */
+.role-preview { max-width: 440px; display: grid; gap: 10px; }
+.role-preview h3 { margin: 0; }
+.role-preview-cmp { display: flex; align-items: center; gap: 14px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,.03); }
+.role-preview-cmp > div { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.role-preview-cmp > div > .small { flex-basis: 100%; }
+.role-preview-cmp b { font-size: 18px; }
+.role-preview-arrow { font-size: 20px; color: #e3b45a; }
+.role-preview-table tr.is-best td { color: #e3b45a; }

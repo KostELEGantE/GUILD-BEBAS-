@@ -348,6 +348,14 @@ export const DICT = {
   'Building': ['', 'Building', 'Building', 'Building', 'Building'],
   'Monster': ['', 'Monster', 'Monster', 'Monster', 'Monster'],
   'Belum ada GL': ['', 'Belum ada GL', 'No GL yet', 'ยังไม่มี GL', 'Wala pang GL'],
+  'Sekarang': ['', 'Sekarang', 'Now', 'ตอนนี้', 'Ngayon'],
+  'Jadi': ['', 'Menjadi', 'Becomes', 'เปลี่ยนเป็น', 'Magiging'],
+  'Kembali ke otomatis': ['', 'Kembali ke automatik', 'Back to automatic', 'กลับเป็นอัตโนมัติ', 'Balik sa awtomatiko'],
+  'Simpan peran': ['', 'Simpan peranan', 'Save role', 'บันทึกบทบาท', 'I-save ang role'],
+  'Peran disimpan': ['', 'Peranan disimpan', 'Role saved', 'บันทึกบทบาทแล้ว', 'Na-save ang role'],
+  'Setelah diganti, pemain ini tidak lagi dihitung AFK.': ['', 'Selepas ditukar, pemain ini tidak lagi dikira AFK.', 'After the change, this player no longer counts as AFK.', 'หลังเปลี่ยน ผู้เล่นนี้จะไม่นับเป็น AFK', 'Pagkatapos palitan, hindi na AFK ang player na ito.'],
+  'Hati-hati: dengan peran ini pemain ini jadi dihitung AFK.': ['', 'Berhati-hati: dengan peranan ini pemain ini dikira AFK.', 'Careful: with this role the player counts as AFK.', 'ระวัง: บทบาทนี้ทำให้ผู้เล่นนับเป็น AFK', 'Ingat: sa role na ito, AFK ang player.'],
+  'Perkiraan; rata-rata peran bisa sedikit berubah setelah disimpan.': ['', 'Anggaran; purata peranan boleh berubah sedikit selepas disimpan.', 'Estimate; the role average may shift slightly after saving.', 'เป็นค่าประมาณ ค่าเฉลี่ยบทบาทอาจเปลี่ยนเล็กน้อยหลังบันทึก', 'Tantya lang; puwedeng bahagyang magbago ang average pagka-save.'],
   'AFK di war terakhir': ['', 'AFK dalam perang terakhir', 'AFK in the last war', 'AFK ในวอร์ล่าสุด', 'AFK sa huling war'],
   'Belum dapat party': ['', 'Belum dapat parti', 'No party yet', 'ยังไม่มีปาร์ตี้', 'Wala pang party'],
   'Belum dapat party ·': ['', 'Belum dapat parti ·', 'No party yet ·', 'ยังไม่มีปาร์ตี้ ·', 'Wala pang party ·'],
@@ -760,6 +768,9 @@ export const DICT = {
 // Teks dinamis (berisi nama/angka). $1, $2 … = bagian yang diisi.
 // Format: [regex, [Indonesia, Melayu, English, ไทย, Filipino]]
 export const PATTERNS = [
+  [/^Ganti peran (.+)\?$/, ['', 'Tukar peranan $1?', 'Change role of $1?', 'เปลี่ยนบทบาทของ $1?', 'Palitan ang role ni $1?']],
+  [/^(DPS|Tank|Healer) dinilai dari (.+), dibanding rata-rata (\d+) (?:DPS|Tank|Healer) di peta ini:$/, ['', '$1 dinilai daripada $2, berbanding purata $3 $1 di peta ini:', '$1 is scored on $2, vs the average of $3 $1s on this map:', '$1 วัดจาก $2 เทียบค่าเฉลี่ย $1 $3 คนในแผนที่นี้:', 'Ang $1 ay sinusukat sa $2, kumpara sa average ng $3 $1 sa mapang ito:']],
+  [/^(DPS|Tank|Healer) dinilai dari (.+), dibanding rata-rata semua pemain \(hanya (\d+) (?:DPS|Tank|Healer) di peta ini\):$/, ['', '$1 dinilai daripada $2, berbanding purata semua pemain (hanya $3 $1 di peta ini):', '$1 is scored on $2, vs the average of all players (only $3 $1s on this map):', '$1 วัดจาก $2 เทียบค่าเฉลี่ยผู้เล่นทั้งหมด (มี $1 แค่ $3 คน):', 'Ang $1 ay sinusukat sa $2, kumpara sa lahat (iilan lang: $3 $1):']],
   [/^War (\d)$/, ['', 'Perang $1', 'War $1', 'วอร์ $1', 'War $1']],
   [/^(\d+) GL$/, ['', '$1 GL', '$1 GL', '$1 GL', '$1 GL']],
   [/^(DPS|Tank|Healer) dinilai dari (.+)\. Skor = nilai terbaik pemain ÷ rata-rata sesama (?:DPS|Tank|Healer) di peta yang sama \(100% = rata-rata\)\. Di bawah 25% = AFK\.$/, ['', '$1 dinilai daripada $2. Skor = nilai terbaik pemain ÷ purata $1 lain di peta yang sama (100% = purata). Bawah 25% = AFK.', '$1 is scored on $2. Score = the player\'s best value ÷ the average of other $1s on the same map (100% = average). Under 25% = AFK.', '$1 วัดจาก $2 คะแนน = ค่าที่ดีที่สุด ÷ ค่าเฉลี่ยของ $1 คนอื่นในแผนที่เดียวกัน (100% = ค่าเฉลี่ย) ต่ำกว่า 25% = AFK', 'Ang $1 ay sinusukat sa $2. Score = pinakamagandang value ÷ average ng ibang $1 sa parehong mapa (100% = average). < 25% = AFK.']],
