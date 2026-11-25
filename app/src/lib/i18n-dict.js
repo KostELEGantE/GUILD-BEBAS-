@@ -347,6 +347,7 @@ export const DICT = {
   'MVP': ['', 'MVP', 'MVP', 'MVP', 'MVP'],
   'Building': ['', 'Building', 'Building', 'Building', 'Building'],
   'Monster': ['', 'Monster', 'Monster', 'Monster', 'Monster'],
+  'Belum ada GL': ['', 'Belum ada GL', 'No GL yet', 'ยังไม่มี GL', 'Wala pang GL'],
   'AFK di war terakhir': ['', 'AFK dalam perang terakhir', 'AFK in the last war', 'AFK ในวอร์ล่าสุด', 'AFK sa huling war'],
   'Belum dapat party': ['', 'Belum dapat parti', 'No party yet', 'ยังไม่มีปาร์ตี้', 'Wala pang party'],
   'Belum dapat party ·': ['', 'Belum dapat parti ·', 'No party yet ·', 'ยังไม่มีปาร์ตี้ ·', 'Wala pang party ·'],
@@ -759,6 +760,8 @@ export const DICT = {
 // Teks dinamis (berisi nama/angka). $1, $2 … = bagian yang diisi.
 // Format: [regex, [Indonesia, Melayu, English, ไทย, Filipino]]
 export const PATTERNS = [
+  [/^War (\d)$/, ['', 'Perang $1', 'War $1', 'วอร์ $1', 'War $1']],
+  [/^(\d+) GL$/, ['', '$1 GL', '$1 GL', '$1 GL', '$1 GL']],
   [/^(DPS|Tank|Healer) dinilai dari (.+)\. Skor = nilai terbaik pemain ÷ rata-rata sesama (?:DPS|Tank|Healer) di peta yang sama \(100% = rata-rata\)\. Di bawah 25% = AFK\.$/, ['', '$1 dinilai daripada $2. Skor = nilai terbaik pemain ÷ purata $1 lain di peta yang sama (100% = purata). Bawah 25% = AFK.', '$1 is scored on $2. Score = the player\'s best value ÷ the average of other $1s on the same map (100% = average). Under 25% = AFK.', '$1 วัดจาก $2 คะแนน = ค่าที่ดีที่สุด ÷ ค่าเฉลี่ยของ $1 คนอื่นในแผนที่เดียวกัน (100% = ค่าเฉลี่ย) ต่ำกว่า 25% = AFK', 'Ang $1 ay sinusukat sa $2. Score = pinakamagandang value ÷ average ng ibang $1 sa parehong mapa (100% = average). < 25% = AFK.']],
   [/^Rata-rata (\d+) (DPS|Tank|Healer):$/, ['', 'Purata $1 $2:', 'Average of $1 $2s:', 'ค่าเฉลี่ย $2 $1 คน:', 'Average ng $1 $2:']],
   [/^Hanya (\d+) (DPS|Tank|Healer), dibanding rata-rata semua pemain:$/, ['', 'Hanya $1 $2, berbanding purata semua pemain:', 'Only $1 $2, compared with all players:', 'มี $2 แค่ $1 คน เทียบค่าเฉลี่ยผู้เล่นทั้งหมด:', '$1 $2 lang, kumpara sa lahat ng player:']],

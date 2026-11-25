@@ -256,7 +256,7 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onCha
     })
   const total = (k) => rows.reduce((t, r) => t + (r.st?.[k] || 0), 0)
   const mapsAvail = ['main', 'sub'].filter((k) => stats.some((x) => x.map === k))
-  const COL_LABEL = { kills: 'Kill', assists: 'Assist', deaths: 'Mati', player_dmg: 'Damage', endure: 'Dmg diterima', heal: 'Heal', revives: 'Revive', building_dmg: 'Building', monsters: 'Monster', boss_dmg: 'MVP', flag_repair: 'Flag' }
+  const COL_LABEL = { kills: 'Kill', assists: 'Assist', deaths: 'Mati', player_dmg: 'Damage', endure: 'Endure', heal: 'Heal', revives: 'Revive', building_dmg: 'Building', monsters: 'Monster', boss_dmg: 'MVP', flag_repair: 'Flag' }
   const baseCols = ['kills', 'assists', 'deaths', 'player_dmg', 'endure', 'heal', 'revives']
   // Filter peran dipilih: kolom yang dinilai untuk peran itu dipindah ke depan (dan disorot)
   const focus = ROLES.includes(roleF) ? ROLE_KEYS[roleF] : roleF === 'obj' ? OBJECTIVE_KEYS.map(([k]) => k) : []
@@ -745,21 +745,36 @@ export default function Activity() {
     const maps = ['main', 'sub'].filter((k) => mm.some((x) => x.map === k) || stats.some((x) => x.event_id === s.id && x.map === k))
     return { s, no: '•', maps, enemy: mm[0]?.enemy_guild || '' }
   }, [glInfo, glView, sessions, mapsMeta, stats])
-  // Riwayat GL per bulan (terbaru dulu), untuk dropdown
-  const history = useMemo(() => {
-    const months = new Map()
-    for (const s of sessions) {
-      const t = new Date(s.starts_at)
-      const k = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`
-      if (!months.has(k)) months.set(k, { k, label: `${BULAN[t.getMonth()]} ${t.getFullYear()}`, list: [] })
-      const mm = mapsMeta.find((x) => x.event_id === s.id)
-      months.get(k).list.push({ s, enemy: mm?.enemy_guild || '', hasStats: stats.some((x) => x.event_id === s.id) })
+  // Riwayat GL: tombol bulan 1–12, lalu per minggu War 1/2/3
+  const histYears = useMemo(() => [...new Set(sessions.map((x) => new Date(x.starts_at).getFullYear()))].sort((a, b) => b - a), [sessions])
+  const [histYear, setHistYear] = useState(null)
+  const year = histYear ?? histYears[0] ?? new Date().getFullYear()
+  const monthCount = useMemo(() => {
+    const c = new Array(12).fill(0)
+    for (const x of sessions) {
+      const t = new Date(x.starts_at)
+      if (t.getFullYear() === year) c[t.getMonth()]++
     }
-    return [...months.values()]
-      .sort((a, b) => b.k.localeCompare(a.k))
-      .map((m) => ({ ...m, list: m.list.sort((a, b) => new Date(b.s.starts_at) - new Date(a.s.starts_at)) }))
-  }, [sessions, mapsMeta, stats])
-  const histSel = history.find((m) => m.k === histMonth) || history[0]
+    return c
+  }, [sessions, year])
+  const latestMonth = useMemo(() => {
+    for (let m = 11; m >= 0; m--) if (monthCount[m]) return m
+    return new Date().getMonth()
+  }, [monthCount])
+  const month = histMonth === '' ? latestMonth : Number(histMonth)
+  const histWeeks = useMemo(() => {
+    const inMonth = sessions.filter((x) => {
+      const t = new Date(x.starts_at)
+      return t.getFullYear() === year && t.getMonth() === month
+    })
+    return groupByWeek(inMonth).map((w) => ({
+      ...w,
+      list: w.list.map(({ s: ss, n }) => {
+        const mm = mapsMeta.find((x) => x.event_id === ss.id)
+        return { s: ss, n, enemy: mm?.enemy_guild || '', hasStats: stats.some((x) => x.event_id === ss.id) }
+      }),
+    }))
+  }, [sessions, year, month, mapsMeta, stats])
   const afkPerGl = useMemo(() => {
     const c = new Map()
     for (const r of rows) for (const h of r.hist) if (h.a === 'present' && h.idle) c.set(h.s.id, (c.get(h.s.id) || 0) + 1)
@@ -844,27 +859,56 @@ export default function Activity() {
         </div>
       )}
 
-      {history.length > 0 && (
-        <div className="act-histbar">
-          <span className="small muted">Riwayat GL</span>
-          <select value={histSel?.k || ''} onChange={(e) => setHistMonth(e.target.value)}>
-            {history.map((m) => (
-              <option key={m.k} value={m.k}>
-                {`${m.label} (${m.list.length})`}
-              </option>
+      {sessions.length > 0 && (
+        <div className="act-hist2">
+          <div className="act-hist2-months">
+            <span className="small muted">Riwayat GL</span>
+            {histYears.length > 1 && (
+              <select value={year} onChange={(e) => { setHistYear(Number(e.target.value)); setHistMonth('') }}>
+                {histYears.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            )}
+            {BULAN.map((b, i) => (
+              <button
+                key={b}
+                type="button"
+                disabled={!monthCount[i]}
+                className={`act-month ${month === i ? 'is-on' : ''}`}
+                onClick={() => setHistMonth(String(i))}
+                title={monthCount[i] ? `${monthCount[i]} GL` : 'Belum ada GL'}
+              >
+                {b}
+              </button>
             ))}
-          </select>
-          <select
-            value={histSel?.list.some((h) => h.s.id === glView) ? String(glView) : ''}
-            onChange={(e) => setGlView(e.target.value ? Number(e.target.value) : null)}
-          >
-            <option value="">Pilih GL…</option>
-            {(histSel?.list || []).map((h) => (
-              <option key={h.s.id} value={h.s.id}>
-                {`${glLabel(h.s.starts_at)}${h.hasStats ? (h.enemy ? ` · vs ${h.enemy}` : '') : ' · absen saja'}`}
-              </option>
-            ))}
-          </select>
+          </div>
+          {histWeeks.length > 0 && (
+            <div className="act-hist2-weeks">
+              {histWeeks
+                .slice()
+                .reverse()
+                .map((w) => (
+                  <div key={w.start.getTime()} className="act-hist2-week">
+                    <span className="small muted">{w.label}</span>
+                    {w.list.map((h) => (
+                      <button
+                        key={h.s.id}
+                        type="button"
+                        className={`act-war ${glView === h.s.id ? 'is-on' : ''} ${h.hasStats ? 'has-stats' : ''}`}
+                        onClick={() => setGlView(glView === h.s.id ? null : h.s.id)}
+                        title={`${glLabel(h.s.starts_at)}${h.enemy ? ` · vs ${h.enemy}` : ''}`}
+                      >
+                        <b>{`War ${h.n}`}</b>
+                        <span>{h.hasStats ? h.enemy || glLabel(h.s.starts_at) : glLabel(h.s.starts_at)}</span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+            </div>
+          )}
         </div>
       )}
 

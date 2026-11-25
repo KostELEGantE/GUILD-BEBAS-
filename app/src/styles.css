@@ -1221,3 +1221,20 @@ tr.is-miss-row td { background: rgba(170,130,255,.05); }
 .act-explain-line { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 th.is-focus { color: #e3b45a; background: rgba(227,180,90,.08); }
 td.is-focus { background: rgba(227,180,90,.05); font-weight: 600; }
+.act-gltable th.sortable { white-space: nowrap; }
+.act-gltable { min-width: max-content; }
+/* Riwayat GL: bulan 1-12 lalu War 1/2/3 per minggu */
+.act-hist2 { display: grid; gap: 6px; margin: 2px 0 10px; }
+.act-hist2-months { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.act-hist2-months .small { margin-right: 4px; }
+.act-hist2-months select { padding: 3px 6px; border-radius: 8px; font-size: 12px; }
+.act-month { padding: 3px 9px; border-radius: 8px; border: 1px solid var(--line, #2c2f3a); background: transparent; color: inherit; font-size: 12px; cursor: pointer; }
+.act-month:disabled { opacity: .3; cursor: default; }
+.act-month.is-on { border-color: #e3b45a; background: rgba(227,180,90,.16); color: #e3b45a; font-weight: 700; }
+.act-hist2-weeks { display: grid; gap: 4px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line, #2c2f3a); background: rgba(255,255,255,.02); width: fit-content; max-width: 100%; }
+.act-hist2-week { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.act-hist2-week > .small { min-width: 110px; }
+.act-war { display: inline-flex; gap: 6px; align-items: baseline; padding: 3px 10px; border-radius: 8px; border: 1px solid var(--line, #2c2f3a); background: transparent; color: inherit; font-size: 12px; cursor: pointer; }
+.act-war span { color: var(--muted, #8a8f9c); font-size: 11px; }
+.act-war.has-stats { border-color: rgba(227,180,90,.45); }
+.act-war.is-on { border-color: #e3b45a; background: rgba(227,180,90,.16); }
