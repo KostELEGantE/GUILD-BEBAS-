@@ -319,7 +319,7 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onCha
     }
     const keys = ROLE_KEYS[roleF]
     return {
-      head: `${ROLE_LABEL[roleF]} dinilai dari ${keys.map((k) => COL_LABEL[k]).join(', ')}. Skor = nilai terbaik pemain ÷ rata-rata sesama ${ROLE_LABEL[roleF]} di peta yang sama (100% = rata-rata). Di bawah 25% = AFK.`,
+      head: `${ROLE_LABEL[roleF]} dinilai dari ${keys.map((k) => COL_LABEL[k]).join(', ')}. Tiap kategori = nilai pemain ÷ rata-rata sesama ${ROLE_LABEL[roleF]} di peta yang sama; skor = rata-rata semua kategori itu (100% = rata-rata). Di bawah 25% = AFK.`,
       lines: maps.map((mk) => {
         const a = mapAvgs[mk]
         const n = a.roleSize?.[roleF] || 0
@@ -446,7 +446,7 @@ function GlDetail({ g, members, att, stats, meta, search, weekAfk, onBack, onCha
               <SortTh k="status" sort={sort} setSort={setSort}>Status</SortTh>
               <SortTh k="map" sort={sort} setSort={setSort}>Peta</SortTh>
               <SortTh k="role" sort={sort} setSort={setSort} title="Ditentukan otomatis dari angka hasil war (bukan dari job)">Peran</SortTh>
-              <SortTh k="score" num sort={sort} setSort={setSort} title="Kategori terbaik dibanding rata-rata pemain di peta yang sama (Main dan Sub terpisah)">Skor</SortTh>
+              <SortTh k="score" num sort={sort} setSort={setSort} title="Rata-rata semua kategori perannya dibanding pemain di peta yang sama (Main dan Sub terpisah)">Skor</SortTh>
               <SortTh k="obj" sort={sort} setSort={setSort} title="Aktivitas tambahan (Building, Monster, MVP, Flag). Tidak dihitung ke skor.">Objective</SortTh>
               <SortTh k="afkweek" num sort={sort} setSort={setSort} title={`AFK dalam minggu ${weekLabel(weekStart(g.s.starts_at).getTime())}`}>AFK/mgg</SortTh>
               {cols.map(([k, l]) => (
@@ -555,8 +555,8 @@ function RolePreview({ p, mapAvg, busy, onCancel, onSave }) {
     const b = base[k] > 0 ? base[k] : mapAvg?.overall?.[k] || 0
     return { k, v, b, pct: b > 0 ? v / b : 0 }
   })
-  const newScore = Math.max(0, ...parts.map((x) => x.pct))
-  const best = parts.reduce((a, x) => (x.pct > a.pct ? x : a), parts[0])
+  const counted = parts.filter((x) => x.b > 0)
+  const newScore = counted.length ? counted.reduce((t, x) => t + x.pct, 0) / counted.length : 0
   const afkNow = r.score < LOW_SCORE
   const afkNew = newScore < LOW_SCORE
   return (
@@ -584,7 +584,7 @@ function RolePreview({ p, mapAvg, busy, onCancel, onSave }) {
         <table className="table compact role-preview-table">
           <tbody>
             {parts.map((x) => (
-              <tr key={x.k} className={x === best ? 'is-best' : ''}>
+              <tr key={x.k}>
                 <td>{label[x.k]}</td>
                 <td className="num notranslate">{fmt(x.k, x.v)}</td>
                 <td className="num muted notranslate">{`÷ ${fmt(x.k, x.b)}`}</td>
@@ -594,6 +594,14 @@ function RolePreview({ p, mapAvg, busy, onCancel, onSave }) {
               </tr>
             ))}
           </tbody>
+          <tfoot>
+            <tr className="is-best">
+              <td colSpan={3} className="notranslate">{`Skor = (${counted.map((x) => `${Math.round(x.pct * 100)}%`).join(' + ')}) ÷ ${counted.length}`}</td>
+              <td className="num">
+                <b>{`${Math.round(newScore * 100)}%`}</b>
+              </td>
+            </tr>
+          </tfoot>
         </table>
         <div className="small muted">
           {afkNow && !afkNew
@@ -1117,7 +1125,7 @@ export default function Activity() {
       <p className="muted small">
         {winSessions.length
           ? `${winSessions.length} war dihitung: ${dateFmt(winSessions[winSessions.length - 1].starts_at)} – ${dateFmt(winSessions[0].starts_at)}. ` +
-            'Tidak aktif = hadir < 50% atau absen 2 war terakhir. Aktif = hadir ≥ 75%. Peran (DPS/Tank/Healer) ditentukan otomatis dari angka hasil war dan bisa dikoreksi moderator. Skor = kategori terbaik perannya dibanding rata-rata sesama peran di peta itu; Main dan Sub dihitung terpisah (100% = rata-rata). Objective (Building, Monster, MVP, Flag) hanya status khusus, tidak masuk skor. Skor di bawah 25% = AFK. Absent = tidak ada di hasil war atau tidak tercatat (status sendiri, skor 0, bukan AFK). 1x AFK masih dimaklumi, baru "Perlu dicek" kalau 2x atau lebih. AFK tidak dihitung kalau musuh tidak ada.'
+            'Tidak aktif = hadir < 50% atau absen 2 war terakhir. Aktif = hadir ≥ 75%. Peran (DPS/Tank/Healer) ditentukan otomatis dari angka hasil war dan bisa dikoreksi moderator. Skor = rata-rata semua kategori perannya, masing-masing dibanding rata-rata sesama peran di peta itu; Main dan Sub dihitung terpisah (100% = rata-rata). Objective (Building, Monster, MVP, Flag) hanya status khusus, tidak masuk skor. Skor di bawah 25% = AFK. Absent = tidak ada di hasil war atau tidak tercatat (status sendiri, skor 0, bukan AFK). 1x AFK masih dimaklumi, baru "Perlu dicek" kalau 2x atau lebih. AFK tidak dihitung kalau musuh tidak ada.'
           : loading
             ? 'Memuat…'
             : 'Belum ada war Guild League yang dikonfirmasi.'}

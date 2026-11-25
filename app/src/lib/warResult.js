@@ -138,7 +138,7 @@ export const playerRole = (r, avg) =>
 /** Peran hasil deteksi otomatis saja (untuk ditampilkan di samping koreksi) */
 export const autoRole = (r, avg) => avg.autoOf?.get(keyName(r)) || detectRole(r, avg.activeAvg || avg)
 /**
- * Skor = kategori terbaik pemain di antara kategori perannya, dibanding rata-rata sesama perannya di peta itu
+ * Skor = rata-rata semua kategori perannya (masing-masing ÷ rata-rata sesama perannya di peta itu), dibanding rata-rata sesama perannya di peta itu
  * (100% = rata-rata peran itu). Peran yang pemainnya kurang dari 3 dibanding rata-rata semua pemain di peta itu.
  * Objective tidak dihitung.
  */
@@ -147,12 +147,14 @@ export function activityScore(r, avg) {
   const keys = ROLE_KEYS[role]
   const overall = avg.overall || avg
   const base = avg.roleSize && avg.roleSize[role] >= MIN_PEERS ? avg.roleAvg[role] : overall
-  let best = 0
+  // rata-rata dari semua kategori perannya (kategori yang rata-ratanya 0 di peta itu dilewati)
+  let sum = 0
+  let n = 0
   for (const k of keys) {
     const b = base[k] > 0 ? base[k] : overall[k]
-    if (b > 0) best = Math.max(best, (r[k] || 0) / b)
+    if (b > 0) { sum += (r[k] || 0) / b; n++ }
   }
-  return best
+  return n ? sum / n : 0
 }
 /** Ringkasan musuh di satu peta: guild lain dengan pemain terbanyak */
 export function enemySummary(rows, ourGuild) {
