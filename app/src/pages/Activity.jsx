@@ -1014,7 +1014,7 @@ export default function Activity() {
               <div className="small muted">Ringkasan periode</div>
             </div>
           </button>
-          {glInfo.map((g) => (
+          {glInfo.slice(0, 5).map((g) => (
             <button
               type="button"
               key={g.s.id}
@@ -1043,6 +1043,9 @@ export default function Activity() {
         </div>
       )}
 
+      {glInfo.length > 5 && (
+        <p className="small muted act-more-gl">{`Menampilkan 5 GL terakhir. ${glInfo.length - 5} GL lainnya: lihat di Riwayat GL di bawah.`}</p>
+      )}
       {sessions.length > 0 && (
         <div className="act-hist2">
           <div className="act-hist2-months">

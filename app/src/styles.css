@@ -1258,3 +1258,4 @@ td.is-focus { background: rgba(227,180,90,.05); font-weight: 600; }
 .act-hlcols > button:not(.btn) { border: 1px solid var(--line, #333); background: transparent; color: inherit; border-radius: 999px; padding: 3px 11px; font-size: 12.5px; cursor: pointer; }
 .act-hlcols > button.is-on { border-color: #e3b45a; background: rgba(227,180,90,.16); color: #e3b45a; font-weight: 600; }
 .act-hlonly { display: inline-flex; align-items: center; gap: 5px; margin-left: 6px; cursor: pointer; }
+.act-more-gl { margin: -4px 0 4px; }
