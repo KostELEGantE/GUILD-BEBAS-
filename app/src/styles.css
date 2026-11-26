@@ -1259,3 +1259,23 @@ td.is-focus { background: rgba(227,180,90,.05); font-weight: 600; }
 .act-hlcols > button.is-on { border-color: #e3b45a; background: rgba(227,180,90,.16); color: #e3b45a; font-weight: 600; }
 .act-hlonly { display: inline-flex; align-items: center; gap: 5px; margin-left: 6px; cursor: pointer; }
 .act-more-gl { margin: -4px 0 4px; }
+/* Mode screenshot: roster bersih tanpa tombol untuk dibagikan */
+.shot-mode .side-panel,
+.shot-mode .bench-card,
+.shot-mode .add-party,
+.shot-mode .join-count,
+.shot-mode .party-menu-btn,
+.shot-mode .join-check,
+.shot-mode .slot-actions,
+.shot-mode .slot-lock,
+.shot-mode .leader-line .mini-btn,
+.shot-mode .slot-reserved .icon-btn,
+.shot-mode .section-tag,
+.shot-mode .shot-btn { display: none !important; }
+.section-title .shot-btn { margin-left: auto; font-size: 12.5px; }
+.shot-capture { padding: 12px; border-radius: 12px; }
+.shot-capture .party-grid { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
+.shot-mode .slot-empty { pointer-events: none; color: transparent; }
+.shot-mode .party-name-input { pointer-events: none; border-color: transparent; background: transparent; }
+.shot-mode .leader-empty { visibility: hidden; }
+.shot-capture .party-name-input, .shot-capture .party-name { font-family: system-ui, "Segoe UI", sans-serif; font-weight: 700; }

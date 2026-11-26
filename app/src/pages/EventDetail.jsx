@@ -19,6 +19,59 @@ export default function EventDetail({ id, initialTab }) {
   const [parties, setParties] = useState([])
   const [signups, setSignups] = useState([])
   const [tab, setTab] = useState('party')
+  const [shooting, setShooting] = useState(null) // nama bagian yang sedang difoto
+  /** Foto roster satu bagian (Main / Sub) tanpa tombol, lalu bagikan / salin / unduh */
+  const photoSection = async (el, name) => {
+    if (!el) return
+    setShooting(name)
+    el.classList.add('shot-mode', 'shot-capture')
+    const bg = getComputedStyle(document.body).backgroundColor || '#15171d'
+    // gambar dibuat sambil langsung diserahkan ke clipboard (harus di klik yang sama supaya browser mengizinkan)
+    const blobP = import('html-to-image')
+      .then(({ toBlob }) => toBlob(el, { backgroundColor: bg, pixelRatio: 2, skipFonts: true, cacheBust: true }))
+      .then((b) => {
+        if (!b) throw new Error('gagal membuat gambar')
+        return b
+      })
+    const fname = `${(ev.title || 'roster').replace(/[^\w\- ]+/g, '').trim() || 'roster'} - ${name}.png`
+    const download = (blob) => {
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = fname
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000)
+    }
+    const mobile = /Android|iPhone|iPad/i.test(navigator.userAgent)
+    let copyP = null
+    if (!mobile && navigator.clipboard?.write && window.ClipboardItem) {
+      try {
+        copyP = navigator.clipboard.write([new ClipboardItem({ 'image/png': blobP })])
+      } catch {
+        copyP = null
+      }
+    }
+    try {
+      const blob = await blobP
+      if (mobile) {
+        const file = new File([blob], fname, { type: 'image/png' })
+        if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: `${ev.title} · ${name}` }).catch(() => {})
+        else download(blob)
+      } else {
+        let copied = false
+        if (copyP) copied = await copyP.then(() => true, () => false)
+        if (copied) toast(`Foto ${name} sudah disalin, tinggal Ctrl+V di Discord`)
+        else {
+          download(blob)
+          toast(`Foto ${name} diunduh (browser tidak mengizinkan salin otomatis)`)
+        }
+      }
+    } catch (e) {
+      toast(`Gagal mengambil foto: ${e.message || e}`, 'error')
+    } finally {
+      el.classList.remove('shot-mode', 'shot-capture')
+      setShooting(null)
+    }
+  }
   const [editing, setEditing] = useState(false)
   const [myChar, setMyChar] = useState(null)
   const [picked, setPicked] = useState(null) // member_id yang sedang dipindah
@@ -867,16 +920,11 @@ export default function EventDetail({ id, initialTab }) {
             </p>
           )}
           {isBoard && (
-            <p className="muted">Susunan tetap yang dipakai setiap war. Setelah war selesai, admin cukup klik Konfirmasi war.</p>
+            <p className="muted">Susunan tetap yang dipakai setiap war. Kehadiran dan keaktifan dicatat lewat menu Aktivitas GL.</p>
           )}
           {ev.notes && <p className="note">📌 {ev.notes}</p>}
         </div>
         <div className="row gap-sm wrap">
-          {isBoard && isAdmin && (
-            <button className="btn btn-gold" disabled={busy} onClick={confirmWar}>
-              ✓ Konfirmasi war
-            </button>
-          )}
           {isBoard && ev.mode === 'guild_league' && (
             <button className={`btn ${tab === 'strategy' ? 'btn-gold' : 'btn-strat'}`} onClick={() => setTab(tab === 'strategy' ? 'party' : 'strategy')}>
               {tab === 'strategy' ? '← Kembali ke susunan party' : '🗺 Strategi perang'}
@@ -1137,6 +1185,15 @@ export default function EventDetail({ id, initialTab }) {
                 <section key={sec.from}>
                   <h2 className="section-title">
                     {`${sec.name} · ${sec.count}/${sec.parties * size}`}
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm shot-btn"
+                      disabled={!!shooting}
+                      title="Ambil foto roster bagian ini (tanpa tombol) untuk dibagikan"
+                      onClick={(e) => photoSection(e.currentTarget.closest('section'), sec.name)}
+                    >
+                      {shooting === sec.name ? '⏳ Memotret…' : `📸 Foto ${sec.name}`}
+                    </button>
                     {isBoard && sec.attend && <span className="section-tag">dihitung hadir</span>}
                     {noHealerIn(sec) > 0 && <span className="section-tag warn">⚠ {noHealerIn(sec)} party tanpa healer</span>}
                   </h2>
@@ -1414,25 +1471,6 @@ function WarHistory({ board }) {
 
   return (
     <div className="stack">
-      {isAdmin && (
-        <div className="card">
-          <h3>Konfirmasi war</h3>
-          <p className="muted small">
-            Semua orang di bagian yang ditandai <b>dihitung hadir</b> saat ini tercatat <b>hadir</b>, dan susunan party disimpan ke riwayat. Kalau ada
-            yang ternyata tidak ikut, buka sesinya lalu ubah statusnya (Tidak hadir / Izin) di tab Kehadiran.
-          </p>
-          <div className="row gap-sm wrap">
-            <label className="row gap-sm small">
-              Waktu war
-              <input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} />
-            </label>
-            <button className="btn btn-gold" disabled={busy} onClick={confirmAt}>
-              ✓ Konfirmasi war
-            </button>
-          </div>
-        </div>
-      )}
-
       <div className="card flush">
         {rows === null ? (
           <p className="muted pad">Memuat…</p>
@@ -2044,14 +2082,6 @@ function ClearBoardModal({ count, inParty, leaders, attend, busy, onClose, onCle
           </button>
         </div>
         <p>{`Semua ${count} pemain (${inParty} di party) dikeluarkan supaya semua bisa daftar ulang. Nama party tetap.`}</p>
-        {attend && (
-          <div className="banner banner-warn">
-            <span>Papan ini dihitung kehadiran. Klik ✓ Konfirmasi war dulu kalau kehadiran war ini belum disimpan.</span>{' '}
-            <button className="btn btn-sm" onClick={onConfirmWar}>
-              Buka riwayat war
-            </button>
-          </div>
-        )}
         {leaders > 0 && (
           <label className="mp-row">
             <input type="checkbox" checked={keepLeaders} onChange={(e) => setKeepLeaders(e.target.checked)} />
