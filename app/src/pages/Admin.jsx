@@ -27,10 +27,47 @@ export default function Admin() {
         </div>
       </div>
       {isSuper && <UsagePanel />}
+      <GuildSettings />
       <ImportMembers />
       <ImportHistory />
       <AdminUsers />
       <GuildList />
+    </div>
+  )
+}
+
+/** Pengaturan siapa yang boleh membuka papan Guild League */
+function GuildSettings() {
+  const { glAccess, reloadSettings } = useApp()
+  const [run, busy] = useAction()
+  const opts = [
+    ['import', 'Hanya member hasil import', 'Akun harus punya karakter yang ada di import member terakhir. Ex-member dan karakter buatan sendiri yang belum diimport tidak bisa melihat roster.'],
+    ['char', 'Semua yang punya karakter', 'Akun cukup mendaftarkan karakter sendiri di Akun saya (belum perlu ada di import).'],
+    ['all', 'Semua akun yang login', 'Tidak wajib karakter: siapa pun yang login bisa melihat papan Guild League (masuk party tetap perlu karakter).'],
+  ]
+  return (
+    <div className="card">
+      <h2>
+        Akses papan Guild League <span className="mod-pill">🛡 Khusus moderator</span>
+      </h2>
+      <p className="muted small">Siapa yang boleh melihat roster, susunan party, dan strategi perang Guild League. Moderator selalu bisa melihat.</p>
+      <div className="access-opts">
+        {opts.map(([k, label, desc]) => (
+          <label key={k} className={`access-opt ${glAccess === k ? 'is-on' : ''}`}>
+            <input
+              type="radio"
+              name="gl_access"
+              checked={glAccess === k}
+              disabled={busy}
+              onChange={() => run(() => rpc('set_gl_access', { p: k }), 'Pengaturan disimpan').then(reloadSettings)}
+            />
+            <span>
+              <b>{label}</b>
+              <span className="small muted">{desc}</span>
+            </span>
+          </label>
+        ))}
+      </div>
     </div>
   )
 }
@@ -40,7 +77,7 @@ function ImportMembers() {
   const [run, busy] = useAction()
   const [file, setFile] = useState(null)
   const [parsed, setParsed] = useState(null)
-  const [deactivate, setDeactivate] = useState(false)
+  const deactivate = true // setiap import: karakter yang tidak ada di file otomatis jadi "Bukan member"
   const [result, setResult] = useState(null)
   const [showUnchanged, setShowUnchanged] = useState(false)
   const [renames, setRenames] = useState({}) // member_id lama -> nama baru di file
@@ -275,10 +312,10 @@ function ImportMembers() {
               <p className="small">
                 <b>{diff.missing.length} member aktif tidak ada di file ini:</b> {diff.missing.map((m) => m.name).join(', ')}
               </p>
-              <label className="row gap-sm small">
-                <input type="checkbox" checked={deactivate} onChange={(e) => setDeactivate(e.target.checked)} />
-                Tandai mereka sebagai <b>tidak aktif</b> (keluar guild). Data dan riwayat kehadiran tetap tersimpan.
-              </label>
+              <p className="small muted">
+                Setelah import, mereka otomatis berstatus <b>Bukan member</b>. Data dan riwayatnya tetap tersimpan, dan statusnya kembali jadi member
+                kalau namanya muncul lagi di import berikutnya.
+              </p>
             </div>
           )}
 
@@ -617,7 +654,7 @@ function AdminUsers() {
                             <span className="muted">{` · ${m.class || '–'} · ${m.role || '–'} · Lv ${m.level ?? '–'} · GS ${fmtNum(m.gear_score)}`}</span>
                             {!m.last_import_at && <span className="pill">tidak ada di daftar guild</span>}
                             {m.prev_names?.length > 0 && <span className="muted notranslate">{` ↩ ${m.prev_names.join(', ')}`}</span>}
-                            {!m.active && <span className="muted"> (tidak aktif)</span>}
+                            {!m.active && <span className="pill pill-grey">Bukan member</span>}
                             <button title="Lepas klaim" disabled={busy} onClick={() => unclaim(p, m)}>
                               ✕
                             </button>

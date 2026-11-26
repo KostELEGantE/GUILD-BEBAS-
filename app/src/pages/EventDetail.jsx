@@ -14,7 +14,7 @@ import ScreenshotFill from '../components/ScreenshotFill.jsx'
 import StrategyBoard from '../components/StrategyBoard.jsx'
 
 export default function EventDetail({ id, initialTab }) {
-  const { members, myMembers, activeMember, setActiveId, isAdmin: isMod, toast, groupByMember, groups, user, isMonitor } = useApp()
+  const { members, myMembers, activeMember, setActiveId, isAdmin: isMod, toast, groupByMember, groups, user, isMonitor, canSeeGL, glAccess } = useApp()
   const [ev, setEv] = useState(null)
   const [parties, setParties] = useState([])
   const [signups, setSignups] = useState([])
@@ -829,17 +829,24 @@ export default function EventDetail({ id, initialTab }) {
   }
 
   // papan Guild League hanya untuk akun yang sudah mengklaim karakter guild
-  if (ev.mode === 'guild_league' && !isMod && myMembers.length === 0)
+  if (ev.mode === 'guild_league' && !isMod && !canSeeGL)
     return (
       <div className="locked-board card">
         <div className="lock-icon">🔒</div>
         <h2>Guild League hanya untuk anggota guild</h2>
-        <p className="muted">
-          Akun ini belum mendaftarkan karakter. Buka <a href="#/me">Akun saya</a> lalu isi data karakter Anda.
-          Setelah itu papan Guild League, susunan party, dan strategi perang bisa dibuka.
-        </p>
+        {myMembers.length === 0 ? (
+          <p className="muted">
+            Akun ini belum punya karakter member guild. Buka <a href="#/me">Akun saya</a> lalu isi data karakter Anda.
+            {glAccess === 'import' ? ' Papan baru terbuka setelah karakter Anda tercatat di daftar member guild oleh moderator.' : ' Setelah itu papan Guild League, susunan party, dan strategi perang bisa dibuka.'}
+          </p>
+        ) : (
+          <p className="muted">
+            Karakter Anda belum tercatat di daftar member guild. Papan Guild League terbuka setelah moderator mengimport daftar member yang
+            memuat karakter Anda.
+          </p>
+        )}
         <a className="btn btn-gold" href="#/me">
-          Daftarkan karakter saya
+          Buka Akun saya
         </a>
       </div>
     )
@@ -939,13 +946,13 @@ export default function EventDetail({ id, initialTab }) {
             Salin untuk Discord
           </button>
           {isAdmin && signups.length > 0 && (
-            <button className="btn btn-ghost btn-clear-board" onClick={() => setClearAsk(true)} title="Kosongkan semua party supaya semua bisa daftar ulang">
+            <button className="btn btn-ghost btn-clear-board mod-only" onClick={() => setClearAsk(true)} title="Khusus moderator · Kosongkan semua party supaya semua bisa daftar ulang">
               🧹 Kosongkan papan
             </button>
           )}
           {isAdmin && (
             <>
-              <select value={ev.status} onChange={(e) => setStatus(e.target.value)} className="select-sm" title="Status">
+              <select value={ev.status} onChange={(e) => setStatus(e.target.value)} className="select-sm mod-only" title="Khusus moderator · Status event">
                 {Object.entries(STATUS_LABEL)
                   .filter(([k]) => !isBoard || k !== 'done')
                   .map(([k, v]) => (
@@ -954,11 +961,11 @@ export default function EventDetail({ id, initialTab }) {
                     </option>
                   ))}
               </select>
-              <button className="btn btn-ghost" onClick={() => setEditing((v) => !v)}>
+              <button className="btn btn-ghost mod-only" title="Khusus moderator" onClick={() => setEditing((v) => !v)}>
                 Ubah
               </button>
               {(!isBoard || isMod) && (
-                <button className="btn btn-danger" onClick={del}>
+                <button className="btn btn-danger mod-only" title="Khusus moderator" onClick={del}>
                   Hapus
                 </button>
               )}
@@ -1726,6 +1733,7 @@ function SlotFilled({ m, group, mine, picked, dragging, drag, drop, over, swapTa
         <div className="slot-name notranslate">{m.name}</div>
         {(over || swapTarget) && <div className="slot-swap-hint">⇄ Tukar</div>}
         <div className="slot-sub">
+          {!m.active ? <span className="pill pill-grey slot-ex" title="Tidak ada di import member terakhir">Bukan member</span> : null}
           {m.class ?? '–'} · {fmtNum(m.gear_score)}
         </div>
       </div>

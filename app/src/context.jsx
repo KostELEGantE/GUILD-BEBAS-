@@ -35,6 +35,15 @@ export function AppProvider({ session, children }) {
     setMembers(data)
   }, [])
 
+  // pengaturan guild (akses papan GL)
+  const [settings, setSettings] = useState({ gl_access: 'char' })
+  const loadSettings = useCallback(async () => {
+    try {
+      const { data } = await supabase.from('guild_settings').select('*').eq('id', 1).maybeSingle()
+      if (data) setSettings(data)
+    } catch {}
+  }, [])
+
   const loadGroups = useCallback(async () => {
     const data = await q(supabase.from('groups').select('*, group_members(member_id, added_at)').order('name'))
     setGroups(data)
@@ -47,7 +56,7 @@ export function AppProvider({ session, children }) {
         const prof = await q(supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle())
         if (alive) setProfile(prof)
         if (prof?.banned_at) return // akun diblokir: data guild tidak dimuat
-        await Promise.all([loadMembers(), loadGroups().catch(() => {})])
+        await Promise.all([loadMembers(), loadGroups().catch(() => {}), loadSettings()])
       } catch (e) {
         if (alive) toast(e.message, 'err')
       } finally {
@@ -57,7 +66,7 @@ export function AppProvider({ session, children }) {
     return () => {
       alive = false
     }
-  }, [loadProfile, loadMembers, loadGroups, toast])
+  }, [loadProfile, loadMembers, loadGroups, loadSettings, toast])
 
   // Realtime: party fix, klaim karakter, role, ganti nama, import -> langsung terlihat semua orang
   useEffect(() => {
@@ -93,6 +102,13 @@ export function AppProvider({ session, children }) {
   }, [groups])
 
   const myMembers = members.filter((m) => m.user_id === session.user.id && m.active)
+  // semua karakter milik akun ini, termasuk yang sudah "Bukan member" (tidak ada di import member terakhir)
+  const myAllMembers = members.filter((m) => m.user_id === session.user.id)
+  const isAdminP = !!profile?.is_admin
+  /** Boleh membuka papan Guild League? (diatur moderator di menu Admin) */
+  const glAccess = settings?.gl_access || 'char'
+  const canSeeGL =
+    isAdminP || glAccess === 'all' || (glAccess === 'import' ? myMembers.some((m) => m.last_import_at) : myMembers.length > 0)
 
   // karakter yang sedang dipakai (satu login bisa punya beberapa akun game)
   const activeKey = `activeChar:${session.user.id}`
@@ -123,7 +139,12 @@ export function AppProvider({ session, children }) {
     isMonitor: !!profile?.is_monitor,
     members,
     myMembers,
+    myAllMembers,
     activeMember,
+    settings,
+    reloadSettings: loadSettings,
+    glAccess,
+    canSeeGL,
     setActiveId,
     loading,
     toast,

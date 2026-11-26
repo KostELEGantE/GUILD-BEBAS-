@@ -61,8 +61,9 @@ function Shell() {
     ['events', 'Event & Party', '⚔', 'Event'],
     ['groups', 'Party Fix', '🤝', 'Party Fix'],
     ['me', 'Akun saya', '👤', 'Akun'],
-    ...(isAdmin ? [['activity', 'Aktivitas GL', '📈', 'Aktif GL']] : []),
-    ...(isAdmin ? [['admin', 'Admin', '⚙', 'Admin']] : []),
+    // item ke-5 = true: khusus moderator (diberi tanda MOD supaya jelas member biasa tidak melihatnya)
+    ...(isAdmin ? [['activity', 'Aktivitas GL', '📈', 'Aktif GL', true]] : []),
+    ...(isAdmin ? [['admin', 'Admin', '⚙', 'Admin', true]] : []),
   ]
 
   let content
@@ -90,12 +91,18 @@ function Shell() {
           </span>
         </a>
         <nav className="nav">
-          {nav.map(([k, label, icon, short]) => (
-            <a key={k} href={`#/${k}`} className={activeNav === k ? 'active' : ''}>
+          {nav.map(([k, label, icon, short, mod]) => (
+            <a
+              key={k}
+              href={`#/${k}`}
+              className={`${activeNav === k ? 'active' : ''} ${mod ? 'mod-only' : ''}`}
+              title={mod ? 'Khusus moderator: member biasa tidak melihat menu ini' : undefined}
+            >
               <span className="nav-icon" aria-hidden="true">
                 {icon}
               </span>
               <span className="nav-label">{label}</span>
+              {mod && <span className="mod-tag">MOD</span>}
               <span className="nav-short">{short}</span>
             </a>
           ))}

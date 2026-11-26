@@ -76,7 +76,8 @@ export function CharForm({ initial, submitLabel, onSubmit, onCancel, busy, cance
 }
 
 export default function MyAccount() {
-  const { myMembers, profile, reloadMembers, activeMember, setActiveId, isMonitor } = useApp()
+  const { myMembers, myAllMembers, profile, reloadMembers, activeMember, setActiveId, isMonitor } = useApp()
+  const exChars = myAllMembers.filter((m) => !m.active)
   const [run, busy] = useAction()
   const [editing, setEditing] = useState(null)
   const [adding, setAdding] = useState(false)
@@ -183,6 +184,21 @@ export default function MyAccount() {
         </div>
       ))}
 
+      {exChars.length > 0 && (
+        <div className="card ex-chars">
+          <h3>Karakter yang bukan member lagi</h3>
+          <p className="muted small">Karakter ini tidak ada di daftar member guild terakhir yang diimport moderator. Datanya tetap tersimpan dan statusnya kembali otomatis kalau namanya muncul lagi di import berikutnya.</p>
+          {exChars.map((m) => (
+            <div key={m.id} className="char-row">
+              <JobIcon m={m} size={36} />
+              <div className="grow">
+                <b className="notranslate">{m.name}</b> <span className="pill pill-grey">Bukan member</span>
+                <div className="muted small">{`${m.class || '–'} · Lv ${m.level ?? '–'} · CP ${fmtNum(m.gear_score)}`}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       {isMonitor ? null : showAdd ? (
         <div className="card">
           <h3>{mine.length ? 'Tambah akun game lain' : 'Daftarkan akun game Anda'}</h3>

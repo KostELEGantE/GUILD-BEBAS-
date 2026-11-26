@@ -12,6 +12,7 @@ const STATUS = {
   afk: { label: 'Perlu dicek (AFK)', cls: 'pill-orange', rank: 1 },
   inactive: { label: 'Tidak aktif', cls: 'pill-red', rank: 0 },
   nodata: { label: 'Belum ada data', cls: '', rank: 3 },
+  left: { label: 'Bukan member', cls: 'pill-grey', rank: -1 },
 }
 /** Musuh aktif sebanyak ini atau kurang di satu peta = dianggap tidak ada musuh (AFK tidak dihitung) */
 const NO_ENEMY_MAX = 4
@@ -762,8 +763,9 @@ export default function Activity() {
     const withStatsSessions = new Set(stats.filter((s) => winIds.has(s.event_id)).map((s) => s.event_id))
     // GL yang punya catatan kehadiran (tanpa hasil war): pemain aktif yang tidak tercatat = tidak hadir
     const withAttSessions = new Set(att.filter((a) => winIds.has(a.event_id)).map((a) => a.event_id))
+    // ex-member (tidak ada di import member terakhir) tetap tampil kalau punya data di periode ini, dengan status "Bukan member"
     return members
-      .filter((m) => m.active)
+      .filter((m) => m.active || byMember.has(m.id))
       .map((m) => {
         const d = byMember.get(m.id) || { att: new Map(), stats: new Map() }
         const hist = chrono.map((s) => {
@@ -814,6 +816,7 @@ export default function Activity() {
           else if (pct >= 0.75) st = 'active'
           else st = 'low'
         }
+        if (!m.active) st = 'left'
         // AFK per minggu (Sen–Min): berapa kali AFK dari GL yang punya hasil war di minggu itu
         const weekAfk = new Map()
         for (const h of hist) {
@@ -830,8 +833,8 @@ export default function Activity() {
         // AFK di war terakhir yang punya data hasil (1x dimaklumi, tapi tetap ditampilkan)
         const lastWithStats = [...hist].reverse().find((h) => h.st)
         const lastGl = [...hist].reverse().find((h) => h.st || h.missed || h.noshow)
-        const lastAfk = !!(lastGl && lastGl.a === 'present' && lastGl.idle)
-        const lastMissed = !!(lastGl?.missed || lastGl?.noshow)
+        const lastAfk = m.active && !!(lastGl && lastGl.a === 'present' && lastGl.idle)
+        const lastMissed = m.active && !!(lastGl?.missed || lastGl?.noshow)
         return {
           m,
           hist,
@@ -863,7 +866,7 @@ export default function Activity() {
   const anyFilter = !!(search || fClass || fMap || fGlSt || fScore || status)
   const resetFilters = () => { setSearch(''); setFClass(''); setFMap(''); setFGl(''); setFGlSt(''); setFScore(''); setStatus('') }
   const counts = useMemo(() => {
-    const c = { active: 0, low: 0, afk: 0, inactive: 0, nodata: 0, lastafk: 0, lastmiss: 0 }
+    const c = { active: 0, low: 0, afk: 0, inactive: 0, nodata: 0, left: 0, lastafk: 0, lastmiss: 0 }
     for (const r of rows) c[r.st]++
     c.lastafk = rows.filter((r) => r.lastAfk).length
     c.lastmiss = rows.filter((r) => r.lastMissed).length
@@ -940,7 +943,9 @@ export default function Activity() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Aktivitas Guild League</h1>
+          <h1>
+            Aktivitas Guild League <span className="mod-pill" title="Halaman ini hanya terlihat oleh moderator">🛡 Khusus moderator</span>
+          </h1>
           <p className="muted">
             Cek siapa yang aktif di Guild League dari kehadiran dan hasil war di game (kill, damage, heal). Pemain yang masuk peta tapi tidak
             melakukan apa-apa ditandai AFK.
@@ -1005,7 +1010,7 @@ export default function Activity() {
       </div>
 
       <div className="act-tiles">
-        {['active', 'low', 'afk', 'inactive', 'nodata', 'lastafk', 'lastmiss'].map((k) => (
+        {['active', 'low', 'afk', 'inactive', 'nodata', 'lastafk', 'lastmiss', ...(counts.left ? ['left'] : [])].map((k) => (
           <button key={k} className={`act-tile ${status === k ? 'is-on' : ''} act-${k}`} onClick={() => setStatus(status === k ? '' : k)}>
             <b>{counts[k]}</b>
             <span>{k === 'lastafk' ? 'AFK di war terakhir' : k === 'lastmiss' ? 'Absent di GL terakhir' : STATUS[k].label}</span>

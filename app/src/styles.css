@@ -1279,3 +1279,23 @@ td.is-focus { background: rgba(227,180,90,.05); font-weight: 600; }
 .shot-mode .party-name-input { pointer-events: none; border-color: transparent; background: transparent; }
 .shot-mode .leader-empty { visibility: hidden; }
 .shot-capture .party-name-input, .shot-capture .party-name { font-family: system-ui, "Segoe UI", sans-serif; font-weight: 700; }
+/* Penanda fitur khusus moderator (member biasa tidak melihatnya) */
+.mod-only { outline: 1px dashed rgba(167, 139, 250, .75); outline-offset: 2px; position: relative; }
+.btn.mod-only::after {
+  content: 'MOD'; position: absolute; top: -7px; right: -6px; font: 800 8.5px/1 system-ui, sans-serif; letter-spacing: .4px;
+  padding: 2px 4px; border-radius: 5px; background: #8b5cf6; color: #fff; pointer-events: none;
+}
+.mod-pill { display: inline-block; vertical-align: middle; margin-left: 8px; font: 700 11px/1 system-ui, sans-serif; padding: 4px 8px; border-radius: 999px; background: rgba(139, 92, 246, .18); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, .5); }
+.mod-tag { font: 800 8.5px/1 system-ui, sans-serif; letter-spacing: .4px; padding: 2px 4px; border-radius: 5px; background: #8b5cf6; color: #fff; margin-left: 5px; vertical-align: 2px; }
+.nav a.mod-only { outline-offset: -2px; }
+/* Status "Bukan member" (tidak ada di import member terakhir) */
+.pill.pill-grey { background: rgba(148, 155, 170, .16); color: #aab1bf; border: 1px solid rgba(148, 155, 170, .35); }
+.slot-ex { font-size: 9.5px; padding: 1px 5px; margin-right: 4px; vertical-align: 1px; }
+.act-tile.act-left b { color: #aab1bf; }
+.ex-chars .char-row { padding: 6px 0; border-top: 1px solid var(--line, #2a2d36); }
+/* Pengaturan akses papan GL */
+.access-opts { display: grid; gap: 8px; margin-top: 8px; }
+.access-opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line, #2a2d36); border-radius: 10px; cursor: pointer; }
+.access-opt > span { display: flex; flex-direction: column; gap: 2px; }
+.access-opt.is-on { border-color: #e3b45a; background: rgba(227, 180, 90, .08); }
+.access-opt input { margin-top: 3px; }
