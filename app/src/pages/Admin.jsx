@@ -208,9 +208,10 @@ function ImportMembers() {
           {base.missing.length > 0 && base.added.length > 0 && (
             <div className="notice">
               <p className="small">
-                <b>Ganti nama?</b> Karakter di bawah tidak ada di file, tapi ada nama baru yang mirip (class, gender, level,
-                kontribusi). Kalau benar orang yang sama, pilih nama barunya: karakter lama akan <b>diganti nama</b>, dan klaim
-                akun, party fix, posisi party, serta riwayat kehadirannya tetap tersimpan.
+                <b>Ganti nama?</b> Karakter di bawah tidak ada di file. Nama baru dicocokkan dari kontribusi (tidak di-reset saat
+                ganti nama, mulai dari 0 kalau baru masuk guild), aktivitas mingguan, level, dan CP; job dan gender boleh berubah.
+                Kalau benar orang yang sama, pilih nama barunya: karakter lama akan <b>diganti nama</b>, dan klaim akun, party fix,
+                posisi party, serta riwayat kehadirannya tetap tersimpan.
               </p>
               <div className="table-wrap">
                 <table className="table compact">
@@ -225,10 +226,10 @@ function ImportMembers() {
                   <tbody>
                     {base.missing.map((m) => {
                       const taken = new Set(Object.entries(renames).filter(([k, v]) => v && Number(k) !== m.id).map(([, v]) => v))
-                      const opts = base.added
-                        .filter((r) => !taken.has(r.name))
-                        .sort((a, b) => Number(b.class === m.class) - Number(a.class === m.class) || a.name.localeCompare(b.name))
+                      const sc = (r) => renameEvidence(m, r)?.score ?? Infinity
+                      const opts = base.added.filter((r) => !taken.has(r.name)).sort((a, b) => sc(a) - sc(b) || a.name.localeCompare(b.name))
                       const sel = base.added.find((r) => r.name === renames[m.id])
+                      const ev = sel ? renameEvidence(m, sel) : null
                       return (
                         <tr key={m.id} className={renames[m.id] ? 'row-mine' : ''}>
                           <td>
@@ -239,6 +240,10 @@ function ImportMembers() {
                           <td className="num">
                             {fmtNum(m.total_contribution)}
                             {sel && <span className="muted"> → {fmtNum(sel.total_contribution)}</span>}
+                            {ev?.exact && <div><span className="pill pill-green" title="Kenaikan kontribusi total = kenaikan kontribusi mingguan">✓ kontribusi cocok</span></div>}
+                            {ev?.jobChanged && <div><span className="pill pill-gold">{`job berubah: ${m.class} → ${sel.class}`}</span></div>}
+                            {ev?.genderChanged && <div><span className="pill pill-gold">gender berubah</span></div>}
+                            {sel && !ev && <div><span className="pill pill-red" title="Kontribusi/level tidak cocok untuk ganti nama">data tidak cocok</span></div>}
                           </td>
                           <td>
                             <select
@@ -248,7 +253,7 @@ function ImportMembers() {
                               <option value="">— bukan ganti nama —</option>
                               {opts.map((r) => (
                                 <option key={r.name} value={r.name}>
-                                  {r.name} · {r.class} · Lv {r.level}
+                                  {`${r.name} · ${r.class} · Lv ${r.level}${renameEvidence(m, r) ? '' : ' · (tidak cocok)'}`}
                                 </option>
                               ))}
                             </select>
@@ -712,27 +717,59 @@ function AdminUsers() {
  * Syarat: class sama, gender sama (jika ada), level & kontribusi total tidak turun.
  * Pasangan dengan selisih kontribusi terkecil dipilih lebih dulu.
  */
-export function guessRenames(missing, added) {
+/** Minggu (Senin 00:00 WIB) dari sebuah waktu, untuk membandingkan kontribusi/aktivitas mingguan */
+const weekKeyWIB = (t) => {
+  if (!t) return null
+  const d = new Date(new Date(t).getTime() + 7 * 3600e3) // geser ke WIB
+  const dow = (d.getUTCDay() + 6) % 7 // Senin = 0
+  return Math.floor((d.getTime() - dow * 86400e3) / 86400e3)
+}
+
+/**
+ * Bukti ganti nama antara karakter lama (hilang dari file) dan nama baru di file.
+ * Aturan:
+ *  1. Total kontribusi = kontribusi mingguan  -> orang baru masuk guild (kontribusi mulai dari 0), bukan ganti nama.
+ *  2. Minggu sama: kenaikan total = kenaikan mingguan (dan aktivitas mingguan tidak turun) -> pasti ganti nama.
+ *  3. Beda minggu: kenaikan total harus >= kontribusi mingguan baru.
+ *  Nilai = kenaikan total + selisih CP / 5 (/ 10 kalau job berubah). Job & gender boleh berubah (hanya ditandai).
+ * Hasil null = tidak mungkin orang yang sama.
+ */
+export function renameEvidence(m, r, now = Date.now()) {
   const num = (v) => (v === '' || v == null ? null : Number(v))
+  const t1 = num(r.total_contribution), w1 = num(r.weekly_contribution), a1 = num(r.weekly)
+  if (t1 != null && w1 != null && t1 <= w1) return null // baru masuk guild
+  const lv0 = num(m.level), lv1 = num(r.level)
+  if (lv0 != null && lv1 != null && lv1 < lv0) return null
+  const t0 = num(m.total_contribution), w0 = num(m.weekly_contribution), a0 = num(m.weekly)
+  if (t0 != null && t1 != null && t1 < t0) return null
+  const sameWeek = m.last_import_at && weekKeyWIB(m.last_import_at) === weekKeyWIB(now)
+  let exact = false
+  if (sameWeek) {
+    if (a0 != null && a1 != null && a1 < a0) return null // aktivitas mingguan tidak mungkin turun di minggu yang sama
+    if (w0 != null && w1 != null && w1 < w0) return null
+    exact = t0 != null && t1 != null && w0 != null && w1 != null && t1 - t0 === w1 - w0
+  } else if (t0 != null && t1 != null && w1 != null && t1 - t0 < w1) return null
+  const jobChanged = !!(m.class && r.class && m.class !== r.class)
+  const genderChanged = !!(m.gender && r.gender && m.gender !== r.gender)
+  const g0 = num(m.gear_score), g1 = num(r.gear_score)
+  const cp = g0 != null && g1 != null ? Math.abs(g1 - g0) / (jobChanged ? 10 : 5) : 1000
+  const score = exact ? 0 : (t0 != null && t1 != null ? t1 - t0 : 5000) + cp
+  if (score > 20000) return null
+  return { score, exact, jobChanged, genderChanged }
+}
+
+export function guessRenames(missing, added, now = Date.now()) {
   const pairs = []
-  for (const m of missing) {
+  for (const m of missing)
     for (const r of added) {
-      if (!m.class || r.class !== m.class) continue
-      if (m.gender && r.gender && m.gender !== r.gender) continue
-      const lv0 = num(m.level), lv1 = num(r.level)
-      if (lv0 != null && lv1 != null && lv1 < lv0) continue
-      const t0 = num(m.total_contribution), t1 = num(r.total_contribution)
-      if (t0 != null && t1 != null && t1 < t0) continue
-      const g0 = num(m.gear_score), g1 = num(r.gear_score)
-      const score = (t0 != null && t1 != null ? t1 - t0 : 5000) + (g0 != null && g1 != null ? Math.abs(g1 - g0) / 5 : 1000)
-      pairs.push({ m, r, score })
+      const ev = renameEvidence(m, r, now)
+      if (ev) pairs.push({ m, r, score: ev.score })
     }
-  }
   pairs.sort((a, b) => a.score - b.score)
   const out = {}
   const used = new Set()
-  for (const { m, r, score } of pairs) {
-    if (out[m.id] || used.has(r.name) || score > 20000) continue
+  for (const { m, r } of pairs) {
+    if (out[m.id] || used.has(r.name)) continue
     out[m.id] = r.name
     used.add(r.name)
   }
