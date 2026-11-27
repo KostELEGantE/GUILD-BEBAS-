@@ -140,6 +140,17 @@ function ImportMembers() {
       added: base.added.filter((r) => !newNames.has(nameKey(r.name))),
       missing: base.missing.filter((m) => !renamedIds.has(m.id)),
       renamed: base.missing.filter((m) => renamedIds.has(m.id)).map((m) => ({ m, to: renames[m.id] })),
+      // ganti job: nama sama tapi class beda, atau ganti nama sekaligus ganti job
+      jobs: [
+        ...base.changed
+          .filter(({ ch }) => ch.some((c) => c.label === 'Class' && c.from && c.to))
+          .map(({ r, ch }) => ({ name: r.name, from: ch.find((c) => c.label === 'Class').from, to: r.class })),
+        ...base.missing
+          .filter((m) => renamedIds.has(m.id))
+          .map((m) => ({ m, r: base.added.find((x) => x.name === renames[m.id]) }))
+          .filter(({ m, r }) => r && m.class && r.class && m.class !== r.class)
+          .map(({ m, r }) => ({ name: r.name, prev: m.name, from: m.class, to: r.class })),
+      ],
     }
   }, [base, renames])
 
@@ -199,11 +210,27 @@ function ImportMembers() {
               <div className="stat-value">{diff.renamed.length}</div>
               <div className="stat-label">Ganti nama</div>
             </div>
+            <div className={`stat ${diff.jobs.length ? 'stat-gold' : ''}`}>
+              <div className="stat-value">{diff.jobs.length}</div>
+              <div className="stat-label">Ganti job</div>
+            </div>
             <div className="stat stat-red">
               <div className="stat-value">{diff.missing.length}</div>
               <div className="stat-label">Tidak ada di file</div>
             </div>
           </div>
+
+          {diff.jobs.length > 0 && (
+            <div className="notice notice-job">
+              <p className="small">
+                <b>{`🔄 Ganti job (${diff.jobs.length}):`}</b>{' '}
+                <span className="notranslate">
+                  {diff.jobs.map((j) => `${j.name}${j.prev ? ` (dulu ${j.prev})` : ''}: ${j.from} → ${j.to}`).join(', ')}
+                </span>
+              </p>
+              <p className="small muted">Peran mereka (DPS/Tank/Healer) ikut disesuaikan dengan job baru. Cek susunan party kalau perlu.</p>
+            </div>
+          )}
 
           {base.missing.length > 0 && base.added.length > 0 && (
             <div className="notice">
@@ -420,7 +447,8 @@ function ImportHistory() {
               const nNew = c?.new?.length ?? 0
               const nLeft = c?.left?.length ?? 0
               const nRen = c?.renamed?.length ?? 0
-              const has = nNew + nLeft + nRen > 0
+              const nJob = c?.jobs?.length ?? 0
+              const has = nNew + nLeft + nRen + nJob > 0
               return (
                 <Fragment key={r.id}>
                   <tr className={has ? 'import-row clickable' : 'import-row'} onClick={() => has && setOpen(open === r.id ? null : r.id)}>
@@ -437,6 +465,7 @@ function ImportHistory() {
                           {nNew > 0 && <span className="pill pill-green">{`+${nNew} baru`}</span>}
                           {nLeft > 0 && <span className="pill pill-red">{`−${nLeft} keluar`}</span>}
                           {nRen > 0 && <span className="pill pill-gold">{`${nRen} ganti nama`}</span>}
+                          {nJob > 0 && <span className="pill pill-blue">{`${nJob} ganti job`}</span>}
                           <span className="muted small">{open === r.id ? '▲' : '▼'}</span>
                         </span>
                       )}
@@ -445,22 +474,52 @@ function ImportHistory() {
                   {open === r.id && (
                     <tr className="import-detail">
                       <td colSpan={5}>
-                        {nNew > 0 && (
-                          <div>
-                            <b className="green">{`Member baru (${nNew}):`}</b> <span className="notranslate">{c.new.join(', ')}</span>
-                          </div>
-                        )}
-                        {nLeft > 0 && (
-                          <div>
-                            <b className="red">{`Keluar / tidak ada di file (${nLeft}):`}</b> <span className="notranslate">{c.left.join(', ')}</span>
-                          </div>
-                        )}
-                        {nRen > 0 && (
-                          <div>
-                            <b className="gold">{`Ganti nama (${nRen}):`}</b>{' '}
-                            <span className="notranslate">{c.renamed.map((x) => `${x.from} → ${x.to}`).join(', ')}</span>
-                          </div>
-                        )}
+                        <div className="imp-changes">
+                          {nNew > 0 && (
+                            <section className="imp-grp imp-new">
+                              <h4>{`➕ Member baru · ${nNew}`}</h4>
+                              <div className="imp-chips notranslate">
+                                {c.new.map((n) => (
+                                  <span key={n} className="imp-chip">{n}</span>
+                                ))}
+                              </div>
+                            </section>
+                          )}
+                          {nLeft > 0 && (
+                            <section className="imp-grp imp-left">
+                              <h4>{`➖ Keluar / tidak ada di file · ${nLeft}`}</h4>
+                              <div className="imp-chips notranslate">
+                                {c.left.map((n) => (
+                                  <span key={n} className="imp-chip">{n}</span>
+                                ))}
+                              </div>
+                            </section>
+                          )}
+                          {nRen > 0 && (
+                            <section className="imp-grp imp-ren">
+                              <h4>{`✏️ Ganti nama · ${nRen}`}</h4>
+                              <div className="imp-chips notranslate">
+                                {c.renamed.map((x) => (
+                                  <span key={x.from + x.to} className="imp-chip">
+                                    <span className="muted">{x.from}</span> → <b>{x.to}</b>
+                                  </span>
+                                ))}
+                              </div>
+                            </section>
+                          )}
+                          {nJob > 0 && (
+                            <section className="imp-grp imp-job">
+                              <h4>{`🔄 Ganti job · ${nJob}`}</h4>
+                              <div className="imp-chips notranslate">
+                                {c.jobs.map((x) => (
+                                  <span key={x.name} className="imp-chip">
+                                    <b>{x.name}</b> <span className="muted">{x.from}</span> → {x.to}
+                                  </span>
+                                ))}
+                              </div>
+                            </section>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )}
